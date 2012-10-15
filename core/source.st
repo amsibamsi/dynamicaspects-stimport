@@ -2,6 +2,52 @@ SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
+!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
+
 Object subclass: #DAAdviceWrapper
 	instanceVariableNames: 'metaObject selector reifications context'
 	classVariableNames: ''
@@ -256,10 +302,10 @@ links
 		self link: name.
 	].! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:09'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/8/2007 13:26'!
 pointcut: aSymbol
 
-	^ self perform: (aSymbol, #:) asSymbol with: DAPointcutBuilder.! !
+	^ self perform: (aSymbol, #':') asSymbol with: DAPointcutBuilder.! !
 
 !DAAspect methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:05'!
 pointcuts
@@ -280,6 +326,25 @@ uninstall
 		pointcut _ self pointcut: link key.
 		pointcut nodes do: [ :node | node removeAllLinks. ].
 	]."! !
+
+DAAspect subclass: #DATestAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
+An aspect to run tests on.!
+
+!DATestAspect class methodsFor: 'examples' stamp: 'as 10/8/2007 10:28'!
+example1
+
+	^ 1.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/8/2007 13:19'!
+p1: builder
+
+	^ (builder execution: 'example1') class: 'DATestAspect class'.! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:05'!
 adviceNames
@@ -403,6 +468,16 @@ children: aCollection
 		children: aCollection;
 		yourself.! !
 
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 10/8/2007 12:06'!
+child
+
+	^ children first.! !
+
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 10/17/2007 16:23'!
+children
+
+	^ children.! !
+
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 16:40'!
 children: aCollection
 
@@ -423,43 +498,33 @@ visitName
 	^ 'or'.! !
 
 DACompositePointcut subclass: #DAWithinPointcut
-	instanceVariableNames: 'category class'
+	instanceVariableNames: 'categoryString classString'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DAWithinPointcut commentStamp: 'as 9/26/2007 15:25' prior: 0!
-Specify a location within categories, classes and methods.!
+!DAWithinPointcut commentStamp: 'as 10/8/2007 11:14' prior: 0!
+Specify a location within categories and classes.!
 
-!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:47'!
+!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 10/17/2007 16:14'!
 categories
 
-	^ self categoriesMatching: category.! !
+	^ self categoriesMatching: categoryString.! !
 
-!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:45'!
-category
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 10/17/2007 16:13'!
+categoryString: aString
 
-	^ category ifNil: [ category _ '*'. ].! !
+	categoryString _ aString ifNil: [ '*'. ].! !
 
-!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:44'!
-category: aString
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 10/17/2007 16:13'!
+classString: aString
 
-	category _ aString.! !
+	classString _ aString ifNil: [ '*'. ].! !
 
-!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:46'!
-class
-
-	^ class ifNil: [ class _ '*'. ].! !
-
-!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:45'!
-class: aString
-
-	class _ aString.! !
-
-!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:47'!
+!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 10/17/2007 16:14'!
 classes
 
-	^ self classesMatching: self class inCategoriesMatching: category.! !
+	^ self classesMatching: classString inCategoriesMatching: categoryString.! !
 
 !DAWithinPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:35'!
 visitName
@@ -467,7 +532,7 @@ visitName
 	^ 'within'.! !
 
 DAPointcut subclass: #DAMethodExecutionPointcut
-	instanceVariableNames: 'methodString'
+	instanceVariableNames: 'methodString classString'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
@@ -475,32 +540,38 @@ DAPointcut subclass: #DAMethodExecutionPointcut
 !DAMethodExecutionPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
 A method that is being executed.!
 
-!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 9/18/2007 15:33'!
-methods: aString
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 10/17/2007 15:05'!
+method: methodString class: classString
 
 	^ self new
-		methodString: aString;
+		methodString: methodString;
+		classString: classString;
 		yourself.! !
 
-!DAMethodExecutionPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:34'!
+!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 10/17/2007 15:52'!
+classString: aString
+
+	classString _ aString.! !
+
+!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:34'!
 methodString: aString
 
 	methodString _ aString.! !
 
-!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:34'!
+!DAMethodExecutionPointcut methodsFor: 'evaluating' stamp: 'as 10/17/2007 15:50'!
 methods
 
-	^ self methodsMatching: methodString inClassesMatching: '*' inCategoriesMatching: '*'.! !
+	^ self methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: '*'.! !
 
 !DAMethodExecutionPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:37'!
 visitName
 
 	^ 'methodExecution'.! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:43'!
+!DAPointcut methodsFor: 'visiting' stamp: 'as 10/17/2007 11:26'!
 acceptVisitor: aDAPointcutVisitor
 
-	aDAPointcutVisitor perform: ('visit', self visitName capitalized) asSymbol with: self.! !
+	aDAPointcutVisitor perform: ('visit', self visitName capitalized, ':') asSymbol with: self.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 16:46'!
 and: aDAPointcut
@@ -512,17 +583,17 @@ categoriesMatching: aString
 
 	^ SystemOrganization categoriesMatching: aString.! !
 
-!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:02'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 10/17/2007 16:01'!
 category: aString
 
 	^ self category: aString class: nil.! !
 
-!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:02'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 10/17/2007 16:22'!
 category: categoryString class: classString
 
 	^ (DAWithinPointcut child: self)
-		category: categoryString;
-		class: classString;
+		categoryString: categoryString;
+		classString: classString;
 		yourself.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:03'!
@@ -530,11 +601,14 @@ class: aString
 
 	^ self category: nil class: aString.! !
 
-!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:20'!
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 10/17/2007 14:55'!
 classesInCategory: aSymbol
 
+	"Does currently not work for traits."
+
 	^ (SystemOrganization listAtCategoryNamed: aSymbol)
-		collect: [ :each | Smalltalk at: each. ].! !
+		collect: [ :each | Smalltalk at: each. ]
+		thenSelect: [ :each | each isTrait not. ].! !
 
 !DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:40'!
 classesMatching: aString in: aCollection
@@ -585,10 +659,15 @@ Object subclass: #DAPointcutBuilder
 !DAPointcutBuilder commentStamp: 'as 9/26/2007 15:24' prior: 0!
 A convenience class with class-side shortcuts for creating pointcuts.!
 
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:09'!
+!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/17/2007 16:44'!
 execution: aString
 
-	^ DAMethodExecutionPointcut methods: aString.! !
+	"Format of aString: '<class> <method>', with standard string wildcards."
+
+	| subStrings |
+	subStrings _ aString subStrings.
+	^ DAMethodExecutionPointcut method: subStrings second class: subStrings first.
+	! !
 
 Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
@@ -643,11 +722,16 @@ control: aSymbol
 
 	control _ aSymbol.! !
 
-!DANodeCollector methodsFor: 'initialize-release' stamp: 'as 10/2/2007 16:01'!
+!DANodeCollector methodsFor: 'initialize-release' stamp: 'as 10/9/2007 17:00'!
 initialize
 
-	nodes _ Set new.
-	reifications _ OrderedCollection new.! !
+	reifications _ OrderedCollection new.
+	self initializeNodes.! !
+
+!DANodeCollector methodsFor: 'initialize-release' stamp: 'as 10/9/2007 17:00'!
+initializeNodes
+
+	nodes _ Set new.! !
 
 !DANodeCollector methodsFor: 'accessing' stamp: 'as 9/26/2007 15:10'!
 nodes
@@ -665,62 +749,43 @@ visitMethodExecution: pointcut
 	self addNodes:
 		(pointcut methods collect: [ :each | each methodNode. ]).! !
 
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/17/2007 11:21'!
+visitWithin: pointcut
+
+	| tmpNodes classes |
+	tmpNodes _ nodes.
+	classes _ pointcut classes.
+	self initializeNodes.
+	pointcut children do: [ :child | child acceptVisitor: self. ].
+	nodes _ nodes select: [
+		:node |
+		classes includes: node method methodClass.
+	].
+	nodes addAll: tmpNodes.! !
+
 !DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 9/18/2007 17:43'!
 visit: aDAPointcut
 
 	aDAPointcut acceptVisitor: self.! !
 
-!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
-defineClass: defString notifying: aController  
-	"The receiver's textual content is a request to define a new class. The
-	source code is defString. If any errors occur in compilation, notify
-	aController."
-	| oldClass class newClassName defTokens keywdIx envt |
-	oldClass _ self selectedClassOrMetaClass.
-	defTokens _ defString findTokens: Character separators.
-	
-	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
-		or: [defTokens second = 'classTrait'])
-		ifTrue: [^self defineTrait: defString notifying: aController].
-		
-	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
-	envt _ Smalltalk.
-	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
-	
-	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
-	 but 'subaspect' instead."
-	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
-	
-	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
-	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
-		and: [envt includesKey: newClassName asSymbol]) ifTrue:
-			["Attempting to define new class over existing one when
-				not looking at the original one in this browser..."
-			(self confirm: ((newClassName , ' is an existing class in this system.
-Redefining it might cause serious problems.
-Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
-				ifFalse: [^ false]].
-	"ar 8/29/1999: Use oldClass superclass for defining oldClass
-	since oldClass superclass knows the definerClass of oldClass."
-	oldClass ifNotNil:[oldClass _ oldClass superclass].
-	class _ oldClass subclassDefinerClass
-				evaluate: defString
-				notifying: aController
-				logged: true.
-	(class isKindOf: Behavior)
-		ifTrue: [self changed: #systemCategoryList.
-				self changed: #classList.
-				self clearUserEditFlag.
-				self setClass: class selector: nil.
-				"self clearUserEditFlag; editClass."
-				^ true]
-		ifFalse: [^ false]! !
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/9/2007 16:48'!
+visitMethodExecution: aDAMethodExecutionPointcut
+
+	self subclassResponsibility.! !
+
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/9/2007 16:48'!
+visitWithin: aDAWithinPointcut
+
+	self subclassResponsibility.! !
 
 TestCase subclass: #DAAdviceWrapperTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
+
+!DAAdviceWrapperTest commentStamp: 'as 10/8/2007 10:18' prior: 0!
+Testing DAAdviceWrapper.!
 
 !DAAdviceWrapperTest methodsFor: 'testing' stamp: 'as 10/5/2007 15:36'!
 testSelector
@@ -801,12 +866,12 @@ TestCase subclass: #DACodingTest
 !DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
 Test coding guidelines.!
 
-!DACodingTest methodsFor: 'running' stamp: 'as 8/14/2007 10:18'!
+!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:18'!
 packageName
 
 	^ 'DynamicAspects'.! !
 
-!DACodingTest methodsFor: 'running' stamp: 'as 8/14/2007 10:17'!
+!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:17'!
 testClassComment
 
 	"Each class should have a comment."
