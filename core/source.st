@@ -48,8 +48,62 @@ Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName si
 				^ true]
 		ifFalse: [^ false]! !
 
+Object subclass: #DAAdviceWrapper
+	instanceVariableNames: 'metaObject selector reifications context'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+!DAAdviceWrapper class methodsFor: 'instance creation' stamp: 'as 10/2/2007 13:19'!
+metaObject: anObject selector: aSymbol reifications: aCollection
+
+	self new
+		metaObject: anObject;
+		selector: aSymbol;
+		reifications: aCollection;
+		yourself.! !
+
+!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 14:48'!
+advice: aMessage
+
+	aMessage arguments withIndexDo: [
+		:arg :index |
+		context at: (reifications at: index) put: arg.
+	].
+	metaObject perform: selector with: context.! !
+
+!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 16:08'!
+doesNotUnderstand: aMessage
+
+	aMessage selector = self selector ifTrue: [
+		self advice: aMessage
+	] ifFalse: [
+		^ super doesNotUnderstand: aMessage.
+	].! !
+
+!DAAdviceWrapper methodsFor: 'initialize-release' stamp: 'as 10/2/2007 13:20'!
+initialize
+
+	context _ Dictionary new.! !
+
+!DAAdviceWrapper methodsFor: 'accessing' stamp: 'as 10/2/2007 14:47'!
+metaObject: anObject selector: aSymbol reifications: aCollection
+
+	metaObject _ anObject.
+	selector _ aSymbol.
+	reifications _ aCollection.! !
+
+!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 16:08'!
+selector
+
+	| name sel |
+	name _ 'with:'.
+	sel _ name.
+	context keys size timesRepeat: [ sel _ sel, name. ].
+	^ sel asSymbol.! !
+
 Object subclass: #DAAspectClass
-	instanceVariableNames: ''
+	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -72,9 +126,9 @@ DAAspectClass subclass: #DAAspect
 DAAspect class
 	instanceVariableNames: 'Instance'!
 
-!DAAspect commentStamp: 'as 8/14/2007 10:03' prior: 0!
+!DAAspect commentStamp: 'as 9/26/2007 14:44' prior: 0!
 An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
-An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier in AOP.
+An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier with AOP.
 
 Although aspects are not necessarily objects or classes, in this implementation they are implemented as singleton classes in the traditional OOP way to get a good integration with the existing system.!
 
@@ -183,26 +237,10 @@ templateForSubclassOf: aClass category: aSymbol
 	variableNames: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:34'!
-advice: aSymbol
-
-	| advice |
-	advice _ nil.
-	(self class isProvidedSelector: aSymbol) ifTrue: [
-		advice _ aSymbol.
-	].
-	^ advice.! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 9/10/2007 15:40'!
+!DAAspect methodsFor: 'advices' stamp: 'as 9/26/2007 15:01'!
 advices
 
-	^ self allAdvices collect: [
-		:name |
-		self advice: name.
-	] thenSelect: [
-		:advice |
-		advice notNil.
-	].! !
+	^ self allAdvices.! !
 
 !DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
 allAdviceNames
@@ -219,105 +257,70 @@ allPointcutNames
 
 	^ self class allPointcutNames.! !
 
-!DAAspect methodsFor: 'installing' stamp: 'as 7/4/2007 15:26'!
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/2/2007 15:08'!
+initialize
+
+	links _ Set new.! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 10/2/2007 16:09'!
 install
 
 	self links do: [
 		:link |
-		| pointcut advice gplink |
-		pointcut _ self pointcut: link key.
-		advice _ self advice: link value.
-		gplink _ GPLink new metaObject: [ self perform: advice. ].
-		pointcut nodes do: [ :node | node link: gplink. ].
+		| pointcut visitor advice gplink |
+		pointcut _ self pointcut: (link at: #pointcut).
+		visitor _ DANodeCollector new.
+		visitor visit: pointcut.
+		gplink _ GPLink new.
+		gplink arguments: (visitor reifications addAll: (link at: #reifications ifAbsent: {})).
+		gplink control: visitor control.
+		visitor condition isBlock ifTrue: [ gplink condition: visitor condition. ].
+		advice _ DAAdviceWrapper metaObject: self selector: (link at: #advice) reifications: gplink arguments.
+		gplink metaObject: advice; selector: advice selector.
+		visitor nodes do: [
+			:node |
+			node link: gplink.
+		].
+		links add: gplink.
 	].! !
 
-!DAAspect methodsFor: 'linking' stamp: 'as 7/4/2007 15:34'!
+!DAAspect methodsFor: 'linking' stamp: 'as 9/26/2007 15:06'!
 link: aSymbol
 
-	| link |
-	link _ nil.
-	(self class isProvidedSelector: aSymbol) ifTrue: [
-		link _ self perform: aSymbol.
-		(link isKindOf: Association) ifFalse: [ link _ nil. ].
-	].
-	^ link.! !
+	^ self perform: aSymbol.! !
 
-!DAAspect methodsFor: 'linking' stamp: 'as 9/10/2007 15:40'!
+!DAAspect methodsFor: 'linking' stamp: 'as 9/26/2007 15:07'!
 links
 
 	^ self allLinks collect: [
 		:name |
 		self link: name.
-	] thenSelect: [
-		:link |
-		link notNil.
 	].! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:34'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:09'!
 pointcut: aSymbol
 
-	| pointcut |
-	pointcut _ nil.
-	(self class isProvidedSelector: aSymbol) ifTrue: [
-		pointcut _ self perform: aSymbol.
-		(pointcut isKindOf: DAPointcut) ifFalse: [ pointcut _ nil. ].
-	].
-	^ pointcut.! !
+	^ self perform: (aSymbol, #:) asSymbol with: DAPointcutBuilder.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/10/2007 15:41'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:05'!
 pointcuts
 
 	^ self allPointcuts collect: [
 		:name |
 		self pointcut: name.
-	] thenSelect: [
-		:pointcut |
-		pointcut notNil.
 	].! !
 
-!DAAspect methodsFor: 'installing' stamp: 'as 7/4/2007 16:26'!
+!DAAspect methodsFor: 'installing' stamp: 'as 9/26/2007 15:07'!
 uninstall
 
-	self links do: [
+	"broken"
+	
+	"self links do: [
 		:link |
 		| pointcut |
 		pointcut _ self pointcut: link key.
 		pointcut nodes do: [ :node | node removeAllLinks. ].
-	].! !
-
-DAAspect subclass: #DAExampleAspect
-	instanceVariableNames: 'count'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
-
-!DAExampleAspect commentStamp: 'as 8/16/2007 15:44' prior: 0!
-An example aspect.!
-
-!DAExampleAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:24'!
-a1
-
-	count _ count + 1.! !
-
-!DAExampleAspect methodsFor: 'accessing' stamp: 'as 7/4/2007 16:10'!
-count
-
-	^ count.! !
-
-!DAExampleAspect methodsFor: 'initialize-release' stamp: 'as 7/4/2007 15:24'!
-initialize
-
-	count _ 0.! !
-
-!DAExampleAspect methodsFor: 'linking' stamp: 'as 7/4/2007 13:33'!
-l1
-
-	^ #p1 -> #a1.! !
-
-!DAExampleAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:17'!
-p1
-
-	^ DAMethodExecutionPointcut onClass: DAExamples method: #example.! !
+	]."! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:05'!
 adviceNames
@@ -388,37 +391,23 @@ subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links 
 		poolDictionaries: ''
 		category: cat.! !
 
-Object subclass: #DAExamples
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
-
-!DAExamples commentStamp: 'as 8/16/2007 15:44' prior: 0!
-Examples for testing.!
-
-!DAExamples methodsFor: 'examples' stamp: 'as 8/16/2007 15:40'!
-method1
-
-	^ self.! !
-
 Object subclass: #DAPointcut
-	instanceVariableNames: 'category class method'
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
-!DAPointcut commentStamp: 'as 8/23/2007 10:23' prior: 0!
-Pointcuts are used to describe a set of join points (nodes).!
+!DAPointcut commentStamp: 'as 9/12/2007 15:21' prior: 0!
+Pointcuts are used to describe a set of join points. So far, the only type of join points are nodes from in reflective method.!
 
 DAPointcut subclass: #DACompositePointcut
-	instanceVariableNames: 'leftChild rightChild'
+	instanceVariableNames: 'children'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DACompositePointcut commentStamp: 'as 8/16/2007 13:28' prior: 0!
-A composition of two other pointcuts, which can be compositions as well.!
+!DACompositePointcut commentStamp: 'as 9/18/2007 16:38' prior: 0!
+A composition of one or more pointcuts, which can be compositions as well.!
 
 DACompositePointcut subclass: #DAAndCompositePointcut
 	instanceVariableNames: ''
@@ -429,33 +418,36 @@ DACompositePointcut subclass: #DAAndCompositePointcut
 !DAAndCompositePointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
 Logical And of 2 pointcuts.!
 
-!DAAndCompositePointcut methodsFor: 'accessing' stamp: 'as 8/23/2007 10:24'!
-nodes
+!DAAndCompositePointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:35'!
+visitName
 
-	| candidates |
-	candidates _ leftChild nodes.
-	^ rightChild nodes select: [
-		:jp |
-		candidates includes: jp.
-	].! !
+	^ 'and'.! !
 
-!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 8/23/2007 10:15'!
-with: firstDAPointcut with: secondDAPointcut
+!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 9/18/2007 16:45'!
+child: aDAPointcut
 
 	^ self new
-		leftChild: firstDAPointcut rightChild: secondDAPointcut;
+		children: {aDAPointcut};
 		yourself.! !
 
-!DACompositePointcut methodsFor: 'accessing' stamp: 'as 8/23/2007 10:15'!
-leftChild: leftDAPointcut rightChild: rightDAPointcut
+!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 9/18/2007 16:44'!
+child: firstDAPointcut child: secondDAPointcut
 
-	leftChild _ leftDAPointcut.
-	rightChild _ rightDAPointcut.! !
+	^ self new
+		children: {firstDAPointcut. secondDAPointcut};
+		yourself.! !
 
-!DACompositePointcut methodsFor: 'accessing' stamp: 'as 8/23/2007 10:14'!
-nodes
+!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 9/18/2007 16:44'!
+children: aCollection
 
-	self subclassResponsibility.! !
+	^ self new
+		children: aCollection;
+		yourself.! !
+
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 16:40'!
+children: aCollection
+
+	children _ aCollection.! !
 
 DACompositePointcut subclass: #DAOrCompositePointcut
 	instanceVariableNames: ''
@@ -466,13 +458,57 @@ DACompositePointcut subclass: #DAOrCompositePointcut
 !DAOrCompositePointcut commentStamp: 'as 8/16/2007 15:01' prior: 0!
 Logical Or of 2 poincuts.!
 
-!DAOrCompositePointcut methodsFor: 'accessing' stamp: 'as 8/23/2007 10:25'!
-nodes
+!DAOrCompositePointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:35'!
+visitName
 
-	^ leftChild nodes addAll: rightChild nodes.! !
+	^ 'or'.! !
+
+DACompositePointcut subclass: #DAWithinPointcut
+	instanceVariableNames: 'category class'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAWithinPointcut commentStamp: 'as 9/26/2007 15:25' prior: 0!
+Specify a location within categories, classes and methods.!
+
+!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:47'!
+categories
+
+	^ self categoriesMatching: category.! !
+
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:45'!
+category
+
+	^ category ifNil: [ category _ '*'. ].! !
+
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:44'!
+category: aString
+
+	category _ aString.! !
+
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:46'!
+class
+
+	^ class ifNil: [ class _ '*'. ].! !
+
+!DAWithinPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:45'!
+class: aString
+
+	class _ aString.! !
+
+!DAWithinPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:47'!
+classes
+
+	^ self classesMatching: self class inCategoriesMatching: category.! !
+
+!DAWithinPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:35'!
+visitName
+
+	^ 'within'.! !
 
 DAPointcut subclass: #DAMethodExecutionPointcut
-	instanceVariableNames: 'methods'
+	instanceVariableNames: 'methodString'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
@@ -480,44 +516,68 @@ DAPointcut subclass: #DAMethodExecutionPointcut
 !DAMethodExecutionPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
 A method that is being executed.!
 
-!DAMethodExecutionPointcut methodsFor: 'evaluating' stamp: 'as 8/23/2007 14:56'!
-nodes
-
-	^ super nodes addAll: (
-		self methods collect: [ :each | each methodNode. ]
-	).! !
-
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 8/23/2007 11:31'!
-category: categoryString class: classString method: methodString
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 9/18/2007 15:33'!
+methods: aString
 
 	^ self new
-		category: categoryString class: classString method: methodString;
+		methodString: aString;
 		yourself.! !
 
-!DAPointcut methodsFor: 'composing' stamp: 'as 8/16/2007 13:27'!
+!DAMethodExecutionPointcut methodsFor: 'evaluating' stamp: 'as 9/18/2007 15:34'!
+methodString: aString
+
+	methodString _ aString.! !
+
+!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 9/18/2007 15:34'!
+methods
+
+	^ self methodsMatching: methodString inClassesMatching: '*' inCategoriesMatching: '*'.! !
+
+!DAMethodExecutionPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:37'!
+visitName
+
+	^ 'methodExecution'.! !
+
+!DAPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:43'!
+acceptVisitor: aDAPointcutVisitor
+
+	aDAPointcutVisitor perform: ('visit', self visitName capitalized) asSymbol with: self.! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 16:46'!
 and: aDAPointcut
 
-	^ DAAndCompositePointcut with: self with: aDAPointcut.! !
+	^ DAAndCompositePointcut child: self child: aDAPointcut.! !
 
-!DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 11:06'!
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 11:06'!
 categoriesMatching: aString
 
 	^ SystemOrganization categoriesMatching: aString.! !
 
-!DAPointcut methodsFor: 'accessing' stamp: 'as 8/23/2007 14:17'!
-category: categoryString class: classString method: methodString
+!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:02'!
+category: aString
 
-	category _ categoryString ifEmpty: [ '*'. ].
-	class _ classString ifEmpty: [ '*'. ].
-	method _ methodString ifEmpty: [ '*'. ].! !
+	^ self category: aString class: nil.! !
 
-!DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:20'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:02'!
+category: categoryString class: classString
+
+	^ (DAWithinPointcut child: self)
+		category: categoryString;
+		class: classString;
+		yourself.! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 17:03'!
+class: aString
+
+	^ self category: nil class: aString.! !
+
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:20'!
 classesInCategory: aSymbol
 
 	^ (SystemOrganization listAtCategoryNamed: aSymbol)
 		collect: [ :each | Smalltalk at: each. ].! !
 
-!DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:40'!
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:40'!
 classesMatching: aString in: aCollection
 
 	^ aCollection select: [
@@ -525,7 +585,7 @@ classesMatching: aString in: aCollection
 		aString match: each name asString.
 	].! !
 
-!DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:20'!
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:20'!
 classesMatching: classString inCategoriesMatching: categoryString
 
 	| candidates |
@@ -536,12 +596,7 @@ classesMatching: classString inCategoriesMatching: categoryString
 	].
 	^ self classesMatching: classString in: candidates.! !
 
-!DAPointcut methodsFor: 'evaluating' stamp: 'as 8/23/2007 14:45'!
-methods
-
-	^ self methodsMatching: method inClassesMatching: class inCategoriesMatching: category.! !
-
-!DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:42'!
+!DAPointcut methodsFor: 'searching classes' stamp: 'as 8/23/2007 14:42'!
 methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: categoryString
 
 	| candidates |
@@ -552,20 +607,109 @@ methodsMatching: methodString inClassesMatching: classString inCategoriesMatchin
 	].
 	^ candidates select: [ :each | methodString match: each selector asString. ].! !
 
-!DAPointcut methodsFor: 'evaluating' stamp: 'as 8/16/2007 16:25'!
-newNodesCollection
-
-	^ Set new.! !
-
-!DAPointcut methodsFor: 'evaluating' stamp: 'as 8/23/2007 10:19'!
-nodes
-
-	^ self newNodesCollection.! !
-
-!DAPointcut methodsFor: 'composing' stamp: 'as 8/16/2007 13:27'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 9/18/2007 16:46'!
 or: aDAPointcut
 
-	^ DAOrCompositePointcut with: self with: aDAPointcut.! !
+	^ DAOrCompositePointcut child: self child: aDAPointcut.! !
+
+!DAPointcut methodsFor: 'visiting' stamp: 'as 9/18/2007 17:34'!
+visitName
+
+	self subclassResponsibility.! !
+
+Object subclass: #DAPointcutBuilder
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+!DAPointcutBuilder commentStamp: 'as 9/26/2007 15:24' prior: 0!
+A convenience class with class-side shortcuts for creating pointcuts.!
+
+!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:09'!
+execution: aString
+
+	^ DAMethodExecutionPointcut methods: aString.! !
+
+Object subclass: #DAPointcutVisitor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+!DAPointcutVisitor commentStamp: 'as 9/26/2007 15:24' prior: 0!
+Generic visitor for a pointcut structure.!
+
+DAPointcutVisitor subclass: #DANodeCollector
+	instanceVariableNames: 'nodes control condition reifications'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+!DANodeCollector commentStamp: 'as 9/26/2007 15:23' prior: 0!
+Visit a pointcut structure and collect all corresponding nodes in the reflective system.!
+
+!DANodeCollector methodsFor: 'nodes' stamp: 'as 10/2/2007 16:02'!
+addNode: aRBProgramNode
+
+	nodes add: aRBProgramNode.! !
+
+!DANodeCollector methodsFor: 'nodes' stamp: 'as 9/18/2007 18:16'!
+addNodes: aCollection
+
+	nodes addAll: aCollection.! !
+
+!DANodeCollector methodsFor: 'link options' stamp: 'as 10/2/2007 16:11'!
+addReification: aSymbol
+
+	reifications add: aSymbol.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 10/2/2007 16:07'!
+condition
+
+	^ condition.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 10/2/2007 16:07'!
+condition: aBlock
+
+	condition _ aBlock.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 10/2/2007 16:06'!
+control
+
+	^ control.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 10/2/2007 16:06'!
+control: aSymbol
+
+	control _ aSymbol.! !
+
+!DANodeCollector methodsFor: 'initialize-release' stamp: 'as 10/2/2007 16:01'!
+initialize
+
+	nodes _ Set new.
+	reifications _ OrderedCollection new.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 9/26/2007 15:10'!
+nodes
+
+	^ nodes.! !
+
+!DANodeCollector methodsFor: 'accessing' stamp: 'as 10/2/2007 16:10'!
+reifications
+
+	^ reifications.! !
+
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 9/18/2007 17:58'!
+visitMethodExecution: pointcut
+
+	self addNodes:
+		(pointcut methods collect: [ :each | each methodNode. ]).! !
+
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 9/18/2007 17:43'!
+visit: aDAPointcut
+
+	aDAPointcut acceptVisitor: self.! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
@@ -642,19 +786,3 @@ testClassComment
 		:each |
 		self assert: each hasComment.
 	].! !
-
-TestCase subclass: #DAMethodExecutionPointCutTest
-	instanceVariableNames: 'example aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
-
-!DAMethodExecutionPointCutTest commentStamp: 'as 8/16/2007 15:44' prior: 0!
-Testing DAMethodExecutionPointcut.!
-
-!DAMethodExecutionPointCutTest methodsFor: 'testing' stamp: 'as 8/16/2007 15:55'!
-testSingleMethodCreation
-
-	| pc |
-	pc _ DAMethodExecutionPointcut onMethodsMatching: 'method1' inClassesMatching: 'DAExamples'.
-	pc nodes == ((DAExamples >> #method1) methodNode).! !
