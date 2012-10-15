@@ -567,12 +567,12 @@ condition: aDACondition
 
 	link conditionObject: aDACondition.! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 2/11/2008 08:32'!
+!DALink methodsFor: 'defaults' stamp: 'as 2/11/2008 10:12'!
 defaultFiltersAt: aSymbol
 
-	aSymbol = #category ifTrue: [ ^ { '.*' asRegexFilter }. ].
-	aSymbol = #class ifTrue: [ ^ { '.*' asRegexFilter }. ].
-	aSymbol = #method ifTrue: [ ^ { '.*' asRegexFilter }. ].
+	aSymbol = #category ifTrue: [ ^ { '*' asRegexFilter }. ].
+	aSymbol = #class ifTrue: [ ^ { '*' asRegexFilter }. ].
+	aSymbol = #method ifTrue: [ ^ { '*' asRegexFilter }. ].
 	aSymbol = #node ifTrue: [ ^ { [ :node | node isMethod. ] }. ].
 	^ #().! !
 
@@ -1351,12 +1351,12 @@ isNegated
 
 	^ negated.! !
 
-!DARegexFilter methodsFor: 'regex' stamp: 'as 2/8/2008 13:54'!
+!DARegexFilter methodsFor: 'regex' stamp: 'as 2/11/2008 10:10'!
 matches: aString
 
 	| match |
 
-	match _ aString matchesRegex: regex.
+	match _ regex match: aString.
 	self isNegated ifTrue: [ match _ match not. ].
 	^ match.! !
 
@@ -1747,10 +1747,10 @@ testAndingLinks
 	link3 _ link and: link2.
 	self assert: (link3 methods includes: (DALinkTest >> #testAndingLinks) reflectiveMethod).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 10:05'!
 testFilteringCategories
 
-	link category: 'DynamicAspects.*' asRegexFilter.
+	link category: 'DynamicAspects*' asRegexFilter.
 	self assert: (link categories includes: #'DynamicAspects-Geppetto-Tests').! !
 
 !DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
