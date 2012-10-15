@@ -1080,6 +1080,29 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:52'!
+currentMethod
+
+	^ self methodClass methodDict at: self selector.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 18:00'!
+isCurrent
+
+	^ self currentMethod == self or: [ self currentMethod == compiledMethod. ].! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:56'!
+isInvalid
+
+	"The cache is invalidated by installing the RM in the MethodDictionary.
+	 But this should only be done if this method is still current, meaning
+	 it is in the method dictionary of the class.
+	
+	 The state of the compiledMethod is *not* the trigger!!"
+	
+	^ self == self currentMethod or: [ self isCurrent not. ].
+	
+	! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
