@@ -35,9 +35,10 @@ removeAllLinksOn: aClass
 		].
 	].! !
 
-!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:47'!
+!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 17:09'!
 setUp
 
+	DATestAspect instance uninstall.
 	self removeAllLinksOn: DAExamples.
 	DATestAspect instance install.! !
 
@@ -72,6 +73,11 @@ counter
 
 	^ counter.! !
 
+!DAExamples class methodsFor: 'counting' stamp: 'as 2/18/2008 14:06'!
+counter: aNumber
+
+	counter _ aNumber.! !
+
 !DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:21'!
 exampleAfter
 
@@ -87,11 +93,15 @@ exampleCondition
 
 	self count.! !
 
-!DAExamples class methodsFor: 'examples' stamp: 'as 2/15/2008 13:33'!
-exampleField
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/18/2008 13:32'!
+exampleFieldRead
 
-	counter _ 10.
 	^ counter.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/18/2008 14:06'!
+exampleFieldWrite
+
+	counter _ 1.! !
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
 exampleForward
@@ -105,6 +115,11 @@ exampleInstead
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
 exampleNoop! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/18/2008 17:07'!
+exampleParameters
+
+	^ counter.! !
 
 !DAExamples class methodsFor: 'counting' stamp: 'as 10/23/2007 16:22'!
 initializeCounter
@@ -1091,24 +1106,25 @@ install
 		].
 	].! !
 
-!DAAspect methodsFor: 'private' stamp: 'as 2/11/2008 14:30'!
+!DAAspect methodsFor: 'private' stamp: 'as 2/18/2008 16:46'!
 installAdvice: advice pointcut: pointcut
 
 	pointcut genLinks links do: [
 		:link |
-		link link
-			metaObject: self;
-			selector: advice selector;
-			arguments: (self reificationsForAdvice: advice);
-			control: (self controlForAdvice: advice);
-			aspect: self.
 		[
+			link link
+				metaObject: self;
+				selector: advice selector;
+				arguments: (self reificationsForAdvice: advice);
+				control: (self controlForAdvice: advice);
+				aspect: self.
 			link install.
 			links add: link.
 		] on: Exception do: [
+			:e |
 			link uninstall.
 			self uninstall.
-			self error: 'could not install advice'.
+			e signal.
 		].
 	].! !
 
@@ -1168,7 +1184,7 @@ DAAspect subclass: #DATestAspect
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
 
-!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:30'!
+!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/18/2008 14:14'!
 pointcutNames
 
 	^ #(exampleBefore
@@ -1176,7 +1192,8 @@ pointcutNames
 		exampleInstead
 		exampleForward
 		exampleFieldRead
-		exampleFieldWrite).! !
+		exampleFieldWrite
+		exampleParameters).! !
 
 !DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
 afterExampleAfter
@@ -1203,15 +1220,15 @@ exampleBefore
 
 	^ pc method: DAExamples class >> #exampleBefore.! !
 
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:20'!
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 13:59'!
 exampleFieldRead
 
-	^ (pc method: DAExamples class >> #exampleField) and: (pc fieldRead: 'temp').! !
+	^ (pc method: DAExamples class >> #exampleFieldRead) and: (pc fieldRead: 'counter').! !
 
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:20'!
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 14:07'!
 exampleFieldWrite
 
-	^ (pc method: DAExamples class >> #exampleField) and: (pc fieldWrite: 'temp').! !
+	^ (pc method: DAExamples class >> #exampleFieldWrite) and: (pc fieldWrite: 'counter').! !
 
 !DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:27'!
 exampleForward
@@ -1224,15 +1241,34 @@ exampleInstead
 
 	^ pc method: DAExamples class >> #exampleInstead.! !
 
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/15/2008 13:28'!
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 17:07'!
+exampleParameters
+
+	^ (pc method: DAExamples class >> #exampleParameters) and: (pc fieldRead: 'counter').! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 13:31'!
 insteadExampleFieldRead
 
-	! !
+	^ 2.! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 14:06'!
+insteadExampleFieldWrite
+
+	DAExamples counter: 2.! !
 
 !DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 09:00'!
 insteadExampleInstead
 
 	"do nothing"! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 16:52'!
+insteadExampleParameters: object class: class control: control
+
+	^ Dictionary new
+		at: #object put:object;
+		at: #class put: class;
+		at: #control put: control;
+		yourself.! !
 
 !DAProtoAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:46'!
 allPointcutNames
@@ -1773,11 +1809,32 @@ testCflow
 	DAExamples exampleForward.
 	self assert: DAExamples counter = 1.! !
 
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/18/2008 14:04'!
+testFieldRead
+
+	self assert: DAExamples exampleFieldRead = 2.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/18/2008 14:07'!
+testFieldWrite
+
+	DAExamples exampleFieldWrite.
+	self assert: DAExamples counter = 2.! !
+
 !DAAspectTest methodsFor: 'testing' stamp: 'as 2/15/2008 13:34'!
 testInstead
 
 	DAExamples exampleInstead.
 	self assert: DAExamples counter = 0.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/18/2008 17:06'!
+testParameters
+
+	| pars |
+	
+	pars _ DAExamples exampleParameters.
+	self assert: (pars at: #class) == DAExamples class.
+	self assert: (pars at: #object) == DAExamples.
+	self assert: (pars at: #control) == #instead.! !
 
 DATestingWithLinks subclass: #DAConditionTest
 	instanceVariableNames: 'trueCond falseCond blockCond'
