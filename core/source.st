@@ -2,6 +2,7 @@ SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Context'!
 SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Kernel'!
+SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
@@ -24,10 +25,10 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-	^ DAClassDescription classObject: self.! !
+	^ self method parent.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -38,17 +39,6 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -655,6 +645,22 @@ tearDown
 
 	links do: [ :link | link uninstall. ].! !
 
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
+
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
 	classVariableNames: ''
@@ -1177,9 +1183,10 @@ initialize
 	control _ self defaultControl.
 	links _ Dictionary new.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 14:03'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/5/2008 17:27'!
 install
 
+	self dependencies do: [ :dep | dep install. ].
 	self isInstalled ifFalse: [
 		links ifEmpty: [ self createLinks. ].
 		self
@@ -1193,12 +1200,11 @@ isInstalled
 
 	^ installed.! !
 
-!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 14:15'!
+!DAConnector methodsFor: 'private' stamp: 'as 5/5/2008 08:37'!
 linksDo: doBlock rollback: rollbackBlock
 
 	| passed |
-
-	"Speed-up"	
+	
 	links ifEmpty: [ ^ self. ].
 
 	passed _ Dictionary new.
@@ -1366,7 +1372,7 @@ setMetaObject: moObject creator: creatorObject for: aGPLink
 	].
 	aGPLink metaObject: moObject.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 13:43'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/5/2008 17:27'!
 uninstall
 
 	self isInstalled ifTrue: [
@@ -1374,12 +1380,55 @@ uninstall
 			linksDo: [ :link | link value uninstall. ]
 			rollback: [ :link | self error: 'rollback not possible'. ].
 		installed _ false.
-	].! !
+	].
+	self dependencies do: [ :dep | dep uninstall. ].! !
 
 !DAConnector methodsFor: 'installing' stamp: 'as 4/7/2008 14:10'!
 update
 
 	self isInstalled ifTrue: [ self reinstall. ].! !
+
+DAConnector subclass: #DAFlowConnector
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Connectors'!
+
+!DAFlowConnector commentStamp: 'as 5/5/2008 17:10' prior: 0!
+Manages control flow counting for a pointcut.!
+
+!DAFlowConnector class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:22'!
+after: aDAPointcut
+
+	^ self new
+		pointcut: aDAPointcut;
+		selector: #flowOut;
+		control: #after;
+		yourself.! !
+
+!DAFlowConnector class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:23'!
+before: aDAPointcut
+
+	^ self new
+		pointcut: aDAPointcut;
+		selector: #flowIn;
+		control: #before;
+		yourself.! !
+
+!DAFlowConnector methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
+flowIn
+
+	Processor activeProcess flowInto: pointcut.! !
+
+!DAFlowConnector methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
+flowOut
+
+	Processor activeProcess flowOutOf: pointcut.! !
+
+!DAFlowConnector methodsFor: 'initialize-release' stamp: 'as 5/5/2008 16:07'!
+initialize
+
+	self metaObject: self.! !
 
 Object subclass: #DAContext
 	instanceVariableNames: ''
@@ -1605,6 +1654,11 @@ and: aDAContextOrActiveContextClass
 	^ DAAndContext contexts:
 		{ self processor. aDAContextOrActiveContextClass processor. }.! !
 
+!DAContext methodsFor: 'composing' stamp: 'as 5/5/2008 10:37'!
+current
+
+	^ self.! !
+
 !DAContext methodsFor: 'testing' stamp: 'as 4/8/2008 16:49'!
 isActive
 
@@ -1626,176 +1680,71 @@ or: aDAContextOrActiveContextClass
 	^ DAOrContext contexts:
 		{ self processor. aDAContextOrActiveContextClass processor. }.! !
 
-!DAContext methodsFor: 'composing' stamp: 'as 4/18/2008 13:53'!
+!DAContext methodsFor: 'composing' stamp: 'as 5/5/2008 10:37'!
 processor
 
 	"Something that when called #current will return the instance for the current process."
 
-	self subclassResponsibility.! !
+	^ self.! !
 
 !DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 15:13'!
 | aDAContext
 
 	^ self or: aDAContext.! !
 
-DAContext subclass: #DAControlFlowContext
-	instanceVariableNames: 'methodDescription minLevel maxLevel'
+DAContext subclass: #DAFlowContext
+	instanceVariableNames: 'pointcut minLevel maxLevel'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Contexts'!
 
-DAControlFlowContext class
-	instanceVariableNames: 'beforeLink afterLink instances'!
-
-!DAControlFlowContext commentStamp: 'as 4/22/2008 14:26' prior: 0!
+!DAFlowContext commentStamp: 'as 4/22/2008 14:26' prior: 0!
 A context that is active if execution has entered a certain method and is at a certain nesting level of that method. Instances can only be created for specific methods.!
 
-DAControlFlowContext class
-	instanceVariableNames: 'beforeLink afterLink instances'!
+!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/5/2008 10:28'!
+in: aDAPointcut
 
-!DAControlFlowContext class methodsFor: 'accessing' stamp: 'as 4/28/2008 17:22'!
-afterLink
+	^ self in: aDAPointcut min: 1 max: 1.! !
 
-	^ afterLink ifNil: [
-		afterLink _ (GPLink metaObject: self)
-			selector: #countDown:;
-			after;
-			arguments: #(node);
-			yourself.
-	].! !
+!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/5/2008 10:31'!
+in: aDAPointcut min: minNumber max: maxNumber
 
-!DAControlFlowContext class methodsFor: 'accessing' stamp: 'as 4/28/2008 17:20'!
-beforeLink
-
-	^ beforeLink ifNil: [
-		beforeLink _ (GPLink metaObject: self)
-			selector: #countUp:;
-			before;
-			arguments: #(node);
-			yourself.
-	].! !
-
-!DAControlFlowContext class methodsFor: 'counting' stamp: 'as 4/28/2008 17:03'!
-countDown: aRBProgramNode
-
-	self process flowOutOf: aRBProgramNode reflectiveMethod.! !
-
-!DAControlFlowContext class methodsFor: 'counting' stamp: 'as 4/28/2008 17:03'!
-countUp: aRBProgramNode
-
-	self process flowInto: aRBProgramNode reflectiveMethod.! !
-
-!DAControlFlowContext class methodsFor: 'linking' stamp: 'as 4/28/2008 17:19'!
-freeLinksAt: aMethodDescription
-
-	| methodNode |
-	
-	methodNode _ aMethodDescription methodObject methodNode.
-
-	(self beforeLink nodes includes: methodNode) ifTrue: [
-		methodNode removeLink: self beforeLink.
-	].
-
-	(self afterLink nodes includes: methodNode) ifTrue: [
-		methodNode removeLink: self afterLink.
-	].! !
-
-!DAControlFlowContext class methodsFor: 'instance creation' stamp: 'as 4/28/2008 14:30'!
-inMethod: aMethod
-
-	^ self inMethod: aMethod min: 1 max: 0.! !
-
-!DAControlFlowContext class methodsFor: 'instance creation' stamp: 'as 4/28/2008 17:17'!
-inMethod: aMethod min: minNumber max: maxNumber
-
-	| instance |
-	
-	instance _self new
-		method: aMethod;
+	^ self new
+		pointcut: aDAPointcut;
 		min: minNumber;
 		max: maxNumber;
-		yourself.
-	self register: instance.
-	^ instance.! !
+		yourself.! !
 
-!DAControlFlowContext class methodsFor: 'accessing' stamp: 'as 4/28/2008 16:00'!
-instances
+!DAFlowContext class methodsFor: 'initialize-release' stamp: 'as 5/5/2008 11:43'!
+initialize
 
-	^ instances ifNil: [ instances _ Dictionary new. ].! !
+	" DAFlowContext initialize. "
 
-!DAControlFlowContext class methodsFor: 'linking' stamp: 'as 4/28/2008 17:20'!
-needLinksAt: aMethodDescription
+	super initialize.
+	(Process allInstVarNames includes: 'flow') ifFalse: [ Process addInstVarName: 'flow'. ].! !
 
-	| methodNode |
-	
-	methodNode _ aMethodDescription methodObject methodNode.
-
-	(self beforeLink nodes includes: methodNode) ifFalse: [
-		self beforeLink hookOn: methodNode.
-	].
-
-	(self afterLink nodes includes: methodNode) ifFalse: [
-		self afterLink hookOn: methodNode.
-	].! !
-
-!DAControlFlowContext class methodsFor: 'counting' stamp: 'as 4/28/2008 17:43'!
-process
-
-	^ Processor activeProcess.! !
-
-!DAControlFlowContext class methodsFor: 'registering' stamp: 'as 4/28/2008 17:25'!
-register: anInstance
-
-	| key |
-
-	key _ anInstance methodDescription.
-	self needLinksAt: key.
-	self instances at: key put: (self instances at: key ifAbsent: [ 0. ]) + 1.! !
-
-!DAControlFlowContext class methodsFor: 'registering' stamp: 'as 4/28/2008 17:25'!
-unregister: anInstance
-
-	| key |
-
-	key _ anInstance methodDescription.
-	self instances at: key put: (self instances at: key) - 1.
-	(self instances at: key) = 0 ifTrue: [
-		self freeLinksAt: key.
-		self instances removeKey: key.
-	].! !
-
-!DAControlFlowContext class methodsFor: 'instance creation' stamp: 'as 4/28/2008 14:30'!
-withinMethod: aMethod
-
-	^ self inMethod: aMethod min: 1 max: 1.! !
-
-!DAControlFlowContext methodsFor: 'testing' stamp: 'as 4/18/2008 14:56'!
+!DAFlowContext methodsFor: 'testing' stamp: 'as 5/5/2008 11:32'!
 isActive
 
 	| count |
 	
-	count _ Processor activeProcess cflowCount: methodDescription.
+	count _ Processor activeProcess flowAt: pointcut.
 	^ (count >= minLevel) & ((count <= maxLevel) | (maxLevel = 0)).! !
 
-!DAControlFlowContext methodsFor: 'accessing' stamp: 'as 4/18/2008 14:41'!
+!DAFlowContext methodsFor: 'accessing' stamp: 'as 4/18/2008 14:41'!
 max: aNumber
 
 	maxLevel _ aNumber.! !
 
-!DAControlFlowContext methodsFor: 'accessing' stamp: 'as 4/18/2008 14:38'!
-method: aMethod
-
-	methodDescription _ aMethod asDescription.! !
-
-!DAControlFlowContext methodsFor: 'accessing' stamp: 'as 4/28/2008 14:38'!
-methodDescription
-
-	^ methodDescription.! !
-
-!DAControlFlowContext methodsFor: 'accessing' stamp: 'as 4/18/2008 14:41'!
+!DAFlowContext methodsFor: 'accessing' stamp: 'as 4/18/2008 14:41'!
 min: aNumber
 
 	minLevel _ aNumber.! !
+
+!DAFlowContext methodsFor: 'accessing' stamp: 'as 5/5/2008 10:39'!
+pointcut: aDAPointcut
+
+	pointcut _ aDAPointcut.! !
 
 Object subclass: #DAExamples
 	instanceVariableNames: ''
@@ -2544,6 +2493,37 @@ visitName
 
 	^ 'context'.! !
 
+DAPointcut subclass: #DADependencyPointcut
+	instanceVariableNames: 'connectors'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Pointcuts'!
+
+!DADependencyPointcut commentStamp: 'as 5/5/2008 11:53' prior: 0!
+Add a install dependency to one or more connectors.!
+
+!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
+connector: aDAConnector
+
+	^ self connectors: { aDAConnector. }.! !
+
+!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
+connectors: aCollection
+
+	^ self new
+		connectors: aCollection;
+		yourself.! !
+
+!DADependencyPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 15:04'!
+connectors: aCollection
+
+	connectors _ aCollection.! !
+
+!DADependencyPointcut methodsFor: 'visiting' stamp: 'as 5/5/2008 11:54'!
+visitName
+
+	^ 'dependency'.! !
+
 DAPointcut subclass: #DAEmptyPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -2854,6 +2834,20 @@ if: aBlockOrBoolean arguments: aCollection
 
 	^ DAConditionPointcut condition: aBlockOrBoolean arguments: aCollection.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:33'!
+in: aDAPointcut
+
+	| context connectors |
+	
+	context _ DAFlowContext in: aDAPointcut.
+	connectors _ {
+		DAFlowConnector before: aDAPointcut.
+		DAFlowConnector after: aDAPointcut.
+	}.
+
+	^ (DAContextPointcut context: context) &
+		(DADependencyPointcut connectors: connectors).! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:59'!
 instanceVariable
 
@@ -2910,6 +2904,17 @@ and: aDAPointcut
 
 	^ DAAndPointcut child: self child: aDAPointcut.! !
 
+!DAPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 17:25'!
+dependencies
+
+	self evaluate.
+	^ self evaluator dependencies.! !
+
+!DAPointcut methodsFor: 'visiting' stamp: 'as 5/5/2008 17:23'!
+evaluate
+
+	self evaluator hasEvaluated ifFalse: [ self evaluator visit: self. ].! !
+
 !DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:19'!
 evaluator
 
@@ -2920,10 +2925,10 @@ hasParent
 
 	^ parent notNil.! !
 
-!DAPointcut methodsFor: 'accessing' stamp: 'as 3/19/2008 15:29'!
+!DAPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 17:24'!
 joinPoints
 
-	self evaluator hasEvaluated ifFalse: [ self evaluator visit: self. ].
+	self evaluate.
 	^ self evaluator joinPoints.! !
 
 !DAPointcut methodsFor: 'accessing' stamp: 'as 3/31/2008 16:58'!
@@ -2967,7 +2972,7 @@ visitName
 	^ self or: aDAPointcut.! !
 
 Object subclass: #DAPointcutEvaluator
-	instanceVariableNames: 'joinPoints stack'
+	instanceVariableNames: 'joinPoints dependencies stack'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -2980,10 +2985,11 @@ hasEvaluated
 
 	^ joinPoints notNil.! !
 
-!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
+!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 5/5/2008 17:08'!
 initialize
 
 	joinPoints _ nil.
+	dependencies _ Set new.
 	stack _ Stack new.! !
 
 !DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
@@ -3053,6 +3059,11 @@ visitCondition: pc
 visitContext: pc
 
 	joinPoints add: (DAJoinPoint new context: pc context).! !
+
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/5/2008 17:08'!
+visitDependency: pc
+
+	dependencies addAll: pc connectors.! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/28/2008 14:22'!
 visitEmpty: pc
@@ -3355,15 +3366,10 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
-	^ DAMethodDescription methodObject: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
-asPointcut
-
-	^ DAPointcut method: self.! !
+	^ DAClassDescription classObject: self.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -3399,31 +3405,31 @@ noScope
 
 	self properties removeKey: #moScope ifAbsent: [ self. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/18/2008 13:30'!
-cflowCount: aMethodDescription
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flow
 
-	^ self cflowCounters at: aMethodDescription ifAbsent: [ 0. ].! !
+	^ flow ifNil: [ flow _ Dictionary new. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/17/2008 16:00'!
-cflowCounters
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flowAt: aDAPointcut
 
-	^ cflowCounters ifNil: [ cflowCounters _ Dictionary new. ].! !
+	^ self cflowCounters at: aDAPointcut ifAbsent: [ 0. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:40'!
-flowInto: aMethod
-
-	| count |
-
-	count _ self cflowCounters at: aMethod asDescription ifAbsentPut: [ 0. ].
-	self cflowCounters at: aMethod asDescription put: count + 1.! !
-
-!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:40'!
-flowOutOf: aMethod
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:31'!
+flowInto: aDAPointcut
 
 	| count |
 
-	count _ self cflowCounters at: aMethod asDescription.
-	self cflowCounters at: aMethod asDescription put: count - 1.! !
+	count _ self cflowCounters at: aDAPointcut asDescription ifAbsentPut: [ 0. ].
+	self cflowCounters at: aDAPointcut asDescription put: count + 1.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:31'!
+flowOutOf: aDAPointcut
+
+	| count |
+
+	count _ self cflowCounters at: aDAPointcut asDescription.
+	self cflowCounters at: aDAPointcut asDescription put: count - 1.! !
 
 !Browser methodsFor: '*DA' stamp: 'as 5/2/2008 10:25'!
 defineClass: defString notifying: aController  
@@ -3470,3 +3476,4 @@ Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName si
 				"self clearUserEditFlag; editClass."
 				^ true]
 		ifFalse: [^ false]! !
+DAFlowContext initialize!
