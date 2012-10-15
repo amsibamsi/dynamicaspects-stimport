@@ -43,6 +43,63 @@ tearDown
 	DATestAspect instance uninstall.
 	self removeAllLinksOn: DAExamples.! !
 
+Object subclass: #DAAdvice
+	instanceVariableNames: 'arguments selector creator'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
+
+!DAAdvice commentStamp: 'as 3/19/2008 17:38' prior: 0!
+Specifies additional behaviour that should be installed into the system.!
+
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 3/20/2008 17:11'!
+creator: aBlock selector: aSymbol arguments: anArray
+
+	^ self new
+		creator: aBlock;
+		selector: aSymbol;
+		arguments: anArray;
+		yourself.! !
+
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 3/20/2008 17:12'!
+object: anObject selector: aSymbol arguments: anArray
+
+	^ self new
+		creator: [ anObject. ];
+		selector: aSymbol;
+		arguments: anArray;
+		yourself.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 17:08'!
+arguments
+
+	^ arguments.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 17:08'!
+arguments: anArray
+
+	arguments _ anArray.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:35'!
+creator
+
+	^ creator.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:39'!
+creator: aBlock
+
+	creator _ aBlock.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:35'!
+selector
+
+	^ selector.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:40'!
+selector: aSymbol
+
+	selector _ aSymbol.! !
+
 Object subclass: #DAAspect
 	instanceVariableNames: 'links pc'
 	classVariableNames: ''
@@ -134,10 +191,10 @@ install
 		].
 	].! !
 
-!DAAspect methodsFor: 'private' stamp: 'as 2/18/2008 16:46'!
+!DAAspect methodsFor: 'private' stamp: 'as 3/19/2008 14:36'!
 installAdvice: advice pointcut: pointcut
 
-	pointcut genLinks links do: [
+	pointcut links do: [
 		:link |
 		[
 			link link
@@ -804,16 +861,158 @@ negate
 
 	negated _ negated not.! !
 
-Object subclass: #DALink
-	instanceVariableNames: 'link filters cache'
+Object subclass: #DAHook
+	instanceVariableNames: 'pointcut advice scope control links'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+	category: 'DA-Kernel'!
 
-!DALink commentStamp: 'as 1/31/2008 11:18' prior: 0!
-Host a GPLink together with a description of the nodes it should be installed on.!
+!DAHook commentStamp: 'as 3/19/2008 17:38' prior: 0!
+Connects pointcuts with advices.!
 
-!DALink methodsFor: 'composing' stamp: 'as 2/4/2008 17:41'!
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:06'!
+after: aDAPointcut do: aDAAdvice
+
+	^ self on: aDAPointcut control: #after do: aDAAdvice per: self defaultScope.! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:06'!
+before: aDAPointcut do: aDAAdvice
+
+	^ self on: aDAPointcut control: #before do: aDAAdvice per: self defaultScope.! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 15:52'!
+before: aDAPointcut do: aDAAdvice per: aSymbol! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
+beforeAndAfter: aDAPointcut do: aDAAdvice
+
+	^ self on: aDAPointcut control: #beforeafter do: aDAAdvice per: self defaultScope.! !
+
+!DAHook class methodsFor: 'defaults' stamp: 'as 3/20/2008 16:08'!
+defaultControl
+
+	^ #before.! !
+
+!DAHook class methodsFor: 'defaults' stamp: 'as 3/20/2008 16:12'!
+defaultScope
+
+	^ #link.! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
+instead: aDAPointcut do: aDAAdvice
+
+	^ self on: aDAPointcut control: #instead do: aDAAdvice per: self defaultScope.! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:01'!
+on: aDAPointcut control: ctrlSymbol do: aDAAdvice per: scopeSymbol
+
+	^ self new
+		pointcut: aDAPointcut;
+		control: ctrlSymbol;
+		advice: aDAAdvice;
+		scope: scopeSymbol;
+		yourself.! !
+
+!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
+on: aDAPointcut do: aDAAdvice
+
+	^ self on: aDAPointcut control: self defaultControl do: aDAAdvice per: self defaultScope.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+advice
+
+	^ advice.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+advice: aDAAdvice
+
+	advice _ aDAAdvice.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+control
+
+	^ control.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+control: aSymbol
+
+	control _ aSymbol.! !
+
+!DAHook methodsFor: 'initialize-release' stamp: 'as 3/23/2008 16:54'!
+initialize
+
+	links _ Set new.! !
+
+!DAHook methodsFor: 'installation' stamp: 'as 3/23/2008 16:55'!
+install
+
+	self isInstalled ifFalse: [
+		pointcut joinPoints do: [
+			:jp |
+			links add: (self newLink: jp).
+		].
+	].
+		! !
+
+!DAHook methodsFor: 'testing' stamp: 'as 3/23/2008 16:56'!
+isInstalled
+
+	^ links notEmpty.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:59'!
+link
+
+	^ link ifNil: [ link _ self newLink. ].! !
+
+!DAHook methodsFor: 'private' stamp: 'as 3/23/2008 16:58'!
+newLink: aDAJoinPoint
+
+	^ GPLink new
+		metaObjectCreator: advice creator;
+		selector: advice selector;
+		arguments: advice arguments;
+		control: control;
+		moScope: scope;
+		conditionObject: aDAJoinPoint condition;
+		yourself.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+pointcut
+
+	^ pointcut.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
+pointcut: aDAPointcut
+
+	pointcut _ aDAPointcut.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
+scope
+
+	^ scope.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
+scope: aSymbol
+
+	scope _ aSymbol.! !
+
+!DAHook methodsFor: 'installation' stamp: 'as 3/23/2008 17:04'!
+uninstall
+
+	self isInstalled ifTrue: [
+		links do: [ :link | link uninstall. ].
+	].! !
+
+Object subclass: #DAJoinPoint
+	instanceVariableNames: 'condition filters cache'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
+
+!DAJoinPoint commentStamp: 'as 3/19/2008 15:04' prior: 0!
+Hosts the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
+
+!DAJoinPoint methodsFor: 'composing' stamp: 'as 2/4/2008 17:41'!
 and: aDALink
 
 	| andLink |
@@ -826,39 +1025,39 @@ and: aDALink
 	].		
 	^ andLink.! !
 
-!DALink methodsFor: 'caching' stamp: 'as 2/4/2008 17:30'!
+!DAJoinPoint methodsFor: 'caching' stamp: 'as 2/4/2008 17:30'!
 cacheAt: aSymbol
 
 	^ (cache at: aSymbol) ifNil: [ cache at: aSymbol put: (self filter: aSymbol). ].! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 categories
 
 	^ self cacheAt: #category.! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/21/2008 16:13'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/21/2008 16:13'!
 category: aDAFilter
 
 	self filterAt: #category put: aDAFilter.! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/22/2008 11:45'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/22/2008 11:45'!
 class: aDAFilter
 
 	self filterAt: #class put: aDAFilter.! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/22/2008 11:46'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/22/2008 11:46'!
 class: aClass matches: aDAFilter
 
 	^ (aDAFilter matches: aClass) and: [
 		(self cacheAt: #category) includes: aClass instanceSide category.
 	].! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 classes
 
 	^ self cacheAt: #class.! !
 
-!DALink methodsFor: 'private' stamp: 'as 1/27/2008 17:25'!
+!DAJoinPoint methodsFor: 'private' stamp: 'as 1/27/2008 17:25'!
 combineCondition: aDALink
 
 	self hasCondition ifTrue: [
@@ -875,17 +1074,17 @@ combineCondition: aDALink
 		].
 	].! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/27/2008 17:16'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 3/19/2008 14:59'!
 condition
 
-	^ link condition.! !
+	^ condition.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/27/2008 16:09'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 3/19/2008 15:00'!
 condition: aDACondition
 
-	link conditionObject: aDACondition.! !
+	condition _ aDACondition.! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 2/22/2008 11:18'!
+!DAJoinPoint methodsFor: 'defaults' stamp: 'as 2/22/2008 11:18'!
 defaultFiltersAt: aSymbol
 
 	aSymbol = #category ifTrue: [ ^ { DAFilter string: '*'. }. ].
@@ -894,23 +1093,23 @@ defaultFiltersAt: aSymbol
 	aSymbol = #node ifTrue: [ ^ { DAFilter node: [ :node | node isMethod. ]. }. ].
 	^ #().! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 17:21'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 2/4/2008 17:21'!
 defaultOrFiltersAt: aSymbol
 
 	^ (filters at: aSymbol) selfIfEmpty: [ self defaultFiltersAt: aSymbol. ].! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/4/2008 17:55'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/4/2008 17:55'!
 filter: aSymbol
 
 	^ self perform: (#filter, aSymbol capitalized) asSymbol.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 2/8/2008 11:53'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 2/8/2008 11:53'!
 filterAt: aSymbol put: aRegexFilter
 
 	(filters at: aSymbol) add: aRegexFilter.
 	self reset.! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/11/2008 08:30'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/11/2008 08:30'!
 filterCategory
 
 	| categories |
@@ -924,7 +1123,7 @@ filterCategory
 	].
 	^ categories.! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/4/2008 17:26'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/4/2008 17:26'!
 filterClass
 
 	| classes |
@@ -940,7 +1139,7 @@ filterClass
 	].
 	^ classes.! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/22/2008 11:46'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/22/2008 11:46'!
 filterMethod
 	
 	| methods classMethods |
@@ -960,7 +1159,7 @@ filterMethod
 	].
 	^ methods collect: [ :each | each reflectiveMethod. ].! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 2/21/2008 16:11'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/21/2008 16:11'!
 filterNode
 
 	| nodes methodNodes |
@@ -977,32 +1176,31 @@ filterNode
 	].
 	^ nodes.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 16:58'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 2/4/2008 16:58'!
 filtersAt: aSymbol
 
 	^ filters at: aSymbol.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 17:00'!
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 2/4/2008 17:00'!
 filtersAt: aSymbol put: aCollection
 
 	filters at: aSymbol put: aCollection.
 	self reset.! !
 
-!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
+!DAJoinPoint methodsFor: 'testing' stamp: 'as 3/19/2008 15:00'!
 hasCondition
 
-	^ link hasCondition.! !
+	^ condition notNil.! !
 
-!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 15:49'!
+!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:01'!
 initialize
 
-	link _ GPLink new.
 	filters _ Dictionary new.
 	cache _ Dictionary new.
 	self initializeFilters.
 	self initializeCache.! !
 
-!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 17:31'!
+!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 2/4/2008 17:31'!
 initializeCache
 
 	self keys do: [
@@ -1010,7 +1208,7 @@ initializeCache
 		cache at: key put: nil.
 	].! !
 
-!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
+!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
 initializeFilters
 
 	self keys do: [
@@ -1018,56 +1216,41 @@ initializeFilters
 		filters at: key put: Set new.
 	].! !
 
-!DALink methodsFor: 'installation' stamp: 'as 2/11/2008 11:56'!
-install
-
-	self nodes do: [ :node | link hookOn: node. ].! !
-
-!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
+!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
 keys
 
 	^ #(category class method node).! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/24/2008 17:38'!
-link
-
-	^ link.! !
-
-!DALink methodsFor: 'aliases' stamp: 'as 2/22/2008 11:53'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/22/2008 11:53'!
 method: aDAFilter
 
 	self filterAt: #method put: aDAFilter.! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 methods
 
 	^ self cacheAt: #method.! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/22/2008 11:53'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/22/2008 11:53'!
 node: aDAFilter
 
 	self filterAt: #node put: aDAFilter.! !
 
-!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 nodes
 
 	^ self cacheAt: #node.! !
 
-!DALink methodsFor: 'caching' stamp: 'as 2/4/2008 15:50'!
+!DAJoinPoint methodsFor: 'caching' stamp: 'as 2/4/2008 15:50'!
 reset
 
 	self initializeCache.! !
 
-!DALink methodsFor: 'installation' stamp: 'as 2/11/2008 10:54'!
-uninstall
-
-	link uninstall.! !
-
 Object subclass: #DAPointcut
-	instanceVariableNames: 'parent'
+	instanceVariableNames: 'parent evaluator joinPoints'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Pointcuts'!
+	category: 'DA-Kernel'!
 
 !DAPointcut commentStamp: 'as 1/17/2008 14:11' prior: 0!
 Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
@@ -1516,25 +1699,31 @@ within: aMethod
 
 	^ DAControlFlowPointcut method: aMethod level: 1.! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:00'!
-acceptVisitor: aDAPointcutVisitor
+!DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:19'!
+acceptVisitor: aDAPointcutEvaluator
 
-	aDAPointcutVisitor perform: ('visit', self visitName capitalized, ':') asSymbol with: self.! !
+	aDAPointcutEvaluator perform: ('visit', self visitName capitalized, ':') asSymbol with: self.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 1/24/2008 16:32'!
 and: aDAPointcut
 
 	^ DAAndPointcut child: self child: aDAPointcut.! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 2/25/2008 09:53'!
-genLinks
+!DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:19'!
+evaluator
 
-	^ self visitor visit: self; yourself.! !
+	^ evaluator ifNil: [ evaluator _ DAPointcutEvaluator new. ].! !
 
 !DAPointcut methodsFor: 'testing' stamp: 'as 2/4/2008 21:16'!
 hasParent
 
 	^ parent notNil.! !
+
+!DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:29'!
+joinPoints
+
+	self evaluator hasEvaluated ifFalse: [ self evaluator visit: self. ].
+	^ self evaluator joinPoints.! !
 
 !DAPointcut methodsFor: 'inverting' stamp: 'as 2/4/2008 21:33'!
 not
@@ -1556,62 +1745,69 @@ parent: aDACompositePointcut
 
 	parent _ aDACompositePointcut.! !
 
+!DAPointcut methodsFor: 'caching' stamp: 'as 3/19/2008 15:25'!
+reset
+
+	self evaluator reset.! !
+
 !DAPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:00'!
 visitName
 
 	self subclassResponsibility.! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 2/25/2008 09:53'!
-visitor
-
-	^ DALinkGenerator new.! !
-
-Object subclass: #DAPointcutVisitor
-	instanceVariableNames: ''
+Object subclass: #DAPointcutEvaluator
+	instanceVariableNames: 'joinPoints stack'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Kernel'!
+	category: 'DA-Pointcuts'!
 
-!DAPointcutVisitor commentStamp: 'as 1/24/2008 17:04' prior: 0!
-Visit a pointcut structure.!
+!DAPointcutEvaluator commentStamp: 'as 3/19/2008 15:46' prior: 0!
+Goes over a pointcut structure and evaluates the corresponding join points.!
 
-DAPointcutVisitor subclass: #DALinkGenerator
-	instanceVariableNames: 'links stack'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Kernel'!
+!DAPointcutEvaluator methodsFor: 'testing' stamp: 'as 3/19/2008 15:24'!
+hasEvaluated
 
-!DALinkGenerator commentStamp: 'as 1/24/2008 17:14' prior: 0!
-Goes over a pointcut structure and prepares Geppetto links for it.!
+	^ joinPoints ifNotNil.! !
 
-!DALinkGenerator methodsFor: 'initialize-release' stamp: 'as 1/25/2008 14:06'!
+!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
 initialize
 
-	self initializeVariables.
+	joinPoints _ nil.
 	stack _ Stack new.! !
 
-!DALinkGenerator methodsFor: 'initialize-release' stamp: 'as 1/27/2008 16:18'!
-initializeVariables
+!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
+initializeJoinPoints
 
-	links _ OrderedCollection new.! !
+	joinPoints _ OrderedCollection new.! !
 
-!DALinkGenerator methodsFor: 'accessing' stamp: 'as 2/1/2008 14:21'!
-links
+!DAPointcutEvaluator methodsFor: 'accessing' stamp: 'as 3/19/2008 15:08'!
+joinPoints
 
 	^ links.! !
 
-!DALinkGenerator methodsFor: 'stacking' stamp: 'as 1/25/2008 14:35'!
+!DAPointcutEvaluator methodsFor: 'stacking' stamp: 'as 1/25/2008 14:35'!
 pop
 
 	^ stack pop.! !
 
-!DALinkGenerator methodsFor: 'stacking' stamp: 'as 1/27/2008 16:23'!
+!DAPointcutEvaluator methodsFor: 'stacking' stamp: 'as 3/19/2008 15:11'!
 push
 
-	stack push: links.
-	self initializeVariables.! !
+	stack push: joinPoints.
+	self initializeLinks.! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/27/2008 17:07'!
+!DAPointcutEvaluator methodsFor: 'caching' stamp: 'as 3/19/2008 14:40'!
+reset
+
+	self initialize.! !
+
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:23'!
+visit: aDAPointcut
+
+	self initializeJoinPoints.
+	aDAPointcut acceptVisitor: self.! !
+
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:11'!
 visitAnd: pc
 
 	pc left acceptVisitor: self.
@@ -1622,82 +1818,42 @@ visitAnd: pc
 		:leftLink |
 		self pop do: [
 			:rightLink |
-			links add: (leftLink and: rightLink).
+			joinPoints add: (leftLink and: rightLink).
 		].
 	].! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:12'!
 visitCategory: pc
 
-	links add: (DALink new category: pc filter).! !
+	joinPoints add: (DAJoinPoint new category: pc filter).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:12'!
 visitClass: pc
 
-	links add: (DALink new class: pc filter).! !
+	joinPoints add: (DAJoinPoint new class: pc filter).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:54'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:15'!
 visitCondition: pc
 
-	links add: (DALink new condition: pc condition).! !
+	joinPoints add: (DAJoinPoint new condition: pc condition).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:16'!
 visitMethod: pc
 
-	links add: (DALink new method: pc filter).! !
+	joinPoints add: (DAJoinPoint new method: pc filter).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 2/21/2008 16:31'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:16'!
 visitNode: pc
 
-	links add: (DALink new node: pc filter).! !
+	joinPoints add: (DAJoinPoint new node: pc filter).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/27/2008 16:23'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:16'!
 visitOr: pc
 
 	pc left acceptVisitor: self.
 	self push.
 	pc right acceptVisitor: self.
-	links addAll: self pop.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:15'!
-visit: aDAPointcut
-
-	aDAPointcut acceptVisitor: self.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:17'!
-visitAnd: aDAAndPointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
-visitCategory: aDACategoryPointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
-visitClass: aDAClassPointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:17'!
-visitCondition: aDAConditionPointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
-visitMethod: aDAMethodPointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:17'!
-visitNode: aDANodePointcut
-
-	self subclassResponsibility.! !
-
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:17'!
-visitOr: aDAOrPointcut
-
-	self subclassResponsibility.! !
+	joinPoints addAll: self pop.! !
 
 !GPCondition class methodsFor: '*DA' stamp: 'as 3/6/2008 15:26'!
 condition: aBooleanOrBlock arguments: args
@@ -1720,15 +1876,23 @@ conditionObject: aDACondition
 
 	condition _ aDACondition.! !
 
-!BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
-and: aBlock
+!GPLink methodsFor: '*DA' stamp: 'as 3/23/2008 16:58'!
+hookOnJoinPoint: aDAJoinPoint
 
-	^ DACombinedBlock block: self block: aBlock message: #and:.! !
+	aDAJoinPoint nodes do: [
+		:node |
+		self hookOn: node.
+	].! !
 
 !Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
+and: aBlock
+
+	^ DACombinedBlock block: self block: aBlock message: #and:.! !
 
 TestCase subclass: #DAAndPointcutTest
 	instanceVariableNames: 'pointcut'
@@ -1836,7 +2000,7 @@ TestCase subclass: #DALinkTest
 	instanceVariableNames: 'link'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto-Tests'!
+	category: 'DA-Kernel-Tests'!
 
 !DALinkTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
 Testing DALink.!
