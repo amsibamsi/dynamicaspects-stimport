@@ -3875,12 +3875,10 @@ failure
 
 	^ failure.! !
 
-!DAAspect class methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:33'!
+!DAAspect class methodsFor: 'initialize-release' stamp: 'as 7/18/2008 16:33'!
 initialize
 
-	super initialize.
-
-	self isEnabled ifTrue: [ self reinstallQuietly. ].! !
+	"self allSubclasses do: [ :a | a isEnabled ifTrue: [ a reinstallQuietly. ]. ]."! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:22'!
 install
