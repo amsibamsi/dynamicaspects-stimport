@@ -14,328 +14,6 @@ asRegexFilter
 
 	^ DARegexFilter new: self.! !
 
-Object subclass: #DAAbstractAspect
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-!DAAbstractAspect commentStamp: 'as 11/19/2007 12:50' prior: 0!
-An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
-An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier with AOP.!
-
-!DAAbstractAspect methodsFor: 'advices' stamp: 'as 11/19/2007 08:29'!
-adviceControls
-
-	^ #(before after instead).! !
-
-!DAAbstractAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:17'!
-install
-
-	self subclassResponsibility.! !
-
-!DAAbstractAspect methodsFor: 'testing' stamp: 'as 11/19/2007 08:17'!
-isInstalled
-
-	self subclassResponsibility.! !
-
-!DAAbstractAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:17'!
-uninstall
-
-	self subclassResponsibility.! !
-
-DAAbstractAspect subclass: #DAAspectClass
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-DAAspectClass class
-	instanceVariableNames: 'pointcutNames'!
-
-!DAAspectClass commentStamp: 'as 11/19/2007 12:49' prior: 0!
-This makes the transition from a class to an aspect.!
-
-DAAspectClass class
-	instanceVariableNames: 'pointcutNames'!
-
-DAAspectClass subclass: #DAAspect
-	instanceVariableNames: 'links pc'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-DAAspect class
-	instanceVariableNames: 'instance'!
-
-!DAAspect commentStamp: 'as 12/12/2007 16:31' prior: 0!
-An aspect that is defined in the browser. The pointcuts and advices can all be implemented with normal methods.
-
-Although aspects are not necessarily objects or classes, in this implementation they are implemented as singleton classes in the traditional OOP way to get a good integration with the existing system.!
-
-DAAspect class
-	instanceVariableNames: 'instance'!
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:59'!
-allPointcutNames
-
-	^ self superclass pointcutNames, self pointcutNames.! !
-
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 13:58'!
-definitionST80
-
-	| aStream |
-	aStream _ WriteStream on: (String new: 300).
-	aStream nextPutAll: superclass name.
-	aStream nextPutAll: ' subaspect: ';
-			store: self name.
-	(self hasTraitComposition and: [self traitComposition notEmpty]) ifTrue: [
-		aStream cr; tab; nextPutAll: 'uses: ';
-			nextPutAll: self traitCompositionString].
-	aStream cr; tab; nextPutAll: 'pointcutNames: ';
-			store: self pointcutsString.
-	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
-			store: self instanceVariablesString.
-	aStream cr; tab; nextPutAll: 'classVariableNames: ';
-			store: self classVariablesString.
-	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
-			store: self sharedPoolsString.
-	aStream cr; tab; nextPutAll: 'category: ';
-			store: (SystemOrganization categoryOfElement: self name) asString.
-
-	superclass ifNil: [ 
-		aStream nextPutAll: '.'; cr.
-		aStream nextPutAll: self name.
-		aStream space; nextPutAll: 'superclass: nil'. ].
-
-	^ aStream contents! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 2/11/2008 16:03'!
-instance
-
-	^ instance ifNil: [ instance _ self basicNew initialize. ].! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 13:59'!
-new
-
-	self error: 'I''m singleton, use ', self class name, ' >> instance'.! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 10/22/2007 09:38'!
-pointcutsString
-
-	^ String streamContents: [
-		:stream |
-		self pointcutNames do: [
-			:each |
-			stream nextPutAll: each asString.
-		] separatedBy: [ stream space. ].
-	].! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/18/2007 15:03'!
-template: categorySymbol
-
-	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:00'!
-templateForSubclassOf: aClass category: aSymbol
-
-	^ aClass asString, 'subaspect: #NameOfSubaspect
-	pointcutNames: ''''
-	instanceVariableNames: ''''
-	classVariableNames: ''''
-	poolDictionaries: ''''
-	category: ''' , aSymbol asString , ''''.! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 2/11/2008 15:46'!
-advices
-
-	| possibilities |
-	possibilities _ self possibleAdviceNames.
-	^ self class methods select: [
-		:method |
-		possibilities anySatisfy: [
-			:pos |
-			pos match: (method selector subStrings: ':') first.
-		].
-	].! !
-
-!DAAspect methodsFor: 'accessing' stamp: 'as 10/22/2007 09:56'!
-allPointcutNames
-
-	^ self class allPointcutNames.! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 10/24/2007 09:51'!
-controlForAdvice: aMethod
-
-	^ self adviceControls detect: [
-		:ctrl |
-		aMethod selector startsWith: ctrl.
-	].! !
-
-!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/31/2007 10:27'!
-initialize
-
-	self initializeLinks.
-	pc _ DAPointcut.! !
-
-!DAAspect methodsFor: 'initialize-release' stamp: 'as 11/19/2007 08:26'!
-initializeLinks
-
-	links _ IdentitySet new.! !
-
-!DAAspect methodsFor: 'installing' stamp: 'as 1/17/2008 15:42'!
-install
-
-	self isInstalled ifFalse: [
-		self advices do: [
-			:adv |
-			| pointcut |
-			pointcut _ self pointcutForAdvice: adv.
-			self installAdvice: adv pointcut: pointcut.
-		].
-	].! !
-
-!DAAspect methodsFor: 'private' stamp: 'as 2/11/2008 14:30'!
-installAdvice: advice pointcut: pointcut
-
-	pointcut genLinks links do: [
-		:link |
-		link link
-			metaObject: self;
-			selector: advice selector;
-			arguments: (self reificationsForAdvice: advice);
-			control: (self controlForAdvice: advice);
-			aspect: self.
-		[
-			link install.
-			links add: link.
-		] on: Exception do: [
-			link uninstall.
-			self uninstall.
-			self error: 'could not install advice'.
-		].
-	].! !
-
-!DAAspect methodsFor: 'testing' stamp: 'as 2/11/2008 11:13'!
-isInstalled
-
-	^ links notEmpty.! !
-
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:20'!
-pointcut: aSymbol
-
-	^ self perform: aSymbol.! !
-
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:35'!
-pointcutForAdvice: aMethod
-
-	^ self pointcut: (
-		self allPointcutNames detect: [
-			:pcn |
-			(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
-		]
-	).! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 2/11/2008 15:42'!
-possibleAdviceNames
-
-	| names |
-	names _ Set new.
-	self allPointcutNames do: [
-		:pcn |
-		self adviceControls do: [
-			:ctrl |
-			names add: ctrl, pcn capitalized.
-		].
-	].
-	^ names.! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 10/24/2007 15:28'!
-reificationsForAdvice: aMethod
-
-	^ aMethod reflectiveMethod argumentNames collect: [ :name | name asSymbol. ].! !
-
-!DAAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:27'!
-uninstall
-
-	self isInstalled ifTrue: [
-		links do: [ :link | link uninstall. ].
-		self initializeLinks.
-	].! !
-
-DAAspect subclass: #DATestAspect
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Testing'!
-
-!DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
-An aspect to run tests on.!
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 10/24/2007 15:11'!
-afterExample1
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/11/2008 11:47'!
-afterOuter
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 10/31/2007 14:39'!
-beforeExample2
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:32'!
-example1
-
-	^ pc method: DAExamples class >> #example1.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:41'!
-example2
-
-	^ pc method: DAExamples class >> #example2.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/11/2008 11:02'!
-outer
-
-	^ pc cflow: DAExamples class >> #outer.! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
-pointcutNames
-
-	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:53'!
-pointcutNames: aString
-	
-	pointcutNames _ self stringToSymbols: aString.! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
-stringToSymbols: aString
-
-	| set |
-	set _ Set new.
-	(aString subStrings: ' ') do: [
-		:substring |
-		set add: substring asSymbol.
-	].
-	^ set.! !
-
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
-subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
-
-	| newClass |
-	newClass _ self subclass: class
-		instanceVariableNames: instVars
-		classVariableNames: classVars
-		poolDictionaries: pools
-		category: cat.
-	newClass
-		pointcutNames: pointcuts.
-	^ newClass.! !
-
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -361,40 +39,31 @@ counter
 
 	^ counter.! !
 
-!DAExamples class methodsFor: 'examples' stamp: 'as 10/23/2007 16:23'!
-example1
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:21'!
+exampleAfter
 
 	counter _ 2.! !
 
-!DAExamples class methodsFor: 'examples' stamp: 'as 10/31/2007 14:39'!
-example2
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:21'!
+exampleBefore
 
 	counter _ 2.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:46'!
+exampleCondition! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
+exampleForward
+
+	self exampleNoop.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
+exampleNoop! !
 
 !DAExamples class methodsFor: 'counting' stamp: 'as 10/23/2007 16:22'!
 initializeCounter
 
 	counter _ 0.! !
-
-!DAExamples class methodsFor: 'counting' stamp: 'as 11/19/2007 13:25'!
-inner! !
-
-!DAExamples class methodsFor: 'counting' stamp: 'as 11/19/2007 13:25'!
-outer
-
-	self inner.! !
-
-Object subclass: #DAGeppettoExamples
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Testing'!
-
-!DAGeppettoExamples commentStamp: 'as 1/14/2008 16:35' prior: 0!
-Dummy class to test Geppetto links on.!
-
-!DAGeppettoExamples class methodsFor: 'examples' stamp: 'as 1/11/2008 14:53'!
-example1! !
 
 Object subclass: #DALink
 	instanceVariableNames: 'link filters cache'
@@ -1257,6 +926,329 @@ visitOr: aDAOrPointcut
 
 	self subclassResponsibility.! !
 
+Object subclass: #DAProtoAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+!DAProtoAspect commentStamp: 'as 11/19/2007 12:50' prior: 0!
+An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
+An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier with AOP.!
+
+DAProtoAspect subclass: #DAAspectClass
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+DAAspectClass class
+	instanceVariableNames: 'pointcutNames'!
+
+!DAAspectClass commentStamp: 'as 11/19/2007 12:49' prior: 0!
+This makes the transition from a class to an aspect.!
+
+DAAspectClass class
+	instanceVariableNames: 'pointcutNames'!
+
+DAAspectClass subclass: #DAAspect
+	instanceVariableNames: 'links pc'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+DAAspect class
+	instanceVariableNames: 'instance'!
+
+!DAAspect commentStamp: 'as 2/14/2008 11:44' prior: 0!
+An aspect that is defined in the browser. The pointcuts and advices are all implemented as normal methods.
+
+Although aspects are not necessarily objects or classes, in this implementation they are implemented as singleton classes in the traditional OOP way to get a good integration with the existing system.!
+
+DAAspect class
+	instanceVariableNames: 'instance'!
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:59'!
+allPointcutNames
+
+	^ self superclass pointcutNames, self pointcutNames.! !
+
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 13:58'!
+definitionST80
+
+	| aStream |
+	aStream _ WriteStream on: (String new: 300).
+	aStream nextPutAll: superclass name.
+	aStream nextPutAll: ' subaspect: ';
+			store: self name.
+	(self hasTraitComposition and: [self traitComposition notEmpty]) ifTrue: [
+		aStream cr; tab; nextPutAll: 'uses: ';
+			nextPutAll: self traitCompositionString].
+	aStream cr; tab; nextPutAll: 'pointcutNames: ';
+			store: self pointcutsString.
+	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
+			store: self instanceVariablesString.
+	aStream cr; tab; nextPutAll: 'classVariableNames: ';
+			store: self classVariablesString.
+	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
+			store: self sharedPoolsString.
+	aStream cr; tab; nextPutAll: 'category: ';
+			store: (SystemOrganization categoryOfElement: self name) asString.
+
+	superclass ifNil: [ 
+		aStream nextPutAll: '.'; cr.
+		aStream nextPutAll: self name.
+		aStream space; nextPutAll: 'superclass: nil'. ].
+
+	^ aStream contents! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 2/11/2008 16:03'!
+instance
+
+	^ instance ifNil: [ instance _ self basicNew initialize. ].! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 13:59'!
+new
+
+	self error: 'I''m singleton, use ', self class name, ' >> instance'.! !
+
+!DAAspect class methodsFor: 'printing' stamp: 'as 10/22/2007 09:38'!
+pointcutsString
+
+	^ String streamContents: [
+		:stream |
+		self pointcutNames do: [
+			:each |
+			stream nextPutAll: each asString.
+		] separatedBy: [ stream space. ].
+	].! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/18/2007 15:03'!
+template: categorySymbol
+
+	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:00'!
+templateForSubclassOf: aClass category: aSymbol
+
+	^ aClass asString, 'subaspect: #NameOfSubaspect
+	pointcutNames: ''''
+	instanceVariableNames: ''''
+	classVariableNames: ''''
+	poolDictionaries: ''''
+	category: ''' , aSymbol asString , ''''.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 2/11/2008 15:46'!
+advices
+
+	| possibilities |
+	possibilities _ self possibleAdviceNames.
+	^ self class methods select: [
+		:method |
+		possibilities anySatisfy: [
+			:pos |
+			pos match: (method selector subStrings: ':') first.
+		].
+	].! !
+
+!DAAspect methodsFor: 'accessing' stamp: 'as 10/22/2007 09:56'!
+allPointcutNames
+
+	^ self class allPointcutNames.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 10/24/2007 09:51'!
+controlForAdvice: aMethod
+
+	^ self adviceControls detect: [
+		:ctrl |
+		aMethod selector startsWith: ctrl.
+	].! !
+
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/31/2007 10:27'!
+initialize
+
+	self initializeLinks.
+	pc _ DAPointcut.! !
+
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 11/19/2007 08:26'!
+initializeLinks
+
+	links _ IdentitySet new.! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 1/17/2008 15:42'!
+install
+
+	self isInstalled ifFalse: [
+		self advices do: [
+			:adv |
+			| pointcut |
+			pointcut _ self pointcutForAdvice: adv.
+			self installAdvice: adv pointcut: pointcut.
+		].
+	].! !
+
+!DAAspect methodsFor: 'private' stamp: 'as 2/11/2008 14:30'!
+installAdvice: advice pointcut: pointcut
+
+	pointcut genLinks links do: [
+		:link |
+		link link
+			metaObject: self;
+			selector: advice selector;
+			arguments: (self reificationsForAdvice: advice);
+			control: (self controlForAdvice: advice);
+			aspect: self.
+		[
+			link install.
+			links add: link.
+		] on: Exception do: [
+			link uninstall.
+			self uninstall.
+			self error: 'could not install advice'.
+		].
+	].! !
+
+!DAAspect methodsFor: 'testing' stamp: 'as 2/11/2008 11:13'!
+isInstalled
+
+	^ links notEmpty.! !
+
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:20'!
+pointcut: aSymbol
+
+	^ self perform: aSymbol.! !
+
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:35'!
+pointcutForAdvice: aMethod
+
+	^ self pointcut: (
+		self allPointcutNames detect: [
+			:pcn |
+			(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
+		]
+	).! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 2/11/2008 15:42'!
+possibleAdviceNames
+
+	| names |
+	names _ Set new.
+	self allPointcutNames do: [
+		:pcn |
+		self adviceControls do: [
+			:ctrl |
+			names add: ctrl, pcn capitalized.
+		].
+	].
+	^ names.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 10/24/2007 15:28'!
+reificationsForAdvice: aMethod
+
+	^ aMethod reflectiveMethod argumentNames collect: [ :name | name asSymbol. ].! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:27'!
+uninstall
+
+	self isInstalled ifTrue: [
+		links do: [ :link | link uninstall. ].
+		self initializeLinks.
+	].! !
+
+DAAspect subclass: #DATestAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Testing'!
+
+!DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
+An aspect to run tests on.!
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
+afterExampleAfter
+
+	DAExamples count.! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
+beforeExampleBefore
+
+	DAExamples count.! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
+beforeExampleForward
+
+	DAExamples count.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:23'!
+exampleAfter
+
+	^ pc method: DAExamples class >> #exampleAfter.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:22'!
+exampleBefore
+
+	^ pc method: DAExamples class >> #exampleBefore.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:27'!
+exampleForward
+
+	^ (pc cflow: DAExamples class >> #exampleForward) and:
+		(pc method: DAExamples class >> #exampleNoop).! !
+
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
+pointcutNames
+
+	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
+
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:53'!
+pointcutNames: aString
+	
+	pointcutNames _ self stringToSymbols: aString.! !
+
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
+stringToSymbols: aString
+
+	| set |
+	set _ Set new.
+	(aString subStrings: ' ') do: [
+		:substring |
+		set add: substring asSymbol.
+	].
+	^ set.! !
+
+!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
+subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
+
+	| newClass |
+	newClass _ self subclass: class
+		instanceVariableNames: instVars
+		classVariableNames: classVars
+		poolDictionaries: pools
+		category: cat.
+	newClass
+		pointcutNames: pointcuts.
+	^ newClass.! !
+
+!DAProtoAspect methodsFor: 'advices' stamp: 'as 11/19/2007 08:29'!
+adviceControls
+
+	^ #(before after instead).! !
+
+!DAProtoAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:17'!
+install
+
+	self subclassResponsibility.! !
+
+!DAProtoAspect methodsFor: 'testing' stamp: 'as 11/19/2007 08:17'!
+isInstalled
+
+	self subclassResponsibility.! !
+
+!DAProtoAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:17'!
+uninstall
+
+	self subclassResponsibility.! !
+
 Object subclass: #DARegexFilter
 	instanceVariableNames: 'regex negated'
 	classVariableNames: ''
@@ -1641,7 +1633,7 @@ testParent
 	].! !
 
 TestCase subclass: #DALinkGeneratorTest
-	instanceVariableNames: 'generator'
+	instanceVariableNames: 'generator pc'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcut-Tests'!
@@ -1649,10 +1641,11 @@ TestCase subclass: #DALinkGeneratorTest
 !DALinkGeneratorTest commentStamp: 'as 2/11/2008 19:10' prior: 0!
 Testing DALinkGenerator.!
 
-!DALinkGeneratorTest methodsFor: 'running' stamp: 'as 2/11/2008 19:12'!
+!DALinkGeneratorTest methodsFor: 'running' stamp: 'as 2/14/2008 11:36'!
 setUp
 
-	generator _ DALinkGenerator new.! !
+	generator _ DALinkGenerator new.
+	pc _ DAPointcut.! !
 
 TestCase subclass: #DALinkTest
 	instanceVariableNames: 'link'
@@ -1783,31 +1776,32 @@ setUp
 	DAExamples initializeCounter.
 	DATestAspect instance install.! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 2/14/2008 17:43'!
 tearDown
 
 	super tearDown.
+	DATestAspect instance uninstall.
 	self removeAllLinksOn: DAExamples.! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 11/19/2007 13:32'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:29'!
 testAfter
 
-	DAExamples example1.
-	self assert: DAExamples counter = 2.! !
+	DAExamples exampleAfter.
+	self assert: DAExamples counter = 3.! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 10/31/2007 14:41'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:28'!
 testBefore
 
-	DAExamples example2.
+	DAExamples exampleBefore.
 	self assert: DAExamples counter = 2.! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 11/19/2007 13:27'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:26'!
 testCflow
 
-	DAExamples inner.
+	DAExamples exampleNoop.
 	self assert: DAExamples counter = 0.
-	DAExamples outer.
-	self assert: DAExamples counter = 0.! !
+	DAExamples exampleForward.
+	self assert: DAExamples counter = 1.! !
 
 DATestingWithLinks subclass: #DAConditionTest
 	instanceVariableNames: 'trueCond falseCond blockCond'
@@ -1864,7 +1858,7 @@ testCombiningBooleans
 	self assert: (falseCond and: falseCond) condition = false.
 	self assert: (trueCond and: trueCond) condition = true.! !
 
-!DAConditionTest methodsFor: 'testing' stamp: 'as 2/11/2008 17:29'!
+!DAConditionTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:52'!
 testDeployment
 
 	| link asserted condition |
@@ -1873,11 +1867,11 @@ testDeployment
 	self cleanup: link.
 	link before.
 	condition _ DACondition
-		with: [ :args | (args at: #object) = DAGeppettoExamples. ]
+		with: [ :args | (args at: #object) = DAExamples. ]
 		arguments: #(object).
 	link conditionObject: condition.
-	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
-	DAGeppettoExamples example1.
+	link hookOn: (DAExamples class >> #exampleCondition) reflectiveMethod methodNode.
+	DAExamples exampleCondition.
 	self assert: asserted.! !
 
 !DAConditionTest methodsFor: 'testing' stamp: 'as 2/11/2008 17:10'!
@@ -1901,32 +1895,23 @@ DATestingWithLinks subclass: #DAControlFowPointcutTest
 !DAControlFowPointcutTest commentStamp: 'as 2/1/2008 13:32' prior: 0!
 Testing DAControlFlowPointcut.!
 
-!DAControlFowPointcutTest methodsFor: 'running' stamp: 'as 2/1/2008 14:12'!
-setUp
-
-	super setUp.
-	self removeAllLinksOn: DAExamples.! !
-
-!DAControlFowPointcutTest methodsFor: 'running' stamp: 'as 2/1/2008 14:13'!
-tearDown
-
-	super tearDown.
-	self removeAllLinksOn: DAExamples.! !
-
-!DAControlFowPointcutTest methodsFor: 'testing' stamp: 'as 2/11/2008 17:25'!
+!DAControlFowPointcutTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:53'!
 testDeployment
 
 	| pc visitor link asserted |
-	pc _ (DAPointcut cflow: DAExamples class >> #outer) and:
-		(DAPointcut method: DAExamples class >> #inner).
+	pc _ (DAPointcut cflow: DAExamples class >> #exampleForward) and:
+		(DAPointcut method: DAExamples class >> #exampleNoop).
 	visitor _ DALinkGenerator new.
 	visitor visit: pc.
 	self assert: visitor links size = 1.
 	link _ visitor links first.
+	self cleanup: link.
 	link link metaObject: [ asserted _ true. ].
 	link nodes do: [ :each | each link: link link. ].
 	asserted _ false.
-	DAExamples outer.
+	DAExamples exampleNoop.
+	self deny: asserted.
+	DAExamples exampleForward.
 	self assert: asserted.! !
 
 !DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
