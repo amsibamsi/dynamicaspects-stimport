@@ -3550,6 +3550,11 @@ isInstalled
 
 	^ connectors notNil & self installFailed not.! !
 
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/20/2008 13:54'!
+isPointcut: aSymbol
+
+	^ self allPointcutNames includes: aSymbol allButLast.! !
+
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
 
@@ -3569,6 +3574,14 @@ metaObjectDict
 notInstalled
 
 	^ connectors isNil.! !
+
+!DAAspect class methodsFor: 'compiling' stamp: 'as 5/20/2008 13:55'!
+noteCompilationOf: aSelector meta: aBoolean
+
+	(aBoolean
+		and: [ self isPointcut: aSelector. ]
+		and: [ self isEnabled. ])
+			ifTrue: [ self reinstallQuietly. ].! !
 
 !DAAspect class methodsFor: 'pointcuts' stamp: 'as 5/2/2008 10:49'!
 pointcutForAdvice: aMethod
@@ -3612,10 +3625,10 @@ reinstall
 
 	self uninstall; install.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:13'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/20/2008 14:15'!
 reinstallQuietly
 
-	self installQuietly; uninstallQuietly.! !
+	self uninstallQuietly; installQuietly.! !
 
 !DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
 scope
@@ -3668,7 +3681,7 @@ DAAspect subclass: #DAExampleAspect
 !DAExampleAspect commentStamp: 'as 5/13/2008 11:21' prior: 0!
 Examples aspect for tests.!
 
-!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/19/2008 17:35'!
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/20/2008 14:16'!
 noop: p
 
 	^ p class: DAExamples class method: #noop.! !
@@ -3947,11 +3960,10 @@ green: the aspect is installed
 yellow: the aspect is not installed
 red: the aspect failed to install')).! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:34'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/20/2008 13:58'!
 reinstallAspect
 
-	self aspect reinstall.
-	self updateAspect.! !
+	[ self aspect reinstall. ] ensure: [ self updateAspect. ].! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:10'!
 updateAspect
