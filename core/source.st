@@ -2,7 +2,6 @@ SystemOrganization addCategory: #'DA-Browser'!
 SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Context'!
-SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
