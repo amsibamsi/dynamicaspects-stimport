@@ -1,46 +1,7 @@
-SystemOrganization addCategory: #'DynamicAspects-Utilities'!
 SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
+SystemOrganization addCategory: #'DynamicAspects-Geppetto'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
-
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:55'!
-aspect
-
-	properties ifNil: [ ^ nil. ].
-	^self properties at: #aspect ifAbsent: [ nil. ].! !
-
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:54'!
-aspect: aDAAspect
-
-	self properties at: #aspect put: aDAAspect.! !
-
-Object subclass: #BooleanBlockCombiner
-	instanceVariableNames: 'block1 block2'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Utilities'!
-
-!BooleanBlockCombiner commentStamp: 'as 12/12/2007 18:00' prior: 0!
-Concatenate two blocks that both return a boolean value.!
-
-!BooleanBlockCombiner class methodsFor: 'instance creation' stamp: 'as 12/12/2007 18:03'!
-block: firstBlock block: secondBlock
-
-	^ self new
-		block: firstBlock block: secondBlock;
-		yourself.! !
-
-!BooleanBlockCombiner methodsFor: 'accessing' stamp: 'as 12/12/2007 18:03'!
-block: firstBlock block: secondBlock
-
-	block1 _ firstBlock.
-	block2 _ secondBlock.! !
-
-!BooleanBlockCombiner methodsFor: 'testing' stamp: 'as 12/12/2007 18:12'!
-isBlock
-
-	"Pretend to be a real block. Is this a good idea?"
-	^ true.! !
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
@@ -511,6 +472,18 @@ outer
 
 	self inner.! !
 
+Object subclass: #DAGeppettoExamples
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAGeppettoExamples commentStamp: 'as 1/14/2008 16:35' prior: 0!
+Dummy class to test Geppetto links on.!
+
+!DAGeppettoExamples class methodsFor: 'examples' stamp: 'as 1/11/2008 14:53'!
+example1! !
+
 Object subclass: #DAPointcut
 	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter categories classes methods nodes condition dependencies'
 	classVariableNames: ''
@@ -695,14 +668,37 @@ reset
 
 	categories _ classes _ methods _ nodes _ nil.! !
 
-Object subclass: #DATest
+GPCondition subclass: #DAArgumentListGPCondition
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DynamicAspects-Geppetto'!
 
-!DATest methodsFor: 'as yet unclassified' stamp: 'as 12/17/2007 13:36'!
-test! !
+!DAArgumentListGPCondition commentStamp: 'as 1/14/2008 16:39' prior: 0!
+Used instead of GPCondition to make the GPTransformer aware of the fact that the condition wants a single argument passed, which will contain all reification arguments in a dictionary.!
+
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 1/14/2008 10:15'!
+argumentListCondition: aCondition arguments: args
+
+	aCondition isBlock ifFalse: [ self error: 'condition needs to be a block'. ].
+	aCondition numArgs = 1 ifFalse: [ self error: 'condition must have exactly 1 argument'. ].
+	
+	self checkReification: args.
+	
+	condition _ DAArgumentListGPCondition with: aCondition.
+	condition arguments: args.
+	self isInlineCondition ifTrue: [ self update. ].! !
+
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:55'!
+aspect
+
+	properties ifNil: [ ^ nil. ].
+	^self properties at: #aspect ifAbsent: [ nil. ].! !
+
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:54'!
+aspect: aDAAspect
+
+	self properties at: #aspect put: aDAAspect.! !
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
 defineClass: defString notifying: aController  
@@ -759,10 +755,10 @@ TestCase subclass: #DAAspectTest
 !DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
 Testing DAAspect.!
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:37'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 1/11/2008 15:17'!
 removeAllLinksOn: aClass
 
-	aClass methodDict values do: [
+	aClass methodDict values, aClass class methodDict values do: [
 		:method |
 		method reflectiveMethod methodNode nodesDo: [
 			:node |
@@ -771,7 +767,7 @@ removeAllLinksOn: aClass
 		].
 	].! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 10/31/2007 14:34'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 1/11/2008 15:16'!
 setUp
 
 	super initialize.
@@ -779,7 +775,7 @@ setUp
 	DAExamples initializeCounter.
 	DATestAspect instance install.! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 10/31/2007 14:34'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 1/11/2008 15:16'!
 tearDown
 
 	DATestAspect instance uninstall.
@@ -828,3 +824,59 @@ testClassComment
 		:each |
 		self assert: each hasComment.
 	].! !
+
+TestCase subclass: #DAGeppettoTests
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAGeppettoTests commentStamp: 'as 1/14/2008 16:36' prior: 0!
+Additional test for Geppetto.!
+
+!DAGeppettoTests methodsFor: 'running' stamp: 'as 1/11/2008 15:18'!
+removeAllLinksOn: aClass
+
+	aClass methodDict values, aClass class methodDict values do: [
+		:method |
+		method reflectiveMethod methodNode nodesDo: [
+			:node |
+			node hasAnyLink ifTrue: [ node removeAllLinks. ].
+			self assert: node hasAnyLink not.
+		].
+	].! !
+
+!DAGeppettoTests methodsFor: 'running' stamp: 'as 1/11/2008 14:41'!
+setUp
+
+	super initialize.
+	self removeAllLinksOn: DAGeppettoExamples.! !
+
+!DAGeppettoTests methodsFor: 'running' stamp: 'as 1/11/2008 14:41'!
+tearDown
+
+	self removeAllLinksOn: DAGeppettoExamples.! !
+
+!DAGeppettoTests methodsFor: 'testing' stamp: 'as 1/14/2008 10:54'!
+testArgumentListCondition
+
+	| link asserted |
+	asserted _ false.
+	link _ GPLink metaObject: [ asserted _ true. ].
+	link before.
+	link argumentListCondition:
+		[ :args | (args at: #object) = DAGeppettoExamples. ] arguments: #(object).
+	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
+	DAGeppettoExamples example1.
+	self assert: asserted.! !
+
+!DAGeppettoTests methodsFor: 'testing' stamp: 'as 1/11/2008 15:56'!
+testConditionArguments
+
+	| link asserted |
+	asserted _ false.
+	link _ GPLink metaObject: [ asserted _ true. ].
+	link condition: [ :arg | arg == DAGeppettoExamples ] arguments: #(object).
+	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
+	DAGeppettoExamples example1.
+	self assert: asserted.! !
