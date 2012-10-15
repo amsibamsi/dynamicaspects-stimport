@@ -4,58 +4,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-Object subclass: #DAAdvice
-	instanceVariableNames: 'arguments selector metaObject'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Kernel'!
-
-!DAAdvice commentStamp: 'as 3/19/2008 17:38' prior: 0!
-Specifies additional behaviour that should be installed into the system.!
-
-!DAAdvice class methodsFor: 'instance creation' stamp: 'as 4/3/2008 09:34'!
-object: anObject selector: aSymbol
-
-	^ self new
-		metaObject: anObject;
-		selector: aSymbol;
-		yourself.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 10:24'!
-arguments
-
-	^ arguments ifNil: [ #(). ].! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 17:08'!
-arguments: anArray
-
-	arguments _ anArray.! !
-
-!DAAdvice methodsFor: 'testing' stamp: 'as 4/3/2008 09:35'!
-isCreator
-
-	^ metaObject isBlock.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 09:33'!
-metaObject
-
-	^ metaObject.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 09:32'!
-metaObject: anObject
-
-	metaObject _ anObject.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:35'!
-selector
-
-	^ selector.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:40'!
-selector: aSymbol
-
-	selector _ aSymbol.! !
-
 Object subclass: #DAClassMethodDescription
 	instanceVariableNames: 'className methodName'
 	classVariableNames: ''
@@ -499,31 +447,13 @@ negate
 	negated _ negated not.! !
 
 Object subclass: #DAHook
-	instanceVariableNames: 'pointcut advice scope control links metaObjects'
+	instanceVariableNames: 'pointcut scope control links mo moDict selector arguments'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
 !DAHook commentStamp: 'as 3/19/2008 17:38' prior: 0!
 Connects pointcuts with advices.!
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:06'!
-after: aDAPointcut do: aDAAdvice
-
-	^ self on: aDAPointcut control: #after do: aDAAdvice per: self defaultScope.! !
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:06'!
-before: aDAPointcut do: aDAAdvice
-
-	^ self on: aDAPointcut control: #before do: aDAAdvice per: self defaultScope.! !
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 15:52'!
-before: aDAPointcut do: aDAAdvice per: aSymbol! !
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
-beforeAndAfter: aDAPointcut do: aDAAdvice
-
-	^ self on: aDAPointcut control: #beforeafter do: aDAAdvice per: self defaultScope.! !
 
 !DAHook class methodsFor: 'defaults' stamp: 'as 3/20/2008 16:08'!
 defaultControl
@@ -535,35 +465,31 @@ defaultScope
 
 	^ #hook.! !
 
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
-instead: aDAPointcut do: aDAAdvice
+!DAHook class methodsFor: 'instance creation' stamp: 'as 4/7/2008 14:38'!
+on: aDAPointcut do: aBlock
 
-	^ self on: aDAPointcut control: #instead do: aDAAdvice per: self defaultScope.! !
+	^ (self on: aDAPointcut do: aBlock) selector: aBlock valueSelector; yourself.! !
 
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:01'!
-on: aDAPointcut control: ctrlSymbol do: aDAAdvice per: scopeSymbol
+!DAHook class methodsFor: 'instance creation' stamp: 'as 4/7/2008 14:37'!
+on: aDAPointcut do: anObject with: aSymbol
 
 	^ self new
 		pointcut: aDAPointcut;
-		control: ctrlSymbol;
-		advice: aDAAdvice;
-		scope: scopeSymbol;
+		control: self defaultControl;
+		metaObject: anObject;
+		scope: self defaultScope;
+		selector: aSymbol;
 		yourself.! !
 
-!DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
-on: aDAPointcut do: aDAAdvice
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
+arguments
 
-	^ self on: aDAPointcut control: self defaultControl do: aDAAdvice per: self defaultScope.! !
+	^ arguments.! !
 
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-advice
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+arguments: anArray
 
-	^ advice.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-advice: aDAAdvice
-
-	advice _ aDAAdvice.! !
+	arguments _ anArray.! !
 
 !DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
 control
@@ -575,21 +501,22 @@ control: aSymbol
 
 	control _ aSymbol.! !
 
-!DAHook methodsFor: 'initialize-release' stamp: 'as 3/23/2008 16:54'!
+!DAHook methodsFor: 'initialize-release' stamp: 'as 4/7/2008 14:39'!
 initialize
 
-	links _ Set new.! !
+	links _ Set new.
+	arguments _ #().
+	self initializeMoDict.! !
 
-!DAHook methodsFor: 'initialize-release' stamp: 'as 4/3/2008 09:21'!
-initializeMetaObjects
+!DAHook methodsFor: 'initialize-release' stamp: 'as 4/7/2008 14:17'!
+initializeMoDict
 
-	metaObjects _ Dictionary new.! !
+	moDict _ Dictionary new.! !
 
-!DAHook methodsFor: 'installation' stamp: 'as 4/3/2008 09:21'!
+!DAHook methodsFor: 'installation' stamp: 'as 4/7/2008 14:17'!
 install
 
 	self isInstalled ifFalse: [
-		self initializeMetaObjects.
 		pointcut joinPoints do: [
 			:jp |
 			| link |
@@ -610,14 +537,29 @@ links
 
 	^ links.! !
 
-!DAHook methodsFor: 'private' stamp: 'as 4/3/2008 09:49'!
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+metaObject
+
+	^ mo.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+metaObject: anObject
+
+	mo _ anObject.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+metaObjects
+
+	^ metaObjects.! !
+
+!DAHook methodsFor: 'private' stamp: 'as 4/7/2008 14:02'!
 newLink: aDAJoinPoint
 
 	| link |
 
 	link _ GPLink new
-		selector: advice selector;
-		arguments: advice arguments;
+		selector: selector;
+		arguments: arguments;
 		control: control;
 		conditionObject: aDAJoinPoint condition;
 		hook: self;
@@ -636,6 +578,17 @@ pointcut: aDAPointcut
 
 	pointcut _ aDAPointcut.! !
 
+!DAHook methodsFor: 'installation' stamp: 'as 4/7/2008 13:51'!
+reinstall
+
+	self uninstall; install.! !
+
+!DAHook methodsFor: 'installation' stamp: 'as 4/7/2008 14:19'!
+reset
+
+	self initializeMoDict.
+	pointcut reset.! !
+
 !DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
 scope
 
@@ -646,19 +599,29 @@ scope: aSymbol
 
 	scope _ aSymbol.! !
 
-!DAHook methodsFor: 'private' stamp: 'as 4/3/2008 09:54'!
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
+selector
+
+	^ selector.! !
+
+!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
+selector: aSymbol
+
+	selector _ aSymbol.! !
+
+!DAHook methodsFor: 'private' stamp: 'as 4/7/2008 14:19'!
 setMetaObject: aGPLink
 
 	scope = #hook ifTrue: [
 		"Only one meta object."
-		aGPLink metaObject: advice metaObject.
+		aGPLink metaObject: mo.
 	] ifFalse: [
 		"The link's dictionary of meta objects is hosted by the hook
 		 and is the same for all links."
 		aGPLink
-			scope: advice scope;
-			metaObjectCreator: advice metaObject;
-			metaObject: metaObjects.
+			scope: scope;
+			metaObjectCreator: mo;
+			metaObject: moDict.
 	].! !
 
 !DAHook methodsFor: 'installation' stamp: 'as 3/23/2008 17:04'!
@@ -667,6 +630,11 @@ uninstall
 	self isInstalled ifTrue: [
 		links do: [ :link | link uninstall. ].
 	].! !
+
+!DAHook methodsFor: 'installation' stamp: 'as 4/7/2008 14:10'!
+update
+
+	self isInstalled ifTrue: [ self reinstall. ].! !
 
 Object subclass: #DAJoinPoint
 	instanceVariableNames: 'condition filters cache'
@@ -1573,12 +1541,6 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -1590,6 +1552,12 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
 
 AnObsoleteDAAspect subclass: #DATestAspect
 	instanceVariableNames: ''
@@ -2015,15 +1983,14 @@ isAbstract
 
 	^ false.! !
 
-!DAHookTest methodsFor: 'testing' stamp: 'as 4/3/2008 10:25'!
+!DAHookTest methodsFor: 'testing' stamp: 'as 4/7/2008 14:36'!
 testSimple
 
-	| mo pc advice hook count |
+	| mo pc hook count |
 
 	mo _ GPCounter new.
 	pc _ DAPointcut class: DAExamples class method: #noop.
-	advice _ DAAdvice object: mo selector: #inc.
-	hook _ DAHook on: pc do: advice.	
+	hook _ DAHook on: pc do: mo with: #inc.	
 	hook install.
 	self cleanup: hook.
 
