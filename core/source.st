@@ -25,6 +25,11 @@ selfIfEmpty: aBlock
 	^ (self >> selector) reflectiveMethod.
 ! !
 
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -34,11 +39,6 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -1208,7 +1208,7 @@ initialize
 	control _ self defaultControl.
 	links _ Dictionary new.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 5/6/2008 14:11'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/13/2008 17:45'!
 install
 
 	self dependencies do: [ :dep | dep install. ].
@@ -1371,7 +1371,7 @@ scope
 
 	^ scope.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:49'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 5/13/2008 14:56'!
 scope: aSymbol
 
 	| rollback |
@@ -1386,10 +1386,12 @@ scope: aSymbol
 		self
 			linksDo: [ :link | link key noScope. ]
 			rollback: rollback.
+		scope _ nil.
 	] ifFalse: [
 		self
 			linksDo: [ :link | link key moScope: aSymbol. ]
 			rollback: rollback.
+		scope _ aSymbol.
 	].! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
@@ -1416,13 +1418,13 @@ setMetaObject: moObject creator: creatorObject for: aGPLink
 	].
 	aGPLink metaObject: moObject.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 5/6/2008 14:13'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/13/2008 18:18'!
 uninstall
 
 	self isInstalled ifTrue: [
 		self
 			linksDo: [ :link | link value uninstall. ]
-			rollback: [ :link | "not possible" ].
+			rollback: [ :link | link value install. ].
 		installed _ false.
 	].
 	self dependencies do: [ :dep | dep uninstall. ].! !
@@ -3348,25 +3350,25 @@ DAProtoAspect subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors'!
+	instanceVariableNames: 'mo moCreator moDict connectors failed'!
 
 !DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
 Combines several pointcuts and advices by hosting multiple connectors.!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors'!
+	instanceVariableNames: 'mo moCreator moDict connectors failed'!
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
 adviceControls
 
 	^ #(before after beforeafter instead).! !
 
-!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 5/13/2008 11:26'!
 advices
 
 	| possibilities |
 	possibilities _ self possibleAdviceNames.
-	^ self class methods select: [
+	^ self methods select: [
 		:method |
 		possibilities anySatisfy: [
 			:pos |
@@ -3407,8 +3409,16 @@ connectorForAdvice: aMethod
 
 	^ connector.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:04'!
-connectors
+!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
+controlForAdvice: aMethod
+
+	^ self adviceControls detect: [
+		:ctrl |
+		aMethod selector startsWith: ctrl.
+	].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 15:10'!
+createConnectors
 
 	| cons |
 
@@ -3418,14 +3428,6 @@ connectors
 		cons add: (self connectorForAdvice: adv).
 	].
 	^ cons.! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
-controlForAdvice: aMethod
-
-	^ self adviceControls detect: [
-		:ctrl |
-		aMethod selector startsWith: ctrl.
-	].! !
 
 !DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 4/30/2008 17:42'!
 definitionST80
@@ -3456,31 +3458,44 @@ definitionST80
 
 	^ aStream contents! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:42'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:29'!
 install
 
+	self installFailed ifTrue: [ self error: 'cleanly uninstall first (if necessary by hand)'. ].
 	self notInstalled ifTrue: [
 		connectors _ Set new.
-		[ self installConnectors. ] on: Exception do: [
-			self uninstall.
-			self error: 'could not install'.
+		[
+			[
+				self installConnectors.
+			] on: Exception do: [
+				:e |
+				failed _ true.
+				e pass.
+			].
+		] ensure: [
+			failed ifTrue: [ self uninstall. ].
 		].
 	].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:38'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 15:10'!
 installConnectors
 
-	self connectors do: [
+	self createConnectors do: [
 		:con |
 		con install.
 		connectors add: con.
 	].
 		! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 5/2/2008 10:58'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 17:47'!
+installFailed
+
+	^ failed notNil and: [ failed. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 18:04'!
 isInstalled
 
-	^ connectors notNil.! !
+	^ connectors notNil & self installFailed not.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -3497,10 +3512,10 @@ metaObjectDict
 
 	^ moDict ifNil: [ moDict _ Dictionary new. ].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 5/2/2008 11:42'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 18:04'!
 notInstalled
 
-	^ self isInstalled not.! !
+	^ connectors isNil.! !
 
 !DAAspect class methodsFor: 'pointcuts' stamp: 'as 5/2/2008 10:49'!
 pointcutForAdvice: aMethod
@@ -3539,13 +3554,6 @@ possibleAdviceNames
 	].
 	^ names.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:17'!
-reset
-
-	mo _ nil.
-	moDict _ nil.
-	moCreator _ nil.! !
-
 !DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
 scope
 
@@ -3566,20 +3574,40 @@ templateForSubclassOf: aClass category: aSymbol
 	poolDictionaries: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:42'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:42'!
 uninstall
+
+	self uninstallConnectors.
+	connectors _ nil.
+	failed _ false.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:31'!
+uninstallConnectors
 
 	connectors copy do: [
 		:con |
 		con uninstall.
 		connectors remove: con.
-	].
-	connectors _ nil.! !
+	].! !
 
-!DAAspect methodsFor: 'accessing' stamp: 'as 4/30/2008 17:44'!
-allPointcutNames
+DAAspect subclass: #DAExampleAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ self class allPointcutNames.! !
+!DAExampleAspect commentStamp: 'as 5/13/2008 11:21' prior: 0!
+Examples aspect for tests.!
+
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/13/2008 11:22'!
+noop: p
+
+	^ p class: DAExamples class method: #noop.! !
+
+!DAExampleAspect methodsFor: 'advices' stamp: 'as 5/13/2008 11:23'!
+beforeNoop
+
+	Transcript show: 'test'; cr.! !
 
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
 pointcutNames
