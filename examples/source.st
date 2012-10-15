@@ -38,34 +38,34 @@ DAAspect subclass: #DAFibonacciExample
 !DAFibonacciExample commentStamp: 'as 5/29/2008 14:24' prior: 0!
 An example with the Fibonacci numbers.!
 
-!DAFibonacciExample classSide methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:24'!
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:24'!
 fib: n
 
 	^ n <= 1 ifTrue: [ n. ] ifFalse: [ (self fib: n - 1) + (self fib: n - 2). ].! !
 
-!DAFibonacciExample classSide methodsFor: 'fibonacci' stamp: 'as 5/26/2008 10:28'!
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/26/2008 10:28'!
 fibNoEnd: n
 
 	^ (self fib: n - 1) + (self fib: n - 2).! !
 
-!DAFibonacciExample classSide methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:42'!
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:42'!
 fibTail: n
 
 	"Tail recursion. A lot faster than #fib:."
 
 	^ n <= 1 ifTrue: [ n. ] ifFalse: [ self fibTail: n - 1 a: 0 b: 1. ].! !
 
-!DAFibonacciExample classSide methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:36'!
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:36'!
 fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample classSide methodsFor: 'pointcuts' stamp: 'as 7/11/2008 17:14'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 17:14'!
 noEnd
 
 	^ (self class >> #fibNoEnd:) asPointcut.! !
 
-!DAFibonacciExample classSide methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:01'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:01'!
 pointcutNames
 
 	^ #(noEnd).! !
@@ -84,12 +84,12 @@ DAAspect subclass: #DAStoreClosedExample
 !DAStoreClosedExample commentStamp: 'as 8/2/2008 18:04' prior: 0!
 The store is closed in certain contexts.!
 
-!DAStoreClosedExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
+!DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
 entrance
 
 	^ (PC class: WAStoreTask method: #go) & (PC context: DAStoreClosedContext).! !
 
-!DAStoreClosedExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
+!DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
 pointcutNames
 
 	^ #(entrance).! !
@@ -98,6 +98,40 @@ pointcutNames
 insteadEntranceWithObject: task
 
 	task call: DAStoreClosedMessage new.! !
+
+DAAspect subclass: #DAStoreFieldWriteExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreFieldWriteExample commentStamp: 'as 8/3/2008 12:58' prior: 0!
+Trace the flow through the seaside components.!
+
+!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 8/3/2008 20:29'!
+fieldWrites
+
+	^ (PC className: 'WAStore*') & (PC fieldWrite).! !
+
+!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 8/3/2008 20:28'!
+pointcutNames
+
+	^ #(fieldWrites).! !
+
+!DAStoreFieldWriteExample methodsFor: 'advices' stamp: 'as 8/3/2008 21:12'!
+beforeFieldWritesWithNode: node
+
+	| method |
+
+	method _ node reflectiveMethod.
+	Transcript show:
+		'Writing field ''',
+		node variable name,
+		''' in ',
+		method methodClass name,
+		'>>',
+		method selector.
+	Transcript cr.! !
 
 DAAspect subclass: #DAStoreHalosExample
 	instanceVariableNames: ''
@@ -108,12 +142,12 @@ DAAspect subclass: #DAStoreHalosExample
 !DAStoreHalosExample commentStamp: 'as 8/2/2008 18:10' prior: 0!
 Render a halo around each component.!
 
-!DAStoreHalosExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
+!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
 pointcutNames
 
 	^ #(rendering).! !
 
-!DAStoreHalosExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
+!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
 rendering
 
 	^ (PC className: 'WAStore*' methodName: #renderContentOn:).! !
@@ -132,26 +166,26 @@ DAAspect subclass: #DAStoreTitleExample
 !DAStoreTitleExample commentStamp: 'as 8/2/2008 18:16' prior: 0!
 Modify the title.!
 
-!DAStoreTitleExample classSide methodsFor: 'options' stamp: 'as 8/2/2008 18:11'!
+!DAStoreTitleExample class methodsFor: 'options' stamp: 'as 8/3/2008 21:21'!
 disabledAdvices
 
 	^ #(
-		insteadTitle
+		"insteadTitle"
 		insteadTitleAdvice
-		"insteadTitleWithOperation:"
+		insteadTitleWithOperation:
 	).! !
 
-!DAStoreTitleExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:22'!
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:22'!
 pointcutNames
 
 	^ #(title titleAdvice).! !
 
-!DAStoreTitleExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
 title
 
 	^ PC class: WAStore method: #title.! !
 
-!DAStoreTitleExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
 titleAdvice
 
 	^ PC class: self method: #insteadTitle.! !
@@ -171,29 +205,6 @@ insteadTitleWithOperation: x
 
 	^ x value, ' Pro'.! !
 
-DAAspect subclass: #DAStoreTraceExample
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DAExamples-Store'!
-
-!DAStoreTraceExample commentStamp: 'as 8/3/2008 12:58' prior: 0!
-Trace the flow through the seaside components.!
-
-!DAStoreTraceExample classSide methodsFor: 'pointcuts' stamp: 'as 8/3/2008 17:33'!
-pointcutNames
-
-	^ #().! !
-
-!DAStoreTraceExample methodsFor: 'advices' stamp: 'as 8/3/2008 13:14'!
-log: aString on: aRBProgramNode
-
-	| method |
-
-	method _ aRBProgramNode reflectiveMethod.
-	Transcript show: aString, ' ', method methodClass name, '>>', method selector.
-	Transcript cr.! !
-
 DAAspect subclass: #DATranscriptExample
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -203,18 +214,18 @@ DAAspect subclass: #DATranscriptExample
 !DATranscriptExample commentStamp: 'as 7/3/2008 17:55' prior: 0!
 Put a carriage return after each #show: in the Transcript.!
 
-!DATranscriptExample classSide methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:28'!
+!DATranscriptExample class methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:28'!
 initialize
 
 	self disable.
 	super initialize.! !
 
-!DATranscriptExample classSide methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:06'!
+!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:06'!
 pointcutNames
 
 	^ #(transcriptShow).! !
 
-!DATranscriptExample classSide methodsFor: 'pointcuts' stamp: 'as 7/21/2008 09:18'!
+!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 09:18'!
 transcriptShow
 
 	^ (TranscriptStream >> #show:) asPointcut.! !
