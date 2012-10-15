@@ -2,52 +2,6 @@ SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
-!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
-defineClass: defString notifying: aController  
-	"The receiver's textual content is a request to define a new class. The
-	source code is defString. If any errors occur in compilation, notify
-	aController."
-	| oldClass class newClassName defTokens keywdIx envt |
-	oldClass _ self selectedClassOrMetaClass.
-	defTokens _ defString findTokens: Character separators.
-	
-	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
-		or: [defTokens second = 'classTrait'])
-		ifTrue: [^self defineTrait: defString notifying: aController].
-		
-	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
-	envt _ Smalltalk.
-	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
-	
-	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
-	 but 'subaspect' instead."
-	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
-	
-	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
-	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
-		and: [envt includesKey: newClassName asSymbol]) ifTrue:
-			["Attempting to define new class over existing one when
-				not looking at the original one in this browser..."
-			(self confirm: ((newClassName , ' is an existing class in this system.
-Redefining it might cause serious problems.
-Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
-				ifFalse: [^ false]].
-	"ar 8/29/1999: Use oldClass superclass for defining oldClass
-	since oldClass superclass knows the definerClass of oldClass."
-	oldClass ifNotNil:[oldClass _ oldClass superclass].
-	class _ oldClass subclassDefinerClass
-				evaluate: defString
-				notifying: aController
-				logged: true.
-	(class isKindOf: Behavior)
-		ifTrue: [self changed: #systemCategoryList.
-				self changed: #classList.
-				self clearUserEditFlag.
-				self setClass: class selector: nil.
-				"self clearUserEditFlag; editClass."
-				^ true]
-		ifFalse: [^ false]! !
-
 Object subclass: #DAAspectClass
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -55,16 +9,16 @@ Object subclass: #DAAspectClass
 	category: 'DynamicAspects-Kernel'!
 
 DAAspectClass class
-	instanceVariableNames: 'PointcutNames'!
+	instanceVariableNames: 'pointcutNames'!
 
 !DAAspectClass commentStamp: 'as 8/14/2007 10:04' prior: 0!
 This makes the transition from an object to an aspect.!
 
 DAAspectClass class
-	instanceVariableNames: 'PointcutNames'!
+	instanceVariableNames: 'pointcutNames'!
 
 DAAspectClass subclass: #DAAspect
-	instanceVariableNames: 'links'
+	instanceVariableNames: 'links pc'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -86,7 +40,7 @@ allPointcutNames
 
 	^ self superclass pointcutNames addAll: self pointcutNames; yourself.! !
 
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/22/2007 09:27'!
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 10:27'!
 definitionST80
 
 	| aStream |
@@ -111,9 +65,10 @@ definitionST80
 
 	^ aStream contents! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/23/2007 16:22'!
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:33'!
 instance
-	^ instance ifNil: [ instance := self basicNew initialize. ]! !
+
+	^ instance ifNil: [ instance := self basicNew initialize. ].! !
 
 !DAAspect class methodsFor: 'instance creation' stamp: 'as 8/14/2007 09:43'!
 new
@@ -172,15 +127,16 @@ controlForAdvice: aMethod
 		aMethod selector startsWith: ctrl.
 	].! !
 
-!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/24/2007 10:07'!
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/31/2007 10:27'!
 initialize
 
-	self initializeLinks.! !
+	self initializeLinks.
+	pc _ DAPointcut.! !
 
-!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/24/2007 10:07'!
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/31/2007 10:13'!
 initializeLinks
 
-	links _ Set new.! !
+	links _ IdentitySet new.! !
 
 !DAAspect methodsFor: 'installing' stamp: 'as 10/24/2007 10:15'!
 install
@@ -217,31 +173,31 @@ isInstalled
 
 	^ links isEmpty not.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/24/2007 10:23'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:28'!
 pointcut: aSymbol
 
-	^ self perform: (aSymbol, #':') asSymbol with: DAPointcutBuilder.! !
+	^ self perform: (aSymbol, #':') asSymbol with: DAPointcutBuilder new.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/24/2007 09:52'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:35'!
 pointcutForAdvice: aMethod
 
 	^ self pointcut: (
 		self allPointcutNames detect: [
-			:pc |
-			(aMethod selector subStrings: ':') first endsWith: pc capitalized.
+			:pcn |
+			(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
 		]
 	).! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 10/23/2007 13:49'!
+!DAAspect methodsFor: 'advices' stamp: 'as 10/31/2007 10:32'!
 possibleAdviceNames
 
 	| names |
 	names _ Set new.
 	self allPointcutNames do: [
-		:pc |
+		:pcn |
 		self adviceControls do: [
 			:ctrl |
-			names add: ctrl, pc capitalized, '*'.
+			names add: ctrl, pcn capitalized, '*'.
 		].
 	].
 	^ names.! !
@@ -273,20 +229,20 @@ afterExample1
 
 	DAExamples count.! !
 
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/24/2007 09:44'!
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:29'!
 example1: builder
 
-	^ builder method: DAExamples class >> #example1.! !
+	^ pc method: DAExamples class >> #example1.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:36'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
 pointcutNames
 
-	^ PointcutNames ifNil: [ PointcutNames _ Set new. ].! !
+	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:36'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
 pointcutNames: aString
 
-	PointcutNames _ self stringToSymbols: aString.! !
+	pointcutNames _ self stringToSymbols: aString.! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
 stringToSymbols: aString
@@ -595,6 +551,15 @@ write
 
 	properties at: #write put: true.! !
 
+DAPointcut subclass: #DAMethodCallPointcut
+	instanceVariableNames: 'receiver selector'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAMethodCallPointcut commentStamp: 'as 10/30/2007 17:31' prior: 0!
+A method call.!
+
 DAPointcut subclass: #DAMethodExecutionPointcut
 	instanceVariableNames: 'methodString classString'
 	classVariableNames: ''
@@ -639,6 +604,79 @@ methods
 visitName
 
 	^ 'execution'.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+field: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; write; instance; temp;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+instanceVar: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; write; instance;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+instanceVarRead: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; instance;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+instanceVarWrite: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		write; instance;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+method: aCompiledMethod
+
+	^ DAMethodExecutionPointcut method: aCompiledMethod.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+method: methodString in: classString
+
+	^ DAMethodExecutionPointcut method: methodString class: classString.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+readField: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; instance; temp;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+tempVar: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; write; temp;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+tempVarRead: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		read; temp;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+tempVarWrite: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		write; temp;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+writeField: fieldString in: classString
+
+	^ (DAFieldAccessPointcut field: fieldString class: classString)
+		write; instance; temp;
+		yourself.! !
 
 !DAPointcut methodsFor: 'visiting' stamp: 'as 10/17/2007 11:26'!
 acceptVisitor: aDAPointcutVisitor
@@ -718,81 +756,8 @@ Object subclass: #DAPointcutBuilder
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
-!DAPointcutBuilder commentStamp: 'as 9/26/2007 15:24' prior: 0!
-A convenience class with class-side shortcuts for creating pointcuts.!
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:15'!
-field: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; write; instance; temp;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:16'!
-instanceVar: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; write; instance;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:17'!
-instanceVarRead: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; instance;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:17'!
-instanceVarWrite: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		write; instance;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/22/2007 20:41'!
-method: aCompiledMethod
-
-	^ DAMethodExecutionPointcut method: aCompiledMethod.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/22/2007 20:41'!
-method: methodString in: classString
-
-	^ DAMethodExecutionPointcut method: methodString class: classString.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:15'!
-readField: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; instance; temp;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:16'!
-tempVar: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; write; temp;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:16'!
-tempVarRead: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		read; temp;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:16'!
-tempVarWrite: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		write; temp;
-		yourself.! !
-
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/26/2007 15:15'!
-writeField: fieldString in: classString
-
-	^ (DAFieldAccessPointcut field: fieldString class: classString)
-		write; instance; temp;
-		yourself.! !
+!DAPointcutBuilder commentStamp: 'as 10/31/2007 10:23' prior: 0!
+Holds data durint pointcut building. (Currently unused.)!
 
 Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
@@ -928,6 +893,52 @@ visitOr: aDAWithinPointcut
 visitWithin: aDAWithinPointcut
 
 	self subclassResponsibility.! !
+
+!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
