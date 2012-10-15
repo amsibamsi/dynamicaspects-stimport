@@ -936,22 +936,7 @@ Object subclass: #DAProtoAspect
 An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
 An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier with AOP.!
 
-DAProtoAspect subclass: #DAAspectClass
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-DAAspectClass class
-	instanceVariableNames: 'pointcutNames'!
-
-!DAAspectClass commentStamp: 'as 11/19/2007 12:49' prior: 0!
-This makes the transition from a class to an aspect.!
-
-DAAspectClass class
-	instanceVariableNames: 'pointcutNames'!
-
-DAAspectClass subclass: #DAAspect
+DAProtoAspect subclass: #DAAspect
 	instanceVariableNames: 'links pc'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -968,40 +953,6 @@ Although aspects are not necessarily objects or classes, in this implementation 
 DAAspect class
 	instanceVariableNames: 'instance'!
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:59'!
-allPointcutNames
-
-	^ self superclass pointcutNames, self pointcutNames.! !
-
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 13:58'!
-definitionST80
-
-	| aStream |
-	aStream _ WriteStream on: (String new: 300).
-	aStream nextPutAll: superclass name.
-	aStream nextPutAll: ' subaspect: ';
-			store: self name.
-	(self hasTraitComposition and: [self traitComposition notEmpty]) ifTrue: [
-		aStream cr; tab; nextPutAll: 'uses: ';
-			nextPutAll: self traitCompositionString].
-	aStream cr; tab; nextPutAll: 'pointcutNames: ';
-			store: self pointcutsString.
-	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
-			store: self instanceVariablesString.
-	aStream cr; tab; nextPutAll: 'classVariableNames: ';
-			store: self classVariablesString.
-	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
-			store: self sharedPoolsString.
-	aStream cr; tab; nextPutAll: 'category: ';
-			store: (SystemOrganization categoryOfElement: self name) asString.
-
-	superclass ifNil: [ 
-		aStream nextPutAll: '.'; cr.
-		aStream nextPutAll: self name.
-		aStream space; nextPutAll: 'superclass: nil'. ].
-
-	^ aStream contents! !
-
 !DAAspect class methodsFor: 'instance creation' stamp: 'as 2/11/2008 16:03'!
 instance
 
@@ -1011,32 +962,6 @@ instance
 new
 
 	self error: 'I''m singleton, use ', self class name, ' >> instance'.! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 10/22/2007 09:38'!
-pointcutsString
-
-	^ String streamContents: [
-		:stream |
-		self pointcutNames do: [
-			:each |
-			stream nextPutAll: each asString.
-		] separatedBy: [ stream space. ].
-	].! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/18/2007 15:03'!
-template: categorySymbol
-
-	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:00'!
-templateForSubclassOf: aClass category: aSymbol
-
-	^ aClass asString, 'subaspect: #NameOfSubaspect
-	pointcutNames: ''''
-	instanceVariableNames: ''''
-	classVariableNames: ''''
-	poolDictionaries: ''''
-	category: ''' , aSymbol asString , ''''.! !
 
 !DAAspect methodsFor: 'advices' stamp: 'as 2/11/2008 15:46'!
 advices
@@ -1164,6 +1089,11 @@ DAAspect subclass: #DATestAspect
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
 
+!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:48'!
+pointcutNames
+
+	^ #(exampleBefore exampleAfter exampleForward).! !
+
 !DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
 afterExampleAfter
 
@@ -1195,39 +1125,15 @@ exampleForward
 	^ (pc cflow: DAExamples class >> #exampleForward) and:
 		(pc method: DAExamples class >> #exampleNoop).! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
+!DAProtoAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:46'!
+allPointcutNames
+
+	^ self superclass pointcutNames, self pointcutNames.! !
+
+!DAProtoAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:41'!
 pointcutNames
 
-	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:53'!
-pointcutNames: aString
-	
-	pointcutNames _ self stringToSymbols: aString.! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
-stringToSymbols: aString
-
-	| set |
-	set _ Set new.
-	(aString subStrings: ' ') do: [
-		:substring |
-		set add: substring asSymbol.
-	].
-	^ set.! !
-
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
-subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
-
-	| newClass |
-	newClass _ self subclass: class
-		instanceVariableNames: instVars
-		classVariableNames: classVars
-		poolDictionaries: pools
-		category: cat.
-	newClass
-		pointcutNames: pointcuts.
-	^ newClass.! !
+	^ #().! !
 
 !DAProtoAspect methodsFor: 'advices' stamp: 'as 11/19/2007 08:29'!
 adviceControls
