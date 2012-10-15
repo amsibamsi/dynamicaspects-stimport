@@ -1,11 +1,12 @@
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
+SystemOrganization addCategory: #'DynamicAspects-Joinpoints'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
-	classVariableNames: 'Links'
+	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
@@ -62,6 +63,20 @@ stringToSymbols: aString
 		:substring |
 		substring asSymbol.
 	].! !
+
+!DAAspect class methodsFor: 'subaspect creation' stamp: 'as 7/18/2007 08:45'!
+subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links instanceVariableNames:  instVars classVariableNames: classVars poolDictionaries: pools category: cat
+
+	^ self
+		subclass: class
+			instanceVariableNames: instVars
+			classVariableNames: classVars
+			poolDictionaries: pools
+			category: cat;
+		pointcuts: pointcuts;
+		advices: advices;
+		links: links;
+		yourself.! !
 
 !DAAspect class methodsFor: 'subaspect creation' stamp: 'as 7/2/2007 10:47'!
 subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links variableNames: variables category: cat
@@ -221,6 +236,41 @@ example
 
 	^ self.! !
 
+Object subclass: #DAJoinpoint
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+DAJoinpoint subclass: #DAMethodExecutionJoinpoint
+	instanceVariableNames: 'class method'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Joinpoints'!
+
+!DAMethodExecutionJoinpoint class methodsFor: 'instance creation' stamp: 'as 7/17/2007 17:31'!
+onClass: aClass method: aSymbol
+
+	^ self new
+		class: aClass;
+		method: aSymbol;
+		yourself.! !
+
+!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 7/17/2007 17:32'!
+class: aClass
+
+	class _ aClass.! !
+
+!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 7/17/2007 17:32'!
+method: aSymbol
+
+	method _ aSymbol.! !
+
+!DAMethodExecutionJoinpoint methodsFor: 'joinpoint' stamp: 'as 7/17/2007 17:37'!
+node
+
+	^ (class >> method) methodNode.! !
+
 Object subclass: #DAPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -274,12 +324,30 @@ TestCase subclass: #DAAspectTest
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 7/4/2007 17:01'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:37'!
+removeAllLinksOn: aClass
+
+	aClass methodDict values do: [
+		:method |
+		method reflectiveMethod methodNode nodesDo: [
+			:node |
+			node hasAnyLink ifTrue: [ node removeAllLinks. ].
+			self assert: node hasAnyLink not.
+		].
+	].! !
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:34'!
 setUp
 
 	super initialize.
 	example _ DAExamples new.
-	aspect _ DAExampleAspect instance.! !
+	aspect _ DAExampleAspect instance.
+	self removeAllLinksOn: DAExamples.! !
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:34'!
+tearDown
+
+	self removeAllLinksOn: DAExamples.! !
 
 !DAAspectTest methodsFor: 'testing' stamp: 'as 7/4/2007 17:50'!
 testAspect
