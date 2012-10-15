@@ -338,35 +338,60 @@ setUp
 
 	aspect reset.! !
 
-!DAAspectTest methodsFor: 'testing controls' stamp: 'as 7/15/2008 08:44'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
 testAfterMethod
 
-	aspect count2.
-	self assert: aspect count = 2.! !
+	aspect mAfter.
+	self assert: aspect count = 3.! !
 
-!DAAspectTest methodsFor: 'testing controls' stamp: 'as 7/14/2008 10:37'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:24'!
+testAfterStatement
+
+	aspect mAfterStatement.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
 testAspectIsInstalled
 
 	"If the examples aspect is not installed, all tests here will fail."
 	
 	self assert: aspect isInstalled.! !
 
-!DAAspectTest methodsFor: 'testing controls' stamp: 'as 7/15/2008 08:44'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
+testBeforeAfterMethod
+
+	aspect mBeforeafter.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
+testBeforeAfterStatement
+
+	aspect mBeforeafterStatement.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
 testBeforeMethod
 
-	aspect count2.
-	self assert: aspect count = 2.! !
+	aspect mBefore.
+	self assert: aspect count = 5.! !
 
-!DAAspectTest methodsFor: 'testing reifications' stamp: 'as 7/15/2008 12:05'!
-testClassReification
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
+testBeforeStatement
 
-	! !
+	aspect mBeforeStatement.
+	self assert: aspect count = 5.! !
 
-!DAAspectTest methodsFor: 'testing controls' stamp: 'as 7/15/2008 08:44'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:21'!
 testInsteadMethod
 
-	aspect count3.
-	self assert: aspect count = 1.! !
+	aspect mInstead.
+	self assert: aspect count = 10.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
+testInsteadStatement
+
+	aspect mInsteadStatement.
+	self assert: aspect count = 10.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -4063,75 +4088,146 @@ count
 
 	^ count ifNil: [ count _ 0. ].! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/14/2008 20:29'!
-count1
-
-	self count: 1.! !
-
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:18'!
-count1Method
-
-	^ self countMethod: 1.! !
-
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/14/2008 20:29'!
-count2
-
-	self count: 2.! !
-
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:17'!
-count2Method
-
-	^ self countMethod: 2.! !
-
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/14/2008 20:32'!
-count3
-
-	self count: 3.! !
-
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:17'!
-count3Method
-
-	^ self countMethod: 3.! !
-
 !DAAspectExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
 count: aNumber
 
 	count _ aNumber.! !
-
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:34'!
-countMethod: x
-
-	^ (self class >> ('count', x asString) asSymbol) asPointcut.! !
 
 !DAAspectExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
 inc
 
 	count _ self count + 1.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 14:14'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 14:56'!
+mAfter
+
+	self count: 2.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+mAfterStatement
+
+	self count: 2.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 14:55'!
+mBefore
+
+	self inc.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+mBeforeStatement
+
+	self inc.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:13'!
+mBeforeafter
+
+	self inc.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:13'!
+mBeforeafterStatement
+
+	self inc.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+mInstead
+
+	self count: 15.! !
+
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+mInsteadStatement
+
+	self count: 15.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:13'!
+pAfter
+
+	^ (self class >> #mAfter) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pAfterStatement
+
+	^ (self class >> #mAfterStatement) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:13'!
+pBefore
+
+	^ (self class >> #mBefore) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pBeforeStatement
+
+	^ (self class >> #mBeforeStatement) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pBeforeafter
+
+	^ (self class >> #mBeforeafter) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pBeforeafterStatement
+
+	^ (self class >> #mBeforeafterStatement) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pInstead
+
+	^ (self class >> #mInstead) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+pInsteadStatement
+
+	^ (self class >> #mInsteadStatement) asPointcut.! !
+
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:15'!
 pointcutNames
 
-	^ #(count1Method count2Method count3Method).! !
+	^ #(pBefore pAfter pInstead pBeforeafter
+		pBeforeStatement pAfterStatement pInsteadStatement pBeforeafterStatement).! !
 
 !DAAspectExample class methodsFor: 'initialize-release' stamp: 'as 7/15/2008 14:14'!
 reset
 
 	count _ nil.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:19'!
-afterCount1Method
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:16'!
+afterPAfter
 
-	self class counter: 2.! !
+	self class inc.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:33'!
-beforeCount2Method
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
+afterPAfterStatement
 
-	self class count: 1.! !
+	self class inc.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:33'!
-insteadCount3Method
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:20'!
+beforePBefore
 
-	self class count: 1.! !
+	self class count: 4.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:23'!
+beforePBeforeStatement
+
+	self class count: 4.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:23'!
+beforeafterPBeforeafter
+
+	self class inc.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
+beforeafterPBeforeafterStatement
+
+	self class inc.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:17'!
+insteadPInstead
+
+	self class count: 10.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
+insteadPInsteadStatement
+
+	self class count: 10.! !
 
 DAAspect subclass: #DAAspectReificationExample
 	instanceVariableNames: ''
@@ -4339,10 +4435,10 @@ DAAspect subclass: #DAAspectScopeTestObject
 !DAAspectScopeTestObject commentStamp: 'as 7/14/2008 21:10' prior: 0!
 For aspect scope tests.!
 
-!DAAspectScopeTestObject methodsFor: 'dummy' stamp: 'as 7/15/2008 10:35'!
+!DAAspectScopeTestObject methodsFor: 'dummy' stamp: 'as 7/16/2008 15:30'!
 noop
 
-	Transcript show: 'debug1'; cr.! !
+	^ self.! !
 
 DAAspect subclass: #DAAspectSelectorExample
 	instanceVariableNames: ''
