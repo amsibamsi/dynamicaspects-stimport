@@ -49,19 +49,42 @@ TestCase subclass: #DACodingTest
 !DACodingTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
 Testing coding guidelines.!
 
-!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:18'!
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:52'!
+classes
+
+	^ (PackageInfo named: self packageName) classes.! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:55'!
+methods
+
+	^ self classes inject: Set new into: [
+		:set :class |
+		set, class instanceSide methodDict, class classSide methodDict.
+	].! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:48'!
 packageName
 
-	^ 'DynamicAspects'.! !
+	^ 'DA'.! !
 
-!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:17'!
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:52'!
 testClassComment
 
 	"Each class should have a comment."
 
-	(PackageInfo named: self packageName) classes do: [
+	self classes do: [
 		:each |
 		self assert: each hasComment.
+	].! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:57'!
+testMethodLength
+
+	"No long methods."
+
+	self methods do: [
+		:each |
+		self assert: each statements size < 15.
 	].! !
 
 TestCase subclass: #DAConditionTest
