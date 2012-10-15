@@ -7,18 +7,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
-
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -40,28 +28,17 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
-!PEInlineCompilationStrategy methodsFor: '*DA' stamp: 'as 7/30/2008 18:12'!
-addOutlineReturnAfter: original to: aSequenceNode
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
 
-	| body statements last lastIsReturn |
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
 
-	body _ original body copy.
-	statements _ body statements.
-	statements size > 0 ifTrue: [
-		last _ statements last.
-		lastIsReturn _ last isReturn.
-	] ifFalse: [
-		last _ nil.
-		lastIsReturn _ false.
-	].
-	lastIsReturn ifTrue: [
-		body replaceNode: last withNode: last value ].
-	aSequenceNode addNode: (self
-		wrap: body
-		withEnsure: original after asSequenceNode).
-	^ lastIsReturn
-		ifTrue: [ (RBReturnNode value: aSequenceNode) asSequenceNode ]
-		ifFalse: [ aSequenceNode ]! !
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -72,17 +49,6 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
-deleteLink: aLink
-
-	"Remove the link only in the method, don't touch the link's nodes."
-
-	self hasAnyLink ifFalse: [ ^ self. ].
-	(self annotationAt: #link) values remove: aLink ifAbsent: [].
-	(self annotationAt: #link) values ifEmpty: [ self removeAllLinks. ]. 
-	
-	self resetCache.! !
 
 !RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
 reflectiveMethod
@@ -1093,6 +1059,21 @@ tearDown
 
 	links do: [ :link | link uninstall. ].! !
 
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
+
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
+startsWithAny: aCollection
+
+	aCollection do: [
+		:string |
+		(self startsWith: string) ifTrue: [ ^ true. ]
+	].
+	^ false.! !
+
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -1102,29 +1083,6 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:52'!
-currentMethod
-
-	^ self methodClass methodDict at: self selector.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 18:00'!
-isCurrent
-
-	^ self currentMethod == self or: [ self currentMethod == compiledMethod. ].! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:56'!
-isInvalid
-
-	"The cache is invalidated by installing the RM in the MethodDictionary.
-	 But this should only be done if this method is still current, meaning
-	 it is in the method dictionary of the class.
-	
-	 The state of the compiledMethod is *not* the trigger!!"
-	
-	^ self == self currentMethod or: [ self isCurrent not. ].
-	
-	! !
 
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
@@ -4836,21 +4794,6 @@ allPointcutNames
 	"This should be a set, eliminating equal duplicates."
 	^ Set new.! !
 
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
-startsWithAny: aCollection
-
-	aCollection do: [
-		:string |
-		(self startsWith: string) ifTrue: [ ^ true. ]
-	].
-	^ false.! !
-
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
 
@@ -4880,10 +4823,6 @@ noScope
 
 	self properties removeKey: #moScope ifAbsent: [ self. ].! !
 
-!GPLink methodsFor: '*DA' stamp: 'as 8/3/2008 20:30'!
-nodes
-	^nodes ifNil: [nodes := IdentitySet new].! !
-
 !ClassDescription class methodsFor: '*DA' stamp: 'as 5/8/2008 15:55'!
 asDescription
 
@@ -4893,11 +4832,6 @@ asDescription
 asDescription
 
 	^ DAClassDescription classObject: self.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
@@ -4924,25 +4858,6 @@ flowOutOf: aDAPointcut
 
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
-
-!GPOperationParameter methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
-genForRBMethodNode
-	"The method wrapped needs to be the method with just not our link"
-	
-	| methodNode |
-	methodNode := node copy.
-	methodNode annotations: methodNode annotations copy.
-	methodNode deleteLink: link.
-	
-	^ RBMessageNode 
-			receiver: GPMethod asLiteralNode
-			selector: #method:receiver:arguments:
-			arguments:  {   methodNode generate compiledMethod asLiteralNode. 
-							RBMessageNode 
-								receiver: (RBVariableNode named: 'thisContext')
-								selector: #receiver.
-							(GPArgumentsParameter node: node link: link) genForRBMethodNode}
-! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -5174,6 +5089,11 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
