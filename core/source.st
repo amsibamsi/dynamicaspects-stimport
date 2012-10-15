@@ -8,18 +8,6 @@ SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
-includesExactly: aCollection
-
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -41,6 +29,32 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
+!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!GeppettoTest methodsFor: '*DA' stamp: 'as 5/26/2008 13:28'!
+testMethodInstead
+
+	gplink := GPLink new metaObject: [10]; control: #instead.
+	(GPExamples>>#exampleBlock) methodNode body do: [ :node | node link: gplink. ].
+	
+	GPCounter reset.
+	self assert: (GPExamples new exampleBlock = 10).! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -51,10 +65,86 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+TestCase subclass: #DAAdviceSelectorTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ self method parent.! !
+!DAAdviceSelectorTest commentStamp: 'as 6/1/2008 21:58' prior: 0!
+Test the advice selectors on DAAspect.!
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 11:24'!
+testBeforeafter
+
+	"This could easily be interpreted as control #before with 'after' counting to the pointcut
+	 name, but it should not."
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #beforeafterPointcut.
+	self assert: split first = #beforeafter.
+	self assert: split second = 'pointcut'.! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 11:53'!
+testInvalidArgument
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #beforePointcutWithInvalidReification:.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(nil)).! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 12:03'!
+testLowercase
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #insteadpointcutclass:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 13:24'!
+testMixedCase
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #iNSteaDpOintcutCLASS:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 11:24'!
+testNoArguments
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #beforePointcut.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: split third isEmpty.! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 11:21'!
+testStandardAdviceSelector
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #beforePointcutWithObject:andClass:.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: split third asArray = #(object class).! !
+
+!DAAdviceSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 13:23'!
+testUppercase
+
+	| split |
+
+	split _ DASelectorExampleAspect splitAdvice: #InsteadPointcutClass:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'examples aspect'
@@ -717,6 +807,15 @@ copyAfterIndex: anIndex
 
 	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
 	^ self copyFrom: anIndex to: self size.! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
+startsWithAny: aCollection
+
+	aCollection do: [
+		:string |
+		(self startsWith: string) ifTrue: [ ^ true. ]
+	].
+	^ false.! !
 
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -3496,7 +3595,7 @@ argumentsForAdvice: aMethod
 
 	^ aMethod reflectiveMethod argumentNames collect: [ :arg | arg asSymbol. ].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:31'!
+!DAAspect class methodsFor: 'private' stamp: 'as 5/2/2008 11:31'!
 connectorForAdvice: aMethod
 
 	| connector |
@@ -3527,7 +3626,7 @@ controlForAdvice: aMethod
 		aMethod selector startsWith: ctrl.
 	].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 15:10'!
+!DAAspect class methodsFor: 'private' stamp: 'as 5/13/2008 15:10'!
 createConnectors
 
 	| cons |
@@ -3629,7 +3728,7 @@ install
 		].
 	].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 15:10'!
+!DAAspect class methodsFor: 'private' stamp: 'as 5/13/2008 15:10'!
 installConnectors
 
 	self createConnectors do: [
@@ -3735,7 +3834,7 @@ notifyUsersOfChangedSelectors: aCollection meta: aBoolean
 		].
 	]) ifTrue: [ self reinstallQuietly. ].! !
 
-!DAAspect class methodsFor: 'pointcuts' stamp: 'as 5/2/2008 10:49'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 10:49'!
 pointcutForAdvice: aMethod
 
 	| pc |
@@ -3772,6 +3871,11 @@ possibleAdviceNames
 	].
 	^ names.! !
 
+!DAAspect class methodsFor: 'advices' stamp: 'as 5/30/2008 13:42'!
+possibleReifications
+
+	^ GPParameter allKeys.! !
+
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:21'!
 reinstall
 
@@ -3786,6 +3890,42 @@ reinstallQuietly
 scope
 
 	^ nil.! !
+
+!DAAspect class methodsFor: 'private' stamp: 'as 5/29/2008 18:10'!
+selector: aMethodOrSymbol
+
+	^ aMethodOrSymbol isSymbol
+		ifTrue: [ aMethodOrSymbol. ] ifFalse: [ aMethodOrSymbol selector. ].! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 6/2/2008 11:52'!
+splitAdvice: aMethodOrSymbol
+
+	| selector control pointcut arguments |
+
+	selector _ (self selector: aMethodOrSymbol) asLowercase.
+
+	control _ (self adviceControls select: [
+		:ctrl |
+		selector beginsWith: ctrl asLowercase.
+	]) detectMax: [ :ctrl | ctrl size. ].
+	selector _ selector copyFrom: control size + 1 to: selector size.
+	
+	pointcut _ (self allPointcutNames select: [
+		:pc |
+		selector beginsWith: pc asLowercase.
+	]) detectMax: [ :pc | pc size. ].
+	selector _ selector copyFrom: pointcut size + 1 to: selector size.
+
+	arguments _ OrderedCollection new.
+	(selector subStrings: ':') do: [
+		:part |
+		arguments add: ((self possibleReifications select: [
+			:ref |
+			part endsWith: ref asLowercase.
+		]) detectMax: [ :ref | ref size. ]).
+	].
+
+	^ { control. pointcut. arguments. }.! !
 
 !DAAspect class methodsFor: 'instance creation' stamp: 'as 4/30/2008 17:42'!
 template: categorySymbol
@@ -3924,6 +4064,15 @@ insteadNoEnd
 
 	^ 1.! !
 
+DAAspect subclass: #DASelectorExampleAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DASelectorExampleAspect commentStamp: 'as 6/2/2008 10:53' prior: 0!
+Empty example aspect to test advice selectors.!
+
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
 pointcutNames
 
@@ -3946,15 +4095,6 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 	newClass
 		pointcutNames: pointcuts.
 	^ newClass.! !
-
-!GeppettoTest methodsFor: '*DA' stamp: 'as 5/26/2008 13:28'!
-testMethodInstead
-
-	gplink := GPLink new metaObject: [10]; control: #instead.
-	(GPExamples>>#exampleBlock) methodNode body do: [ :node | node link: gplink. ].
-	
-	GPCounter reset.
-	self assert: (GPExamples new exampleBlock = 10).! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -4021,11 +4161,6 @@ flowOutOf: aDAPointcut
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
 
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
-
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
 	classVariableNames: ''
@@ -4087,7 +4222,7 @@ aspectMenuEnabled: aBoolean
 
 	self aspectMenu items do: [ :m | m isEnabled: aBoolean. ].! !
 
-!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/19/2008 17:07'!
+!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/29/2008 15:00'!
 buildAspectMenu
 
 	| menu |
@@ -4099,7 +4234,8 @@ buildAspectMenu
 	menu addList: #(
 		('1. Enable' enableAspect)
 		('2. Disable' disableAspect)
-		('2. Reinstall manually' reinstallAspect)
+		('3. Reinstall' reinstallAspect)
+		('4. Uninstall' uninstallAspect)
 	).
 	^ menu.! !
 
@@ -4218,10 +4354,20 @@ reinstallAspect
 
 	[ self aspect reinstall. ] ensure: [ self updateAspect. ].! !
 
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/29/2008 15:01'!
+uninstallAspect
+
+	[ self aspect uninstall. ] ensure: [ self updateAspect. ].! !
+
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:10'!
 updateAspect
 
 	self adaptAspectButtonColor.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 DAFlowContext initialize!
 DAAspect initialize!
 DAAspectBrowser initialize!
