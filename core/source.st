@@ -8,6 +8,18 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -28,32 +40,6 @@ notifyUsersOfChangedSelectors: aCollection
 
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
-deleteLink: aLink
-
-	"Remove the link only in the method, don't touch the link's nodes."
-
-	self hasAnyLink ifFalse: [ ^ self. ].
-	(self annotationAt: #link) values remove: aLink ifAbsent: [].
-	(self annotationAt: #link) values ifEmpty: [ self removeAllLinks. ]. 
-	
-	self resetCache.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
-
-	^ DAMethodDescription methodObject: self.! !
-
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
-
-	^ DAPointcut method: self.! !
 
 !PEInlineCompilationStrategy methodsFor: '*DA' stamp: 'as 7/30/2008 18:12'!
 addOutlineReturnAfter: original to: aSequenceNode
@@ -77,6 +63,32 @@ addOutlineReturnAfter: original to: aSequenceNode
 	^ lastIsReturn
 		ifTrue: [ (RBReturnNode value: aSequenceNode) asSequenceNode ]
 		ifFalse: [ aSequenceNode ]! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
+deleteLink: aLink
+
+	"Remove the link only in the method, don't touch the link's nodes."
+
+	self hasAnyLink ifFalse: [ ^ self. ].
+	(self annotationAt: #link) values remove: aLink ifAbsent: [].
+	(self annotationAt: #link) values ifEmpty: [ self removeAllLinks. ]. 
+	
+	self resetCache.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DAAspectContextTest
 	instanceVariableNames: 'aspect'
@@ -1082,6 +1094,39 @@ tearDown
 
 	links do: [ :link | link uninstall. ].! !
 
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:52'!
+currentMethod
+
+	^ self methodClass methodDict at: self selector.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 18:00'!
+isCurrent
+
+	^ self currentMethod == self or: [ self currentMethod == compiledMethod. ].! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:56'!
+isInvalid
+
+	"The cache is invalidated by installing the RM in the MethodDictionary.
+	 But this should only be done if this method is still current, meaning
+	 it is in the method dictionary of the class.
+	
+	 The state of the compiledMethod is *not* the trigger!!"
+	
+	^ self == self currentMethod or: [ self isCurrent not. ].
+	
+	! !
+
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
 	classVariableNames: ''
@@ -2030,20 +2075,6 @@ The state is managed per process.!
 current
 
 	^ Processor activeProcess ctxtEnvironmentAt: self ifAbsentPut: [ self new. ].! !
-
-DAActiveContext subclass: #DAStoreClosed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Examples'!
-
-!DAStoreClosed commentStamp: 'as 7/30/2008 20:56' prior: 0!
-Active when the store is closed.!
-
-!DAStoreClosed methodsFor: 'testing' stamp: 'as 7/30/2008 20:57'!
-isActive
-
-	^ Time now seconds even.! !
 
 DAContext subclass: #DAComposedContext
 	instanceVariableNames: 'children'
@@ -4800,239 +4831,26 @@ pointcutNames
 
 	^ #(pointcut2).! !
 
-DAAspect subclass: #DAFibonacciExample
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Examples'!
-
-!DAFibonacciExample commentStamp: 'as 5/29/2008 14:24' prior: 0!
-An example with the Fibonacci numbers.!
-
-!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:24'!
-fib: n
-
-	^ n <= 1 ifTrue: [ n. ] ifFalse: [ (self fib: n - 1) + (self fib: n - 2). ].! !
-
-!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/26/2008 10:28'!
-fibNoEnd: n
-
-	^ (self fib: n - 1) + (self fib: n - 2).! !
-
-!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:42'!
-fibTail: n
-
-	"Tail recursion. A lot faster than #fib:."
-
-	^ n <= 1 ifTrue: [ n. ] ifFalse: [ self fibTail: n - 1 a: 0 b: 1. ].! !
-
-!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:36'!
-fibTail: n a: a b: b
-
-	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
-
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 17:14'!
-noEnd
-
-	^ (self class >> #fibNoEnd:) asPointcut.! !
-
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:01'!
-pointcutNames
-
-	^ #(noEnd).! !
-
-!DAFibonacciExample methodsFor: 'advices' stamp: 'as 7/29/2008 12:24'!
-insteadNoEndWithArg1: n operation: operation
-
-	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
-
-DAAspect subclass: #DAStoreExample
-	instanceVariableNames: 'orders fields'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Examples'!
-
-!DAStoreExample commentStamp: 'as 7/21/2008 16:46' prior: 0!
-The famous sushi store example.!
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 20:58'!
-closed
-
-	^ (PC class: WAStoreTask method: #go) & (PC context: DAStoreClosed).! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/29/2008 17:47'!
-confirmation
-
-	^ PC class: WAStoreTask method: #shipTo:billTo:payWith:.! !
-
-!DAStoreExample class methodsFor: 'options' stamp: 'as 7/31/2008 14:36'!
-disabledAdvices
-
-	^ #(
-		insteadTitle
-		insteadTitle2
-		insteadTitleWithOperation:
-		insteadSubtitleWithOperation:
-		afterConfirmation
-		beforeRenderingWithArg1:object:
-		insteadClosedWithObject:
-		afterFields
-	).! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/31/2008 14:19'!
-fields
-
-	^ (PC className: 'WAStore*') & (PC fieldWrite: 'cart').! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/31/2008 13:40'!
-pointcutNames
-
-	^ #(title title2 subtitle confirmation rendering closed fields).! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 15:33'!
-rendering
-
-	^ (PC className: 'WAStore*' methodName: #renderContentOn:).! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/29/2008 17:26'!
-subtitle
-
-	^ PC class: WAStore method: #subtitle.! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:49'!
-title
-
-	^ PC class: WAStore method: #title.! !
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:51'!
-title2
-
-	^ PC class: self method: #insteadTitle.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:02'!
-afterConfirmation
-
-	self ordered: 1.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/31/2008 14:15'!
-afterFields
-
-	Transcript show: 'debug'; cr.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:24'!
-beforeRenderingWithArg1: html object: component
-
-	html paragraph: [ html small: [ html text: component asString. ]. ].! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
-fieldAt: anObject
-
-	^ self fields at: anObject ifAbsent: [ 0. ].! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
-fieldAt: aObject put: aNumber
-
-	self fields at: aObject put: aNumber.! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:53'!
-fields
-
-	^ fields ifNil: [ fields _ Dictionary new. ].! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 21:04'!
-insteadClosedWithObject: task
-
-	task call: DAStoreClosedMessage new.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:02'!
-insteadSubtitleWithOperation: o
-
-	^ o value, ' (', self orders asString, ' orders)'.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/25/2008 10:55'!
-insteadTitle
-
-	^ 'sushiNet Pro'.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/25/2008 10:55'!
-insteadTitle2
-
-	^ 'sushiNet Pro 2.0'.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/28/2008 13:53'!
-insteadTitleWithOperation: x
-
-	^ x value, ' Pro'.! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-ordered
-
-	self orders: self orders + 1.! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-ordered: aNumber
-
-	self orders: self orders + aNumber.! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-orders
-
-	^ orders ifNil: [ orders _ 0. ].! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-orders: aNumber
-
-	orders _ aNumber.! !
-
-DAAspect subclass: #DATranscriptExample
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Examples'!
-
-!DATranscriptExample commentStamp: 'as 7/3/2008 17:55' prior: 0!
-Put a carriage return after each #show: in the Transcript.!
-
-!DATranscriptExample class methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:28'!
-initialize
-
-	self disable.
-	super initialize.! !
-
-!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:06'!
-pointcutNames
-
-	^ #(transcriptShow).! !
-
-!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 09:18'!
-transcriptShow
-
-	^ (TranscriptStream >> #show:) asPointcut.! !
-
-!DATranscriptExample methodsFor: 'advices' stamp: 'as 7/3/2008 17:52'!
-afterTranscriptShowWithObject: object
-
-	object cr.! !
-
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:35'!
 allPointcutNames
 
 	"This should be a set, eliminating equal duplicates."
 	^ Set new.! !
 
-WAComponent subclass: #DAStoreClosedMessage
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Examples'!
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
 
-!DAStoreClosedMessage commentStamp: 'as 7/30/2008 21:01' prior: 0!
-Render a closed message.!
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
 
-!DAStoreClosedMessage methodsFor: 'rendering' stamp: 'as 7/30/2008 21:03'!
-renderContentOn: html
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
+startsWithAny: aCollection
 
-	html paragraph: [ html emphasis: [ html text: 'Sorry, the store is closed every even second. '. ]. ].! !
+	aCollection do: [
+		:string |
+		(self startsWith: string) ifTrue: [ ^ true. ]
+	].
+	^ false.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -5077,6 +4895,51 @@ asDescription
 count: aNumber
 
 	count _ aNumber.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flow
+
+	^ flow ifNil: [ flow _ Dictionary new. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowAt: aDAPointcut
+
+	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowInto: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
+	self flow at: aDAPointcut put: count + 1.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
+flowOutOf: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut.
+	self flow at: aDAPointcut put: count - 1.! !
+
+!GPOperationParameter methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
+genForRBMethodNode
+	"The method wrapped needs to be the method with just not our link"
+	
+	| methodNode |
+	methodNode := node copy.
+	methodNode annotations: methodNode annotations copy.
+	methodNode deleteLink: link.
+	
+	^ RBMessageNode 
+			receiver: GPMethod asLiteralNode
+			selector: #method:receiver:arguments:
+			arguments:  {   methodNode generate compiledMethod asLiteralNode. 
+							RBMessageNode 
+								receiver: (RBVariableNode named: 'thisContext')
+								selector: #receiver.
+							(GPArgumentsParameter node: node link: link) genForRBMethodNode}
+! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -5308,113 +5171,7 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
-
-!GPOperationParameter methodsFor: '*DA' stamp: 'as 7/30/2008 17:47'!
-genForRBMethodNode
-	"The method wrapped needs to be the method with just not our link"
-	
-	| methodNode |
-	methodNode := node copy.
-	methodNode annotations: methodNode annotations copy.
-	methodNode deleteLink: link.
-	
-	^ RBMessageNode 
-			receiver: GPMethod asLiteralNode
-			selector: #method:receiver:arguments:
-			arguments:  {   methodNode generate compiledMethod asLiteralNode. 
-							RBMessageNode 
-								receiver: (RBVariableNode named: 'thisContext')
-								selector: #receiver.
-							(GPArgumentsParameter node: node link: link) genForRBMethodNode}
-! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
-flow
-
-	^ flow ifNil: [ flow _ Dictionary new. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowAt: aDAPointcut
-
-	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowInto: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
-	self flow at: aDAPointcut put: count + 1.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
-flowOutOf: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut.
-	self flow at: aDAPointcut put: count - 1.! !
-
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
-
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
-startsWithAny: aCollection
-
-	aCollection do: [
-		:string |
-		(self startsWith: string) ifTrue: [ ^ true. ]
-	].
-	^ false.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
-
-	^ DAMethodDescription methodObject: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
-asPointcut
-
-	^ DAPointcut method: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:52'!
-currentMethod
-
-	^ self methodClass methodDict at: self selector.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 18:00'!
-isCurrent
-
-	^ self currentMethod == self or: [ self currentMethod == compiledMethod. ].! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 7/19/2008 17:56'!
-isInvalid
-
-	"The cache is invalidated by installing the RM in the MethodDictionary.
-	 But this should only be done if this method is still current, meaning
-	 it is in the method dictionary of the class.
-	
-	 The state of the compiledMethod is *not* the trigger!!"
-	
-	^ self == self currentMethod or: [ self isCurrent not. ].
-	
-	! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
-DATranscriptExample initialize!
 DAAspectBrowser initialize!
