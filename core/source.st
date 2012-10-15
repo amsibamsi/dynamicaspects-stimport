@@ -2,7 +2,6 @@ SystemOrganization addCategory: #'DynamicAspects-Tests'!
 SystemOrganization addCategory: #'DynamicAspects-Joinpoints'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
-SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 SystemOrganization addCategory: #'DynamicAspects-Test'!
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
@@ -60,6 +59,9 @@ Object subclass: #DAAspectClass
 DAAspectClass class
 	instanceVariableNames: 'Advices Pointcuts Links'!
 
+!DAAspectClass commentStamp: 'as 8/14/2007 10:04' prior: 0!
+This makes the transition from an object to an aspect.!
+
 DAAspectClass class
 	instanceVariableNames: 'Advices Pointcuts Links'!
 
@@ -71,6 +73,12 @@ DAAspectClass subclass: #DAAspect
 
 DAAspect class
 	instanceVariableNames: 'Instance'!
+
+!DAAspect commentStamp: 'as 8/14/2007 10:03' prior: 0!
+An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
+An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier in AOP.
+
+Although aspects are not necessarily objects or classes, in this implementation they are implemented as singleton classes in the traditional OOP way to get a good integration with the existing system.!
 
 DAAspect class
 	instanceVariableNames: 'Instance'!
@@ -141,10 +149,10 @@ linksString
 		] separatedBy: [ stream space. ].
 	].! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/2/2007 10:14'!
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 8/14/2007 09:43'!
 new
 
-	self error: 'I am singleton, use ', self class name, '>>instance'.! !
+	self error: 'I''m singleton, use ', self class name, '>>instance'.! !
 
 !DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
 pointcutNames
@@ -396,40 +404,50 @@ Object subclass: #DAJoinpoint
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
+!DAJoinpoint commentStamp: 'as 8/14/2007 10:13' prior: 0!
+Join points are concrete locations in the object representation of a program where aspects can access and modify the existing code.!
+
+!DAJoinpoint methodsFor: 'evaluation' stamp: 'as 8/14/2007 12:15'!
+nodes
+
+	self subclassResponsibility.! !
+
 DAJoinpoint subclass: #DAMethodExecutionJoinpoint
-	instanceVariableNames: 'class method'
+	instanceVariableNames: 'method'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Joinpoints'!
 
-!DAMethodExecutionJoinpoint class methodsFor: 'instance creation' stamp: 'as 7/17/2007 17:31'!
-onClass: aClass method: aSymbol
+!DAMethodExecutionJoinpoint commentStamp: 'as 8/14/2007 12:13' prior: 0!
+A specific method that is being executed.!
+
+!DAMethodExecutionJoinpoint class methodsFor: 'instance creation' stamp: 'as 8/14/2007 12:12'!
+method: aCompiledMethod
 
 	^ self new
-		class: aClass;
-		method: aSymbol;
+		method: aCompiledMethod;
 		yourself.! !
 
-!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 7/17/2007 17:32'!
-class: aClass
+!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 8/14/2007 12:12'!
+method: aCompiledMethod
 
-	class _ aClass.! !
+	method _ aCompiledMethod.! !
 
-!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 7/17/2007 17:32'!
-method: aSymbol
+!DAMethodExecutionJoinpoint methodsFor: 'evaluation' stamp: 'as 8/14/2007 12:22'!
+nodes
 
-	method _ aSymbol.! !
-
-!DAMethodExecutionJoinpoint methodsFor: 'joinpoint' stamp: 'as 7/17/2007 17:37'!
-node
-
-	^ (class >> method) methodNode.! !
+	^ IdentitySet new
+		add: method methodNode;
+		yourself.! !
 
 Object subclass: #DAPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
+
+!DAPointcut commentStamp: 'as 8/14/2007 10:07' prior: 0!
+Pointcuts are used to describe a set of join points.!
 
 DAPointcut subclass: #DACompositePointcut
 	instanceVariableNames: 'children'
@@ -467,6 +485,74 @@ nodes
 		add: method methodNode;
 		yourself.! !
 
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:54'!
+categoriesMatching: aString
+
+	^ SystemOrganization categoriesMatching: aString.! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:08'!
+classesInCategory: aSymbol
+
+	^ (SystemOrganization listAtCategoryNamed: aSymbol)
+		collect: [ :name | Smalltalk at: name. ].! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:30'!
+classesMatching: aString
+
+	^ self classesMatching: aString in: Smalltalk allClasses.! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:42'!
+classesMatching: aString in: aCollection
+
+	^ aCollection select: [
+		:class |
+		class name asString match: aString.
+	].! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:12'!
+classesMatching: classString inCategoriesMatching: categoryString
+
+	| candidates |
+	candidates _ Set new.
+	(self categoriesMatching: categoryString) do: [
+		:category |
+		Set addAll: (self classesInCategory: category).
+	].
+	^ self classesMatching: classString in: candidates.! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:39'!
+methodsMatching: methodString
+
+	| candidates |
+	candidates _ Set new.
+	Smalltalk allClasses do: [
+		:class |
+		candidates addAll: class methods.
+	].
+	^ candidates select: [ :method | method selector asString match: methodString. ].! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:38'!
+methodsMatching: methodString inClassesMatching: classString
+
+	| candidates |
+	candidates _ Set new.
+	(self classesMatching: classString) do: [
+		:class |
+		candidates addAll: class methods.
+	].
+	^ candidates select: [ :method | method selector asString match: methodString. ].! !
+
+!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:35'!
+methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: categoryString
+
+	| candidates |
+	candidates _ Set new.
+	(self classesMatching: classString inCategoriesMatching: categoryString) do: [
+		:class |
+		candidates addAll: class methods.
+	].
+	^ candidates select: [ :method | method selector asString match: methodString. ].! !
+
 !DAPointcut methodsFor: 'evaluation' stamp: 'as 6/27/2007 15:55'!
 nodes
 
@@ -477,6 +563,9 @@ TestCase subclass: #DAAspectTest
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
+
+!DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
+Testing DAAspect.!
 
 !DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:37'!
 removeAllLinksOn: aClass
@@ -520,3 +609,27 @@ testNormal
 	count _ aspect count.
 	example example.
 	self assert: count = aspect count.! !
+
+TestCase subclass: #DACodingTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
+Test coding guidelines.!
+
+!DACodingTest methodsFor: 'running' stamp: 'as 8/14/2007 10:18'!
+packageName
+
+	^ 'DynamicAspects'.! !
+
+!DACodingTest methodsFor: 'running' stamp: 'as 8/14/2007 10:17'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
