@@ -106,12 +106,12 @@ DAAspect subclass: #DAStoreFieldWriteExample
 !DAStoreFieldWriteExample commentStamp: 'as 9/1/2008 15:51' prior: 0!
 Trace the flow through the seaside components.!
 
-!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 9/16/2008 18:41'!
+!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 9/16/2008 18:50'!
 fieldWrites
 
 	<pointcut>
 
-	^ (PC className: 'WAStore*') & PC fieldWrite & PC instanceVariable.! !
+	^ (PC className: 'WAStore*') & PC instanceWrite.! !
 
 !DAStoreFieldWriteExample methodsFor: 'advices' stamp: 'as 9/1/2008 15:52'!
 logFieldWrites: node
