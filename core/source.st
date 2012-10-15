@@ -409,12 +409,12 @@ setUp
 
 	jp _ DAJoinPoint new.! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:24'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
 testAnding
 
 	| jp1 jp2 |
 
-	jp1 _ DAJoinPoint new class: (DAValueFilter className: 'Object').
+	jp1 _ DAJoinPoint new class: (DAValueFilter class: Object).
 	self assert: (jp1 classes includes: Object).
 	
 	jp2 _ DAJoinPoint new method: (DAValueFilter methodName: '=').
@@ -457,31 +457,31 @@ testMultipleNodes
 	self assert: (jp nodes includesAllOf:
 		(Object >> #class) reflectiveMethod methodNode allChildren).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:13'!
 testSingleCategory
 
-	jp category: (DAValueFilter categoryName: 'Kernel-Objects').
+	jp category: (DAValueFilter category: #'Kernel-Objects').
 	self assert: (jp categories includes: #'Kernel-Objects').! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:14'!
 testSingleClass
 
-	jp class: (DAValueFilter className: 'Object').
+	jp class: (DAValueFilter class: Object).
 	self assert: (jp classes includes: Object).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
 testSingleMethod
 
 	jp
-		class: (DAValueFilter className: 'Object');
+		class: (DAValueFilter class: Object);
 		method: (DAValueFilter methodName: '=').
 	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
 testSingleNode
 
 	jp
-		class: (DAValueFilter className: 'Object');
+		class: (DAValueFilter class: Object);
 		method: (DAValueFilter methodName: 'class');
 		node: (DABlockFilter block: [ :node | node isMethod. ]).
 	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
