@@ -2,7 +2,6 @@ SystemOrganization addCategory: #'DA-Browser'!
 SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Context'!
-SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Examples'!
@@ -1817,7 +1816,7 @@ DAContext subclass: #DAFlowContext
 	instanceVariableNames: 'pointcut minLevel maxLevel'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Contexts'!
+	category: 'DA-Context'!
 
 !DAFlowContext commentStamp: 'as 4/22/2008 14:26' prior: 0!
 A context that is active if execution has entered a certain method and is at a certain nesting level of that method. Instances can only be created for specific methods.!
@@ -3889,6 +3888,9 @@ DAAspect subclass: #DAFibonacciExample
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Examples'!
+
+!DAFibonacciExample commentStamp: 'as 5/29/2008 14:24' prior: 0!
+An example with the Fibonacci numbers.!
 
 !DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:24'!
 fib: n
