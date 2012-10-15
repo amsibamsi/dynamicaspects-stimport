@@ -48,82 +48,23 @@ Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName si
 				^ true]
 		ifFalse: [^ false]! !
 
-Object subclass: #DAAdviceWrapper
-	instanceVariableNames: 'metaObject selector reifications context'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-!DAAdviceWrapper class methodsFor: 'instance creation' stamp: 'as 10/5/2007 15:32'!
-metaObject: anObject selector: aSymbol reifications: aCollection
-
-	^ self new
-		metaObject: anObject
-		selector: aSymbol
-		reifications: aCollection;
-		yourself.! !
-
-!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 15:35'!
-advice: aMessage
-
-	aMessage arguments withIndexDo: [
-		:arg :index |
-		context at: (reifications at: index) put: arg.
-	].
-	^ metaObject perform: selector with: context.! !
-
-!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/5/2007 15:34'!
-doesNotUnderstand: aMessage
-
-	aMessage selector = self selector ifTrue: [
-		^ self advice: aMessage
-	] ifFalse: [
-		^ super doesNotUnderstand: aMessage.
-	].! !
-
-!DAAdviceWrapper methodsFor: 'initialize-release' stamp: 'as 10/2/2007 13:20'!
-initialize
-
-	context _ Dictionary new.! !
-
-!DAAdviceWrapper methodsFor: 'accessing' stamp: 'as 10/5/2007 15:34'!
-metaObject: anObject selector: aSymbol reifications: aCollection
-
-	metaObject _ anObject.
-	selector _ aSymbol.
-	reifications _ aCollection.! !
-
-!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 15:38'!
-selector
-
-	| name sel |
-	name _ self selectorKeyword, ':'.
-	sel _ ''.
-	reifications size timesRepeat: [ sel _ sel, name. ].
-	^ sel asSymbol.! !
-
-!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 10:38'!
-selectorKeyword
-
-	^ 'with'.! !
-
 Object subclass: #DAAspectClass
-	instanceVariableNames: 'links'
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
 DAAspectClass class
-	instanceVariableNames: 'AdviceNames PointcutNames LinkNames'!
+	instanceVariableNames: 'PointcutNames'!
 
 !DAAspectClass commentStamp: 'as 8/14/2007 10:04' prior: 0!
 This makes the transition from an object to an aspect.!
 
 DAAspectClass class
-	instanceVariableNames: 'AdviceNames PointcutNames LinkNames'!
+	instanceVariableNames: 'PointcutNames'!
 
 DAAspectClass subclass: #DAAspect
-	instanceVariableNames: ''
+	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -140,33 +81,12 @@ Although aspects are not necessarily objects or classes, in this implementation 
 DAAspect class
 	instanceVariableNames: 'Instance'!
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
-advicesString
-
-	^ String streamContents: [
-		:stream |
-		self adviceNames do: [
-			:each |
-			stream nextPutAll: each asString.
-		] separatedBy: [ stream space. ].
-	].! !
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:12'!
-allAdviceNames
-
-	^ self superclass adviceNames addAll: self adviceNames; yourself.! !
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:13'!
-allLinkNames
-
-	^ self superclass linkNames addAll: self linkNames; yourself.! !
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:13'!
+!DAAspect class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:37'!
 allPointcutNames
 
 	^ self superclass pointcutNames addAll: self pointcutNames; yourself.! !
 
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 7/18/2007 15:47'!
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/22/2007 09:27'!
 definitionST80
 
 	| aStream |
@@ -179,10 +99,6 @@ definitionST80
 			nextPutAll: self traitCompositionString].
 	aStream cr; tab; nextPutAll: 'pointcutNames: ';
 			store: self pointcutsString.
-	aStream cr; tab; nextPutAll: 'adviceNames: ';
-			store: self advicesString.
-	aStream cr; tab; nextPutAll: 'linkNames: ';
-			store: self linksString.
 	aStream cr; tab; nextPutAll: 'variableNames: ';
 			store: self instanceVariablesString.
 	aStream cr; tab; nextPutAll: 'category: ';
@@ -200,23 +116,12 @@ instance
 
 	^ Instance ifNil: [ Instance _ self basicNew initialize. ].! !
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
-linksString
-
-	^ String streamContents: [
-		:stream |
-		self linkNames do: [
-			:each |
-			stream nextPutAll: each asString.
-		] separatedBy: [ stream space. ].
-	].! !
-
 !DAAspect class methodsFor: 'instance creation' stamp: 'as 8/14/2007 09:43'!
 new
 
 	self error: 'I''m singleton, use ', self class name, '>>instance'.! !
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 10/22/2007 09:38'!
 pointcutsString
 
 	^ String streamContents: [
@@ -232,45 +137,45 @@ template: categorySymbol
 
 	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/18/2007 15:04'!
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/22/2007 09:29'!
 templateForSubclassOf: aClass category: aSymbol
 
 	^ aClass asString, 'subaspect: #NameOfSubaspect
 	pointcutNames: ''''
-	adviceNames: ''''
-	linkNames: ''''
 	variableNames: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 9/26/2007 15:01'!
+!DAAspect methodsFor: 'aop' stamp: 'as 10/22/2007 10:16'!
+adviceControls
+
+	^ #('before' 'after' 'instead').! !
+
+!DAAspect methodsFor: 'aop' stamp: 'as 10/22/2007 21:09'!
 advices
 
-	^ self allAdvices.! !
+	| possibilities |
+	possibilities _ self possibleAdviceNames.
+	^ self class methods select: [
+		:method |
+		possibilities anySatisfy: [ :pos | pos match: method selector asString. ].
+	].! !
 
-!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
-allAdviceNames
-
-	^ self class allAdviceNames.! !
-
-!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
-allLinkNames
-
-	^ self class allLinkNames.! !
-
-!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
+!DAAspect methodsFor: 'accessing' stamp: 'as 10/22/2007 09:56'!
 allPointcutNames
 
 	^ self class allPointcutNames.! !
 
-!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/2/2007 15:08'!
+!DAAspect methodsFor: 'initialize-release' stamp: 'as 10/22/2007 10:10'!
 initialize
 
 	links _ Set new.! !
 
-!DAAspect methodsFor: 'installing' stamp: 'as 10/2/2007 16:09'!
+!DAAspect methodsFor: 'installing' stamp: 'as 10/22/2007 21:06'!
 install
 
-	self links do: [
+	"broken!!"
+
+	"self links do: [
 		:link |
 		| pointcut visitor advice gplink |
 		pointcut _ self pointcut: (link at: #pointcut).
@@ -287,38 +192,40 @@ install
 			node link: gplink.
 		].
 		links add: gplink.
-	].! !
+	]."! !
 
-!DAAspect methodsFor: 'linking' stamp: 'as 9/26/2007 15:06'!
-link: aSymbol
-
-	^ self perform: aSymbol.! !
-
-!DAAspect methodsFor: 'linking' stamp: 'as 9/26/2007 15:07'!
-links
-
-	^ self allLinks collect: [
-		:name |
-		self link: name.
-	].! !
-
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/8/2007 13:26'!
+!DAAspect methodsFor: 'aop' stamp: 'as 10/8/2007 13:26'!
 pointcut: aSymbol
 
 	^ self perform: (aSymbol, #':') asSymbol with: DAPointcutBuilder.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/26/2007 15:05'!
+!DAAspect methodsFor: 'aop' stamp: 'as 10/22/2007 09:56'!
 pointcuts
 
-	^ self allPointcuts collect: [
+	^ self allPointcutNames collect: [
 		:name |
 		self pointcut: name.
 	].! !
 
-!DAAspect methodsFor: 'installing' stamp: 'as 9/26/2007 15:07'!
+!DAAspect methodsFor: 'aop' stamp: 'as 10/22/2007 16:59'!
+possibleAdviceNames
+
+	| names |
+	names _ Set new.
+	self allPointcutNames do: [
+		:pc |
+		self adviceControls do: [
+			:ctrl |
+			names add: ctrl, pc capitalized, '*'.
+			names add: ctrl, pc, '*'.
+		].
+	].
+	^ names.! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 10/22/2007 21:06'!
 uninstall
 
-	"broken"
+	"broken!!"
 	
 	"self links do: [
 		:link |
@@ -341,37 +248,22 @@ example1
 
 	^ 1.! !
 
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/8/2007 13:19'!
-p1: builder
+!DATestAspect methodsFor: 'advices' stamp: 'as 10/22/2007 21:08'!
+beforeExample1
 
-	^ (builder execution: 'example1') class: 'DATestAspect class'.! !
+	1.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:05'!
-adviceNames
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/22/2007 20:55'!
+example1: builder
 
-	^ AdviceNames ifNil: [ AdviceNames _ Set new. ].! !
+	^ builder method: DATestAspect class >> #example1.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:10'!
-adviceNames: aString
-
-	AdviceNames _ self stringToSymbols: aString.! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
-linkNames
-
-	^ LinkNames ifNil: [ LinkNames _ Set new. ].! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
-linkNames: aString
-
-	LinkNames _ self stringToSymbols: aString.! !
-
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:36'!
 pointcutNames
 
 	^ PointcutNames ifNil: [ PointcutNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:36'!
 pointcutNames: aString
 
 	PointcutNames _ self stringToSymbols: aString.! !
@@ -387,8 +279,8 @@ stringToSymbols: aString
 	].
 	^ set.! !
 
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 9/10/2007 17:11'!
-subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
+!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
+subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
 
 	| newClass |
 	newClass _ self subclass: class
@@ -397,19 +289,15 @@ subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links 
 		poolDictionaries: pools
 		category: cat.
 	newClass
-		pointcutNames: pointcuts;
-		adviceNames: advices;
-		linkNames: links.
+		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 7/18/2007 17:04'!
-subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links variableNames: variables category: cat
+!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
+subaspect: class pointcutNames: pointcuts variableNames: variables category: cat
 
 	^ self
 		subaspect: class
 		pointcutNames: pointcuts
-		adviceNames: advices
-		linkNames: links
 		instanceVariableNames: variables
 		classVariableNames: ''
 		poolDictionaries: ''
@@ -540,6 +428,14 @@ DAPointcut subclass: #DAMethodExecutionPointcut
 !DAMethodExecutionPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
 A method that is being executed.!
 
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 10/22/2007 20:39'!
+method: aCompiledMethod
+
+	^ self new
+		methodString: aCompiledMethod selector asString;
+		classString: aCompiledMethod methodClass;
+		yourself.! !
+
 !DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 10/17/2007 15:05'!
 method: methodString class: classString
 
@@ -659,15 +555,15 @@ Object subclass: #DAPointcutBuilder
 !DAPointcutBuilder commentStamp: 'as 9/26/2007 15:24' prior: 0!
 A convenience class with class-side shortcuts for creating pointcuts.!
 
-!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/17/2007 16:44'!
-execution: aString
+!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/22/2007 20:41'!
+method: aCompiledMethod
 
-	"Format of aString: '<class> <method>', with standard string wildcards."
+	^ DAMethodExecutionPointcut method: aCompiledMethod.! !
 
-	| subStrings |
-	subStrings _ aString subStrings.
-	^ DAMethodExecutionPointcut method: subStrings second class: subStrings first.
-	! !
+!DAPointcutBuilder class methodsFor: 'pointcuts' stamp: 'as 10/22/2007 20:41'!
+method: methodString in: classString
+
+	^ DAMethodExecutionPointcut method: methodString class: classString.! !
 
 Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
@@ -743,20 +639,41 @@ reifications
 
 	^ reifications.! !
 
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/19/2007 11:21'!
+visitAnd: pointcut
+
+	| tmpNodes1 tmpNodes2 |
+	tmpNodes1 _ nodes.
+	self initializeNodes.
+	self visit: pointcut children first.
+	tmpNodes2 _ nodes.
+	self initializeNodes.
+	self visit: pointcut children second.
+	tmpNodes1 addAll: (tmpNodes2 select: [ :node | nodes includes: nodes. ]).
+	nodes _ tmpNodes1.! !
+
 !DANodeCollector methodsFor: 'visiting' stamp: 'as 9/18/2007 17:58'!
 visitMethodExecution: pointcut
 
 	self addNodes:
 		(pointcut methods collect: [ :each | each methodNode. ]).! !
 
-!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/17/2007 11:21'!
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/19/2007 11:13'!
+visitOr: pointcut
+
+	pointcut children do: [
+		:child |
+		self visit: child.
+	].! !
+
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/19/2007 11:14'!
 visitWithin: pointcut
 
 	| tmpNodes classes |
 	tmpNodes _ nodes.
-	classes _ pointcut classes.
 	self initializeNodes.
-	pointcut children do: [ :child | child acceptVisitor: self. ].
+	classes _ pointcut classes.
+	pointcut children do: [ :child | self visit: child. ].
 	nodes _ nodes select: [
 		:node |
 		classes includes: node method methodClass.
@@ -777,33 +694,6 @@ visitMethodExecution: aDAMethodExecutionPointcut
 visitWithin: aDAWithinPointcut
 
 	self subclassResponsibility.! !
-
-TestCase subclass: #DAAdviceWrapperTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
-
-!DAAdviceWrapperTest commentStamp: 'as 10/8/2007 10:18' prior: 0!
-Testing DAAdviceWrapper.!
-
-!DAAdviceWrapperTest methodsFor: 'testing' stamp: 'as 10/5/2007 15:36'!
-testSelector
-
-	| wrapper key |
-	wrapper _ DAAdviceWrapper metaObject: nil selector: nil reifications: #(a b).
-	key _ wrapper selectorKeyword.
-	self assert: wrapper selector asString = (key, ':', key, ':').! !
-
-!DAAdviceWrapperTest methodsFor: 'testing' stamp: 'as 10/5/2007 10:49'!
-testWrapping
-
-	| wrapper mo result |
-	mo _ [ :c | c. ].
-	wrapper _ DAAdviceWrapper metaObject: mo selector: #value: reifications: #(arg1 arg2).
-	result _ wrapper perform: wrapper selector with: 1 with: 2.
-	self assert: (result at: #arg1) = 1.
-	self assert: (result at: #arg2) = 2.! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
