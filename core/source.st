@@ -8,18 +8,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
-includesExactly: aCollection
-
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -41,6 +29,18 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
 !GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
 exampleDA
 
@@ -51,15 +51,804 @@ reflectiveMethod
 
 	^ self method parent.! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+TestCase subclass: #DAAspectBehaviorTest
+	instanceVariableNames: 'aspect'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ DAMethodDescription methodObject: self.! !
+!DAAspectBehaviorTest commentStamp: 'as 5/21/2008 16:08' prior: 0!
+Testing example aspects.!
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
+!DAAspectBehaviorTest methodsFor: 'running' stamp: 'as 7/14/2008 20:35'!
+setUp
 
-	^ DAPointcut method: self.! !
+	aspect _ DAAspectBehaviorExample.
+	aspect reset.! !
+
+!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/15/2008 08:44'!
+testAfterMethod
+
+	aspect count2.
+	self assert: aspect count = 2.! !
+
+!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
+testAspectIsInstalled
+
+	"If the examples aspect is not installed, all tests here will fail."
+	
+	self assert: aspect isInstalled.! !
+
+!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/15/2008 08:44'!
+testBeforeMethod
+
+	aspect count2.
+	self assert: aspect count = 2.! !
+
+!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/15/2008 08:44'!
+testInsteadMethod
+
+	aspect count3.
+	self assert: aspect count = 1.! !
+
+TestCase subclass: #DAAspectScopeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectScopeTest commentStamp: 'as 7/14/2008 17:27' prior: 0!
+Testing aspect scope.!
+
+!DAAspectScopeTest methodsFor: 'running' stamp: 'as 7/15/2008 11:00'!
+setUp
+
+	DAAspectScopeExample reinstall.! !
+
+!DAAspectScopeTest methodsFor: 'testing' stamp: 'as 7/15/2008 10:20'!
+testObjectScope
+
+	| o1 o2 |
+
+	o1 _ DAAspectScopeTestObject new.
+	o1 noop.
+	o2 _ DAAspectScopeTestObject new.
+	o2 noop.
+	
+	self assert:
+		(DAAspectScopeExample metaObjectDict keys includesExactly: { o1. o2. }).! !
+
+TestCase subclass: #DAAspectSelectorTest
+	instanceVariableNames: 'example example2'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectSelectorTest commentStamp: 'as 6/1/2008 21:58' prior: 0!
+Test the advice selectors on DAAspect.!
+
+!DAAspectSelectorTest methodsFor: 'initialize-release' stamp: 'as 6/2/2008 16:51'!
+initialize
+
+	example _ DAAspectSelectorExample.
+	example2 _ DAAspectSelectorExample2.! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
+testBeforeafter
+
+	"This could easily be interpreted as control #before with 'after' counting to the pointcut
+	 name, but it should not."
+
+	| split |
+
+	split _ example splitAdvice: #beforeafterPointcut.
+	self assert: split first = #beforeafter.
+	self assert: split second = 'pointcut'.! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
+testInvalidArgument
+
+	| split |
+
+	split _ example splitAdvice: #beforePointcutWithInvalidReification:.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(nil)).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:40'!
+testIsAdvice
+
+	self assert: (example isAdvice: #afterPointcutClass:object:).
+	self deny: (example isAdvice: #afterPointcutclass:object:).
+	self deny: (example isAdvice: #invalidAdvice).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
+testIsAdviceMethod
+
+	self assert: (example isAdvice: example >> #afterPointcutClass:object:).
+	self deny: (example isAdvice: example class >> #noop).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
+testIsAdviceSymbol
+
+	self assert: (example isAdvice: #afterPointcutClass:object:).
+	self deny: (example isAdvice: #afterPointcutclass:object:).
+	self deny: (example isAdvice: #invalidAdvice).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:42'!
+testIsPointcutMethod
+
+	self assert: (example isPointcut: example class >> #pointcut).
+	self deny: (example isPointcut: example class >> #noop).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:41'!
+testIsPointcutSymbol
+
+	self assert: (example isPointcut: #pointcut).
+	self deny: (example isPointcut: #Pointcut).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
+testLowercase
+
+	| split |
+
+	split _ example splitAdvice: #insteadpointcutclass:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
+testMixedCase
+
+	| split |
+
+	split _ example splitAdvice: #iNSteaDpOintcutCLASS:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
+testNoArguments
+
+	| split |
+
+	split _ example splitAdvice: #beforePointcut.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: split third isEmpty.! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:53'!
+testPointcutNames
+
+	self assert: (example pointcutNames includesExactly: #('pointcut')).
+	self assert: (example allPointcutNames includesExactly: #('pointcut')).
+	self assert: (example2 pointcutNames includesExactly: #('pointcut2')).
+	self assert: (example2 allPointcutNames includesExactly: #('pointcut' 'pointcut2')).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
+testStandardAdviceSelector
+
+	| split |
+
+	split _ example splitAdvice: #beforePointcutWithObject:andClass:.
+	self assert: split first = #before.
+	self assert: split second = 'pointcut'.
+	self assert: split third asArray = #(object class).! !
+
+!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
+testUppercase
+
+	| split |
+
+	split _ example splitAdvice: #InsteadPointcutClass:.
+	self assert: split first = #instead.
+	self assert: split second = 'pointcut'.
+	self assert: (split third includesExactly: #(class)).! !
+
+TestCase subclass: #DACodingTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DACodingTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing coding guidelines.!
+
+!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:52'!
+classes
+
+	^ (PackageInfo named: self packageName) classes.! !
+
+!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:55'!
+methods
+
+	^ self classes inject: Set new into: [
+		:set :class |
+		set, class instanceSide methodDict, class classSide methodDict.
+	].! !
+
+!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:48'!
+packageName
+
+	^ 'DA'.! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:52'!
+testClassComment
+
+	"Each class should have a comment."
+
+	self classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 5/21/2008 13:43'!
+testMethodLength
+
+	"No long methods."
+
+	self methods do: [
+		:each |
+		self assert: each statements size < 35.
+	].! !
+
+TestCase subclass: #DAConditionTest
+	instanceVariableNames: 'trueBool falseBool trueBlock falseBlock altTrueBlock'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAConditionTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
+Testing conditions.!
+
+!DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
+isAbstract
+
+	^ false.! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+altBlockArgs
+
+	^ #(class).! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+blockArgs
+
+	^ #(object).! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+setUp
+
+	trueBool _ DACondition with: true.
+	falseBool _ DACondition with: false.
+	trueBlock _ DACondition with: [ :arg | true. ] arguments: self blockArgs.
+	falseBlock _ DACondition with: [ :arg | false. ] arguments: self blockArgs.
+	altTrueBlock _ DACondition with: [ :arg | true. ] arguments: self altBlockArgs.
+	! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:46'!
+testArgsBlock
+
+	self assert: trueBlock arguments = self blockArgs.
+	self assert: falseBlock arguments = self blockArgs.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 14:28'!
+testCombiningArgs
+
+	| cond |
+	
+	cond _ trueBlock and: falseBlock.
+	self assert: cond arguments = self blockArgs.
+	cond _ trueBlock and: altTrueBlock.
+	self assert: cond arguments = (self blockArgs, self altBlockArgs).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:31'!
+testCombiningBlocks
+
+	| cond |
+	
+	cond _ trueBlock and: falseBlock.
+	self deny: (cond value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:42'!
+testCombiningBooleanWithBlock
+
+	| cond |
+	
+	cond _ trueBool and: trueBlock.
+	self assert: (cond value: nil).
+	self assert: (cond arguments = self blockArgs).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testCombiningBooleans
+
+	| cond |
+	cond _ trueBool and: falseBool.
+	self deny: cond value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:34'!
+testCommutativeBlocks
+
+	| val1 val2 |
+
+	val1 _ (trueBlock and: falseBool) value: nil.
+	val2 _ (falseBool and: trueBool) value: nil.
+	self assert: val1 = val2.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testCommutativeBooleans
+
+	self assert: (trueBool and: falseBool) value = (falseBool and: trueBool) value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:22'!
+testEmptyArgs
+
+	self assert: trueBool arguments isEmpty.
+	self assert: falseBool arguments isEmpty.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:43'!
+testFalseBlock
+
+	self deny: (falseBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testFalseBoolean
+
+	self deny: falseBool value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:30'!
+testNegatingBlock
+
+	trueBlock not.
+	self deny: (trueBlock value: nil).
+	falseBlock not.
+	self assert: (falseBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:29'!
+testNegatingBoolean
+
+	trueBool not.
+	self deny: trueBool value.
+	falseBool not.
+	self assert: falseBool value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:27'!
+testTrueBlock
+
+	self assert: (trueBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testTrueBoolean
+
+	self assert: trueBool value.! !
+
+TestCase subclass: #DAContextTest
+	instanceVariableNames: 'example'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAContextTest commentStamp: 'as 4/23/2008 16:46' prior: 0!
+Testing contexts.!
+
+!DAContextTest methodsFor: 'running' stamp: 'as 4/23/2008 16:48'!
+setUp
+
+	example _ DAExampleContext current.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:48'!
+testActivation
+
+	example activate.
+	self assert: example isActive.
+	example deactivate.
+	self assert: example notActive.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:04'!
+testAnd
+
+	| not and |
+
+	not _ example not.
+	and _ not & example.
+	example activate.
+	self assert: and notActive.
+	example deactivate.
+	self assert: and notActive.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:11'!
+testClassSideCombination
+
+	| not |
+
+	not _ DAExampleContext not.
+	self assert: not child == DAExampleContext.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:11'!
+testInstanceSideCombination
+
+	| not |
+
+	not _ DAExampleContext current not.
+	self assert: not child == DAExampleContext.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:50'!
+testNot
+
+	| not |
+
+	not _ example not.
+	example activate.
+	self assert: not notActive.
+	example deactivate.
+	self assert: not isActive.! !
+
+!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:05'!
+testOr
+
+	| not or |
+
+	not _ example not.
+	or _ not | example.
+	example activate.
+	self assert: or isActive.
+	example deactivate.
+	self assert: or isActive.! !
+
+TestCase subclass: #DAFilterTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAFilterTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing filtering.!
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
+testCategory
+
+	| filter |
+
+	filter _ DAValueFilter categoryName: 'DA-Tests'.
+	self assert: (filter matches: #'DA-Tests').
+	self deny: (filter matches: #'DA-Kernel').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
+testClass
+
+	| filter |
+
+	filter _ DAValueFilter className: 'Object'.
+	self assert: (filter matches: Object).
+	self deny: (filter matches: ProtoObject).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
+testMethod
+
+	| filter |
+
+	filter _ DAValueFilter methodName: 'new'.
+	self assert: (filter matches: Behavior >> #new).
+	self assert: (filter matches: OrderedCollection class >> #new).
+	self deny: (filter matches: Behavior >> #basicNew).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
+testMultipleCategories
+
+	| filter |
+
+	filter _ DAValueFilter categoryName: 'DA-*'.
+	self assert: (filter matches: #'DA-Tests').
+	self assert: (filter matches: #'DA-Kernel').
+	self deny: (filter matches: #Kernel).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
+testMultipleClasses
+
+	| filter |
+
+	filter _ DAValueFilter className: '*Object'.
+	self assert: (filter matches: ProtoObject).
+	self assert: (filter matches: Object).
+	self deny: (filter matches: ObjectTest).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
+testMultipleMethods
+
+	| filter |
+
+	filter _ DAValueFilter methodName: '>>*'.
+	self assert: (filter matches: Behavior >> #>>).
+	self assert: (filter matches: Behavior >> #>>>).
+	self deny: (filter matches: Behavior >> #basicNew).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
+testMultipleNodes
+
+	| filter |
+
+	filter _ DABlockFilter block: [ :node | node isReturn. ].
+	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
+	self assert: (filter matches: (Object >>> #->) methodNode body statements first).
+	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
+testNegation
+
+	| filter |
+
+	filter _ DAValueFilter value: 'abc'.
+	filter not.
+	self deny: (filter matches: 'abc').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
+testNode
+
+	| filter |
+
+	filter _ DABlockFilter block: [ :node | node isReturn. ].
+	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
+	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:16'!
+testRegex
+
+	| filter |
+
+	filter _ DAValueFilter value: 'ab*' comparator: #match:.
+	self assert: (filter matches: 'abcccc').
+	self deny: (filter matches: 'aabcccc').! !
+
+TestCase subclass: #DAJoinPointTest
+	instanceVariableNames: 'jp'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAJoinPointTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing join points.!
+
+!DAJoinPointTest methodsFor: 'running' stamp: 'as 3/25/2008 17:42'!
+setUp
+
+	jp _ DAJoinPoint new.! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
+testAnding
+
+	| jp1 jp2 |
+
+	jp1 _ DAJoinPoint new class: (DAValueFilter class: Object).
+	self assert: (jp1 classes includes: Object).
+	
+	jp2 _ DAJoinPoint new method: (DAValueFilter methodName: '=').
+	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
+	
+	jp _ jp1 and: jp2.
+	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
+	self assert: jp methods size = 1.! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
+testMultipleCategories
+
+	jp category: (DAValueFilter categoryName: 'Kernel-*').
+	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
+testMultipleClasses
+
+	jp class: (DAValueFilter className: '*Object').
+	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
+testMultipleMethods
+
+	jp
+		class: (DAValueFilter className: 'ProtoObject');
+		method: (DAValueFilter methodName: '*').
+	self assert: (jp methods includesAllOf: {
+		(ProtoObject >> #==) reflectiveMethod.
+		(ProtoObject >> #become:) reflectiveMethod.
+	}).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:22'!
+testMultipleNodes
+
+	jp
+		class: (DAValueFilter className: 'Object');
+		method: (DAValueFilter methodName: 'class');
+		node: (DABlockFilter block: [ :node | true. ]).
+	self assert: (jp nodes includesAllOf:
+		(Object >> #class) reflectiveMethod methodNode allChildren).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:13'!
+testSingleCategory
+
+	jp category: (DAValueFilter category: #'Kernel-Objects').
+	self assert: (jp categories includes: #'Kernel-Objects').! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:14'!
+testSingleClass
+
+	jp class: (DAValueFilter class: Object).
+	self assert: (jp classes includes: Object).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
+testSingleMethod
+
+	jp
+		class: (DAValueFilter class: Object);
+		method: (DAValueFilter methodName: '=').
+	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
+testSingleNode
+
+	jp
+		class: (DAValueFilter class: Object);
+		method: (DAValueFilter methodName: 'class');
+		node: (DABlockFilter block: [ :node | node isMethod. ]).
+	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
+
+TestCase subclass: #DAPointcutTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAPointcutTest commentStamp: 'as 3/31/2008 11:46' prior: 0!
+Testing pointcuts.!
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testAnd
+
+	| m pc |
+
+	m _ Object >>> #=.
+	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
+	self assert: (pc nodes includesExactly: { m methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:17'!
+testCategory
+
+	| pc jp |
+
+	pc _ DAPointcut category: #'Kernel-Classes'.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp categories includesExactly: { #'Kernel-Classes'. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:18'!
+testClass
+
+	| pc jp |
+
+	pc _ DAPointcut class: Object.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp classes includesExactly: { Object. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:36'!
+testCondition
+
+	| con pc jp |
+
+	con _ [ true. ].
+	pc _ DAPointcut if: con.
+	jp _ pc joinPoints anyOne.
+	self assert: jp condition block = con.! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:45'!
+testContext
+
+	| con pc jp |
+
+	con _ DAExampleContext.
+	pc _ DAPointcut context: con.
+	jp _ pc joinPoints anyOne.
+	self assert: jp context = con.! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:23'!
+testMethod
+
+	| pc jp |
+
+	pc _ DAPointcut method: Behavior >> #new.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp nodes includesExactly: { (Behavior >>> #new) methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:33'!
+testNode
+
+	| pc jp |
+
+	pc _ (DAPointcut node: [ :node | node isReturn. ]) and:
+		(DAPointcut method: Behavior >> #new).
+	jp _ pc joinPoints anyOne.
+	self assert:
+		(jp nodes includesExactly: { (Behavior >>> #new) methodNode body statements first. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testOr
+
+	| m1 m2 pc |
+	
+	m1 _ Object >>> #=.
+	m2 _ Object >>> #->.
+	pc _ (DAPointcut method: m1) or: (DAPointcut method: m2).
+	self assert: (pc nodes includesExactly: { m1 methodNode. m2 methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:59'!
+testParent
+
+	| pc |
+	
+	pc _ DACompositePointcut child: DAPointcut new child: DAPointcut new.
+
+	pc children do: [
+		:child |
+		self assert: child parent == pc.
+	].! !
+
+TestCase subclass: #DATestWithLinks
+	instanceVariableNames: 'links'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DATestWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
+A test that uses Geppetto links.
+
+This provides link cleanup at start/finish for any subclassed test.!
+
+DATestWithLinks subclass: #DAConnectorTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAConnectorTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
+Testing connectors.!
+
+!DAConnectorTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
+isAbstract
+
+	^ false.! !
+
+!DAConnectorTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:22'!
+testDeploy
+
+	| mo pc con count |
+
+	mo _ GPCounter new.
+	pc _ DAPointcut class: DAExamples class method: #noop.
+	con _ DAConnector on: pc do: #inc on: mo.	
+	con install.
+	self cleanup: con.
+
+	count _ mo count.
+	DAExamples noop.
+	self assert: (count + 1) = mo count.! !
+
+!DATestWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
+isAbstract
+
+	^ true.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
+cleanup: aGPLink
+
+	"Register aGPLink for cleanup in #tearDown"
+	
+	links add: aGPLink.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
+setUp
+
+	links _ Set new.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+tearDown
+
+	links do: [ :link | link uninstall. ].! !
 
 !SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
 copyAfterIndex: anIndex
@@ -1230,7 +2019,7 @@ pointcut: aDAPointcut
 	pointcut _ aDAPointcut.! !
 
 Object subclass: #DAExamples
-	instanceVariableNames: ''
+	instanceVariableNames: 'count'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Tests'!
@@ -1249,25 +2038,25 @@ count
 
 	^ count ifNil: [ count _ 0. ].! !
 
+!DAExamples class methodsFor: 'examples' stamp: 'as 7/14/2008 16:53'!
+count1
+
+	count _ 1.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 7/14/2008 16:53'!
+count2
+
+	count _ 2.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 7/14/2008 16:53'!
+count3
+
+	count _ 3.! !
+
 !DAExamples class methodsFor: 'counting' stamp: 'as 5/22/2008 18:40'!
 count: aNumber
 
 	count _ aNumber.! !
-
-!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 18:40'!
-countA
-
-	count _ 1.! !
-
-!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 18:40'!
-countB
-
-	count _ 1.! !
-
-!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 18:41'!
-countI
-
-	count _ 1.! !
 
 !DAExamples class methodsFor: 'counting' stamp: 'as 5/22/2008 18:44'!
 inc
@@ -1288,6 +2077,36 @@ outer
 	self inner.! !
 
 !DAExamples class methodsFor: 'counting' stamp: 'as 5/22/2008 18:46'!
+reset
+
+	count _ nil.! !
+
+!DAExamples methodsFor: 'counting' stamp: 'as 7/14/2008 17:15'!
+count
+
+	^ count ifNil: [ count _ 0. ].! !
+
+!DAExamples methodsFor: 'examples' stamp: 'as 7/14/2008 17:18'!
+count1
+
+	self count: 1.! !
+
+!DAExamples methodsFor: 'examples' stamp: 'as 7/14/2008 17:18'!
+count2
+
+	self count: 2.! !
+
+!DAExamples methodsFor: 'counting' stamp: 'as 7/14/2008 17:16'!
+count: aNumber
+
+	count _ aNumber.! !
+
+!DAExamples methodsFor: 'counting' stamp: 'as 7/14/2008 17:17'!
+inc
+
+	count _ self count + 1.! !
+
+!DAExamples methodsFor: 'counting' stamp: 'as 7/14/2008 17:17'!
 reset
 
 	count _ nil.! !
@@ -2851,10 +3670,10 @@ advices
 		].
 	].! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:41'!
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:33'!
 allPointcutNames
 
-	^ self superclass pointcutNames, self pointcutNames.! !
+	^ self superclass allPointcutNames copy; addAll: self pointcutNames; yourself.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 6/2/2008 15:11'!
 connectorForAdvice: aMethod
@@ -2891,35 +3710,6 @@ createConnectors
 		cons add: (self connectorForAdvice: adv).
 	].
 	^ cons.! !
-
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 5/14/2008 14:47'!
-definitionAspect
-
-	| aStream |
-	aStream _ WriteStream on: (String new: 300).
-	aStream nextPutAll: superclass name.
-	aStream nextPutAll: ' subaspect: ';
-			store: self name.
-	(self hasTraitComposition and: [self traitComposition notEmpty]) ifTrue: [
-		aStream cr; tab; nextPutAll: 'uses: ';
-			nextPutAll: self traitCompositionString].
-	aStream cr; tab; nextPutAll: 'pointcutNames: ';
-			store: self pointcutsString.
-	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
-			store: self instanceVariablesString.
-	aStream cr; tab; nextPutAll: 'classVariableNames: ';
-			store: self classVariablesString.
-	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
-			store: self sharedPoolsString.
-	aStream cr; tab; nextPutAll: 'category: ';
-			store: (SystemOrganization categoryOfElement: self name) asString.
-
-	superclass ifNil: [ 
-		aStream nextPutAll: '.'; cr.
-		aStream nextPutAll: self name.
-		aStream space; nextPutAll: 'superclass: nil'. ].
-
-	^ aStream contents! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:35'!
 disable
@@ -3018,21 +3808,10 @@ isAdvice: aMethodOrSymbol meta: aBoolean
 	^ aBoolean not and: [ self isAdvice: aMethodOrSymbol. ].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:49'!
-isAdviceOrPointcut: aMethodOrSymbol
-
-	^ [ self isPointcut: aMethodOrSymbol. ] or: [ self isAdvice: aMethodOrSymbol. ].! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:49'!
 isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean
 
 	^ (self isAdvice: aMethodOrSymbol meta: aBoolean)
 		or: [ self isPointcut: aMethodOrSymbol meta: aBoolean. ].! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:50'!
-isAdviceOrPointcutOrPointcutNames: aMethodOrSymbol meta: aBoolean
-
-	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
-		or: [ aBoolean and: [ (self selector: aMethodOrSymbol) = #pointcutNames. ]. ].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
 isDisabled
@@ -3061,6 +3840,19 @@ isPointcut: aMethodOrSymbol
 isPointcut: aMethodOrSymbol meta: aBoolean
 
 	^ aBoolean and: [ self isPointcut: aMethodOrSymbol. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/15/2008 11:04'!
+isSpecialMethod: aMethodOrSymbol meta: aBoolean
+
+	| selector |
+	
+	selector _ self selector: aMethodOrSymbol.
+
+	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
+		or: [ aBoolean and: [
+			selector = #pointcutNames or:
+			[ selector = #scope. ]. 
+		]. ].! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -3097,19 +3889,19 @@ notInstalled
 
 	^ connectors isNil.! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 7/14/2008 12:06'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 7/15/2008 11:04'!
 noteCompilationOf: aSelector meta: aBoolean
 
-	(self isEnabled and: [ self isAdviceOrPointcutOrPointcutNames: aSelector meta: aBoolean. ]) ifTrue: [
+	(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
 		self reinstallQuietly.
 	].! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 7/14/2008 12:06'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 7/15/2008 11:05'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean
 
 	(self isEnabled and: [
 		aCollection anySatisfy: [
-			:sel | self isAdviceOrPointcutOrPointcutNames: sel meta: aBoolean.
+			:sel | self isSpecialMethod: sel meta: aBoolean.
 		].
 	]) ifTrue: [ self reinstallQuietly. ].! !
 
@@ -3210,26 +4002,12 @@ splitAdvice: aMethodOrSymbol
 
 	^ { control. pointcut. arguments. }.! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 4/30/2008 17:42'!
-template: categorySymbol
-
-	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
-
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 4/30/2008 17:43'!
-templateForSubclassOf: aClass category: aSymbol
-
-	^ aClass asString, 'subaspect: #NameOfSubaspect
-	pointcutNames: ''''
-	instanceVariableNames: ''''
-	classVariableNames: ''''
-	poolDictionaries: ''''
-	category: ''' , aSymbol asString , ''''.! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:18'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 7/15/2008 08:19'!
 uninstall
 
 	self uninstallConnectors.
-	connectors _ nil.! !
+	connectors _ nil.
+	mo _ moDict _ nil.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:42'!
 uninstallConnectors
@@ -3258,48 +4036,132 @@ DAAspect subclass: #DAAspectBehaviorExample
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
+DAAspectBehaviorExample class
+	instanceVariableNames: 'count'!
+
 !DAAspectBehaviorExample commentStamp: 'as 5/13/2008 11:21' prior: 0!
 Examples aspect for tests.!
 
-!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 15:44'!
-countA
+DAAspectBehaviorExample class
+	instanceVariableNames: 'count'!
 
-	^ (DAExamples class >> #countA) asPointcut.! !
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
+count
 
-!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 15:43'!
-countB
+	^ count ifNil: [ count _ 0. ].! !
 
-	^ (DAExamples class >> #countB) asPointcut.! !
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:29'!
+count1
 
-!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 15:44'!
-countI
+	self count: 1.! !
 
-	^ (DAExamples class >> #countI) asPointcut.! !
+!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:18'!
+count1Method
 
-!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 15:44'!
-noop
+	^ self countMethod: 1.! !
 
-	^ (DAExamples class >> #noop) asPointcut.! !
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:29'!
+count2
 
-!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:08'!
+	self count: 2.! !
+
+!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:17'!
+count2Method
+
+	^ self countMethod: 2.! !
+
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:32'!
+count3
+
+	self count: 3.! !
+
+!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:17'!
+count3Method
+
+	^ self countMethod: 3.! !
+
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
+count: aNumber
+
+	count _ aNumber.! !
+
+!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:34'!
+countMethod: x
+
+	^ (self class >> ('count', x asString) asSymbol) asPointcut.! !
+
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
+inc
+
+	count _ self count + 1.! !
+
+!DAAspectBehaviorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 20:18'!
 pointcutNames
 
-	^ #(countA countB countI noop).! !
+	^ #(count1Method count2Method count3Method).! !
 
-!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 6/2/2008 15:45'!
-afterCountAWithObject: object
+!DAAspectBehaviorExample class methodsFor: 'counting' stamp: 'as 7/14/2008 20:28'!
+reset
 
-	object count: 2.! !
+	count _ nil.! !
 
-!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 6/2/2008 15:45'!
-beforeCountBWithObject: object
+!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:19'!
+afterCount1Method
 
-	object count: 2.! !
+	self class counter: 2.! !
 
-!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 6/2/2008 15:45'!
-insteadCountIWithObject: object
+!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:33'!
+beforeCount2Method
 
-	object inc.! !
+	self class count: 1.! !
+
+!DAAspectBehaviorExample methodsFor: 'advices' stamp: 'as 7/14/2008 20:33'!
+insteadCount3Method
+
+	self class count: 1.! !
+
+DAAspect subclass: #DAAspectScopeExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectScopeExample commentStamp: 'as 7/14/2008 17:00' prior: 0!
+Testing aspect scope.!
+
+!DAAspectScopeExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 09:03'!
+noopMethod
+
+	^ (DAAspectScopeTestObject >> #noop) asPointcut.! !
+
+!DAAspectScopeExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 21:13'!
+pointcutNames
+
+	^ #(noopMethod).! !
+
+!DAAspectScopeExample class methodsFor: 'metaobject' stamp: 'as 7/15/2008 10:36'!
+scope
+
+	^ #object.! !
+
+!DAAspectScopeExample methodsFor: 'advices' stamp: 'as 7/15/2008 10:33'!
+afterNoopMethod
+
+	Transcript show: 'debug2'; cr.! !
+
+DAAspect subclass: #DAAspectScopeTestObject
+	instanceVariableNames: 'id'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectScopeTestObject commentStamp: 'as 7/14/2008 21:10' prior: 0!
+For aspect scope tests.!
+
+!DAAspectScopeTestObject methodsFor: 'dummy' stamp: 'as 7/15/2008 10:35'!
+noop
+
+	Transcript show: 'debug1'; cr.! !
 
 DAAspect subclass: #DAAspectSelectorExample
 	instanceVariableNames: ''
@@ -3419,788 +4281,21 @@ afterTranscriptShowWithObject: object
 
 	object cr.! !
 
-!DAProtoAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 13:43'!
-pointcutNames
+!DAProtoAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:35'!
+allPointcutNames
 
 	"This should be a set, eliminating equal duplicates."
 	^ Set new.! !
 
-TestCase subclass: #DAAspectBehaviorTest
-	instanceVariableNames: 'examples aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
 
-!DAAspectBehaviorTest commentStamp: 'as 5/21/2008 16:08' prior: 0!
-Testing example aspects.!
+	^ DAMethodDescription methodObject: self.! !
 
-!DAAspectBehaviorTest methodsFor: 'initialize-release' stamp: 'as 5/22/2008 15:02'!
-initialize
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
 
-	examples _ DAExamples.! !
-
-!DAAspectBehaviorTest methodsFor: 'running' stamp: 'as 7/14/2008 10:37'!
-setUp
-
-	aspect _ DAAspectBehaviorExample.
-	examples reset.! !
-
-!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:48'!
-testAfter
-
-	examples countA.
-	self assert: examples count = 2.! !
-
-!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
-testAspectIsInstalled
-
-	"If the examples aspect is not installed, all tests here will fail."
-	
-	self assert: aspect isInstalled.! !
-
-!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:48'!
-testBefore
-
-	examples countB.
-	self assert: examples count = 1.! !
-
-!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:49'!
-testInstead
-
-	examples countI.
-	self assert: examples count = 1.! !
-
-TestCase subclass: #DAAspectSelectorTest
-	instanceVariableNames: 'example example2'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectSelectorTest commentStamp: 'as 6/1/2008 21:58' prior: 0!
-Test the advice selectors on DAAspect.!
-
-!DAAspectSelectorTest methodsFor: 'initialize-release' stamp: 'as 6/2/2008 16:51'!
-initialize
-
-	example _ DAAspectSelectorExample.
-	example2 _ DAAspectSelectorExample2.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testBeforeafter
-
-	"This could easily be interpreted as control #before with 'after' counting to the pointcut
-	 name, but it should not."
-
-	| split |
-
-	split _ example splitAdvice: #beforeafterPointcut.
-	self assert: split first = #beforeafter.
-	self assert: split second = 'pointcut'.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testInvalidArgument
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcutWithInvalidReification:.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(nil)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:40'!
-testIsAdvice
-
-	self assert: (example isAdvice: #afterPointcutClass:object:).
-	self deny: (example isAdvice: #afterPointcutclass:object:).
-	self deny: (example isAdvice: #invalidAdvice).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
-testIsAdviceMethod
-
-	self assert: (example isAdvice: example >> #afterPointcutClass:object:).
-	self deny: (example isAdvice: example class >> #noop).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
-testIsAdviceSymbol
-
-	self assert: (example isAdvice: #afterPointcutClass:object:).
-	self deny: (example isAdvice: #afterPointcutclass:object:).
-	self deny: (example isAdvice: #invalidAdvice).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:42'!
-testIsPointcutMethod
-
-	self assert: (example isPointcut: example class >> #pointcut).
-	self deny: (example isPointcut: example class >> #noop).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:41'!
-testIsPointcutSymbol
-
-	self assert: (example isPointcut: #pointcut).
-	self deny: (example isPointcut: #Pointcut).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testLowercase
-
-	| split |
-
-	split _ example splitAdvice: #insteadpointcutclass:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testMixedCase
-
-	| split |
-
-	split _ example splitAdvice: #iNSteaDpOintcutCLASS:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testNoArguments
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcut.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: split third isEmpty.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:53'!
-testPointcutNames
-
-	self assert: (example pointcutNames includesExactly: #('pointcut')).
-	self assert: (example allPointcutNames includesExactly: #('pointcut')).
-	self assert: (example2 pointcutNames includesExactly: #('pointcut2')).
-	self assert: (example2 allPointcutNames includesExactly: #('pointcut' 'pointcut2')).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
-testStandardAdviceSelector
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcutWithObject:andClass:.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: split third asArray = #(object class).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
-testUppercase
-
-	| split |
-
-	split _ example splitAdvice: #InsteadPointcutClass:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
-
-TestCase subclass: #DACodingTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DACodingTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
-Testing coding guidelines.!
-
-!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:52'!
-classes
-
-	^ (PackageInfo named: self packageName) classes.! !
-
-!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:55'!
-methods
-
-	^ self classes inject: Set new into: [
-		:set :class |
-		set, class instanceSide methodDict, class classSide methodDict.
-	].! !
-
-!DACodingTest methodsFor: 'util' stamp: 'as 4/23/2008 14:48'!
-packageName
-
-	^ 'DA'.! !
-
-!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:52'!
-testClassComment
-
-	"Each class should have a comment."
-
-	self classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
-
-!DACodingTest methodsFor: 'testing' stamp: 'as 5/21/2008 13:43'!
-testMethodLength
-
-	"No long methods."
-
-	self methods do: [
-		:each |
-		self assert: each statements size < 35.
-	].! !
-
-TestCase subclass: #DAConditionTest
-	instanceVariableNames: 'trueBool falseBool trueBlock falseBlock altTrueBlock'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAConditionTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
-Testing conditions.!
-
-!DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
-isAbstract
-
-	^ false.! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-altBlockArgs
-
-	^ #(class).! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-blockArgs
-
-	^ #(object).! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-setUp
-
-	trueBool _ DACondition with: true.
-	falseBool _ DACondition with: false.
-	trueBlock _ DACondition with: [ :arg | true. ] arguments: self blockArgs.
-	falseBlock _ DACondition with: [ :arg | false. ] arguments: self blockArgs.
-	altTrueBlock _ DACondition with: [ :arg | true. ] arguments: self altBlockArgs.
-	! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:46'!
-testArgsBlock
-
-	self assert: trueBlock arguments = self blockArgs.
-	self assert: falseBlock arguments = self blockArgs.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 14:28'!
-testCombiningArgs
-
-	| cond |
-	
-	cond _ trueBlock and: falseBlock.
-	self assert: cond arguments = self blockArgs.
-	cond _ trueBlock and: altTrueBlock.
-	self assert: cond arguments = (self blockArgs, self altBlockArgs).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:31'!
-testCombiningBlocks
-
-	| cond |
-	
-	cond _ trueBlock and: falseBlock.
-	self deny: (cond value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:42'!
-testCombiningBooleanWithBlock
-
-	| cond |
-	
-	cond _ trueBool and: trueBlock.
-	self assert: (cond value: nil).
-	self assert: (cond arguments = self blockArgs).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testCombiningBooleans
-
-	| cond |
-	cond _ trueBool and: falseBool.
-	self deny: cond value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:34'!
-testCommutativeBlocks
-
-	| val1 val2 |
-
-	val1 _ (trueBlock and: falseBool) value: nil.
-	val2 _ (falseBool and: trueBool) value: nil.
-	self assert: val1 = val2.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testCommutativeBooleans
-
-	self assert: (trueBool and: falseBool) value = (falseBool and: trueBool) value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:22'!
-testEmptyArgs
-
-	self assert: trueBool arguments isEmpty.
-	self assert: falseBool arguments isEmpty.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:43'!
-testFalseBlock
-
-	self deny: (falseBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testFalseBoolean
-
-	self deny: falseBool value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:30'!
-testNegatingBlock
-
-	trueBlock not.
-	self deny: (trueBlock value: nil).
-	falseBlock not.
-	self assert: (falseBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:29'!
-testNegatingBoolean
-
-	trueBool not.
-	self deny: trueBool value.
-	falseBool not.
-	self assert: falseBool value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:27'!
-testTrueBlock
-
-	self assert: (trueBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testTrueBoolean
-
-	self assert: trueBool value.! !
-
-TestCase subclass: #DAContextTest
-	instanceVariableNames: 'example'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAContextTest commentStamp: 'as 4/23/2008 16:46' prior: 0!
-Testing contexts.!
-
-!DAContextTest methodsFor: 'running' stamp: 'as 4/23/2008 16:48'!
-setUp
-
-	example _ DAExampleContext current.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:48'!
-testActivation
-
-	example activate.
-	self assert: example isActive.
-	example deactivate.
-	self assert: example notActive.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:04'!
-testAnd
-
-	| not and |
-
-	not _ example not.
-	and _ not & example.
-	example activate.
-	self assert: and notActive.
-	example deactivate.
-	self assert: and notActive.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:11'!
-testClassSideCombination
-
-	| not |
-
-	not _ DAExampleContext not.
-	self assert: not child == DAExampleContext.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:11'!
-testInstanceSideCombination
-
-	| not |
-
-	not _ DAExampleContext current not.
-	self assert: not child == DAExampleContext.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:50'!
-testNot
-
-	| not |
-
-	not _ example not.
-	example activate.
-	self assert: not notActive.
-	example deactivate.
-	self assert: not isActive.! !
-
-!DAContextTest methodsFor: 'testing' stamp: 'as 4/23/2008 17:05'!
-testOr
-
-	| not or |
-
-	not _ example not.
-	or _ not | example.
-	example activate.
-	self assert: or isActive.
-	example deactivate.
-	self assert: or isActive.! !
-
-TestCase subclass: #DAFilterTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAFilterTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
-Testing filtering.!
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
-testCategory
-
-	| filter |
-
-	filter _ DAValueFilter categoryName: 'DA-Tests'.
-	self assert: (filter matches: #'DA-Tests').
-	self deny: (filter matches: #'DA-Kernel').! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
-testClass
-
-	| filter |
-
-	filter _ DAValueFilter className: 'Object'.
-	self assert: (filter matches: Object).
-	self deny: (filter matches: ProtoObject).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
-testMethod
-
-	| filter |
-
-	filter _ DAValueFilter methodName: 'new'.
-	self assert: (filter matches: Behavior >> #new).
-	self assert: (filter matches: OrderedCollection class >> #new).
-	self deny: (filter matches: Behavior >> #basicNew).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
-testMultipleCategories
-
-	| filter |
-
-	filter _ DAValueFilter categoryName: 'DA-*'.
-	self assert: (filter matches: #'DA-Tests').
-	self assert: (filter matches: #'DA-Kernel').
-	self deny: (filter matches: #Kernel).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:14'!
-testMultipleClasses
-
-	| filter |
-
-	filter _ DAValueFilter className: '*Object'.
-	self assert: (filter matches: ProtoObject).
-	self assert: (filter matches: Object).
-	self deny: (filter matches: ObjectTest).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
-testMultipleMethods
-
-	| filter |
-
-	filter _ DAValueFilter methodName: '>>*'.
-	self assert: (filter matches: Behavior >> #>>).
-	self assert: (filter matches: Behavior >> #>>>).
-	self deny: (filter matches: Behavior >> #basicNew).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
-testMultipleNodes
-
-	| filter |
-
-	filter _ DABlockFilter block: [ :node | node isReturn. ].
-	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
-	self assert: (filter matches: (Object >>> #->) methodNode body statements first).
-	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
-testNegation
-
-	| filter |
-
-	filter _ DAValueFilter value: 'abc'.
-	filter not.
-	self deny: (filter matches: 'abc').! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:15'!
-testNode
-
-	| filter |
-
-	filter _ DABlockFilter block: [ :node | node isReturn. ].
-	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
-	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/30/2008 16:16'!
-testRegex
-
-	| filter |
-
-	filter _ DAValueFilter value: 'ab*' comparator: #match:.
-	self assert: (filter matches: 'abcccc').
-	self deny: (filter matches: 'aabcccc').! !
-
-TestCase subclass: #DAJoinPointTest
-	instanceVariableNames: 'jp'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAJoinPointTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
-Testing join points.!
-
-!DAJoinPointTest methodsFor: 'running' stamp: 'as 3/25/2008 17:42'!
-setUp
-
-	jp _ DAJoinPoint new.! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
-testAnding
-
-	| jp1 jp2 |
-
-	jp1 _ DAJoinPoint new class: (DAValueFilter class: Object).
-	self assert: (jp1 classes includes: Object).
-	
-	jp2 _ DAJoinPoint new method: (DAValueFilter methodName: '=').
-	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
-	
-	jp _ jp1 and: jp2.
-	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
-	self assert: jp methods size = 1.! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
-testMultipleCategories
-
-	jp category: (DAValueFilter categoryName: 'Kernel-*').
-	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
-testMultipleClasses
-
-	jp class: (DAValueFilter className: '*Object').
-	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
-testMultipleMethods
-
-	jp
-		class: (DAValueFilter className: 'ProtoObject');
-		method: (DAValueFilter methodName: '*').
-	self assert: (jp methods includesAllOf: {
-		(ProtoObject >> #==) reflectiveMethod.
-		(ProtoObject >> #become:) reflectiveMethod.
-	}).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:22'!
-testMultipleNodes
-
-	jp
-		class: (DAValueFilter className: 'Object');
-		method: (DAValueFilter methodName: 'class');
-		node: (DABlockFilter block: [ :node | true. ]).
-	self assert: (jp nodes includesAllOf:
-		(Object >> #class) reflectiveMethod methodNode allChildren).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:13'!
-testSingleCategory
-
-	jp category: (DAValueFilter category: #'Kernel-Objects').
-	self assert: (jp categories includes: #'Kernel-Objects').! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:14'!
-testSingleClass
-
-	jp class: (DAValueFilter class: Object).
-	self assert: (jp classes includes: Object).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
-testSingleMethod
-
-	jp
-		class: (DAValueFilter class: Object);
-		method: (DAValueFilter methodName: '=').
-	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:15'!
-testSingleNode
-
-	jp
-		class: (DAValueFilter class: Object);
-		method: (DAValueFilter methodName: 'class');
-		node: (DABlockFilter block: [ :node | node isMethod. ]).
-	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
-
-TestCase subclass: #DAPointcutTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAPointcutTest commentStamp: 'as 3/31/2008 11:46' prior: 0!
-Testing pointcuts.!
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
-testAnd
-
-	| m pc |
-
-	m _ Object >>> #=.
-	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
-	self assert: (pc nodes includesExactly: { m methodNode. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:17'!
-testCategory
-
-	| pc jp |
-
-	pc _ DAPointcut category: #'Kernel-Classes'.
-	jp _ pc joinPoints anyOne.
-	self assert: (jp categories includesExactly: { #'Kernel-Classes'. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:18'!
-testClass
-
-	| pc jp |
-
-	pc _ DAPointcut class: Object.
-	jp _ pc joinPoints anyOne.
-	self assert: (jp classes includesExactly: { Object. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:36'!
-testCondition
-
-	| con pc jp |
-
-	con _ [ true. ].
-	pc _ DAPointcut if: con.
-	jp _ pc joinPoints anyOne.
-	self assert: jp condition block = con.! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:45'!
-testContext
-
-	| con pc jp |
-
-	con _ DAExampleContext.
-	pc _ DAPointcut context: con.
-	jp _ pc joinPoints anyOne.
-	self assert: jp context = con.! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:23'!
-testMethod
-
-	| pc jp |
-
-	pc _ DAPointcut method: Behavior >> #new.
-	jp _ pc joinPoints anyOne.
-	self assert: (jp nodes includesExactly: { (Behavior >>> #new) methodNode. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:33'!
-testNode
-
-	| pc jp |
-
-	pc _ (DAPointcut node: [ :node | node isReturn. ]) and:
-		(DAPointcut method: Behavior >> #new).
-	jp _ pc joinPoints anyOne.
-	self assert:
-		(jp nodes includesExactly: { (Behavior >>> #new) methodNode body statements first. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
-testOr
-
-	| m1 m2 pc |
-	
-	m1 _ Object >>> #=.
-	m2 _ Object >>> #->.
-	pc _ (DAPointcut method: m1) or: (DAPointcut method: m2).
-	self assert: (pc nodes includesExactly: { m1 methodNode. m2 methodNode. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:59'!
-testParent
-
-	| pc |
-	
-	pc _ DACompositePointcut child: DAPointcut new child: DAPointcut new.
-
-	pc children do: [
-		:child |
-		self assert: child parent == pc.
-	].! !
-
-TestCase subclass: #DATestWithLinks
-	instanceVariableNames: 'links'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DATestWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
-A test that uses Geppetto links.
-
-This provides link cleanup at start/finish for any subclassed test.!
-
-DATestWithLinks subclass: #DAConnectorTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAConnectorTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
-Testing connectors.!
-
-!DAConnectorTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
-isAbstract
-
-	^ false.! !
-
-!DAConnectorTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:22'!
-testDeploy
-
-	| mo pc con count |
-
-	mo _ GPCounter new.
-	pc _ DAPointcut class: DAExamples class method: #noop.
-	con _ DAConnector on: pc do: #inc on: mo.	
-	con install.
-	self cleanup: con.
-
-	count _ mo count.
-	DAExamples noop.
-	self assert: (count + 1) = mo count.! !
-
-!DATestWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
-isAbstract
-
-	^ true.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
-cleanup: aGPLink
-
-	"Register aGPLink for cleanup in #tearDown"
-	
-	links add: aGPLink.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
-setUp
-
-	links _ Set new.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
-tearDown
-
-	links do: [ :link | link uninstall. ].! !
+	^ DAPointcut method: self.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -4241,11 +4336,6 @@ asDescription
 
 	^ DAClassDescription classObject: self.! !
 
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
-
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
 
@@ -4271,6 +4361,11 @@ flowOutOf: aDAPointcut
 
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
