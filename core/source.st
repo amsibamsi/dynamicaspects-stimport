@@ -27,11 +27,11 @@ selfIfEmpty: aBlock
 	^ (self >> selector) reflectiveMethod.
 ! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:20'!
+!Behavior methodsFor: '*DA' stamp: 'as 5/27/2008 16:01'!
 notifyUsersOfChangedSelectors: aCollection
 
-	"Make it possible that a class can also react on selector changes on the class side,
-	 whose methods are actually in the method dictionary of the meta class and
+	"Make it possible that a class is also notified of selector changes on the class side.
+	 Class methods are actually in the method dictionary of the meta class and
 	 managed there.
 	
 	 Remember that Behavior is a superclass for normal classes (like Object) and
@@ -3844,7 +3844,7 @@ countA: p
 
 	^ p method: DAExamples class >> #countA.! !
 
-!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/22/2008 18:32'!
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/27/2008 18:07'!
 countB: p
 
 	^ p method: DAExamples class >> #countB.! !
@@ -4030,8 +4030,8 @@ Browser subclass: #DAAspectBrowser
 	poolDictionaries: ''
 	category: 'DA-Browser'!
 
-!DAAspectBrowser commentStamp: 'as 5/14/2008 14:25' prior: 0!
-Add aspect functionality.!
+!DAAspectBrowser commentStamp: 'as 5/27/2008 18:00' prior: 0!
+Add aspect functionality to the standard browser.!
 
 !DAAspectBrowser class methodsFor: 'class initialization' stamp: 'as 5/14/2008 14:27'!
 initialize
@@ -4118,6 +4118,12 @@ classDefinitionText
 classListIndex: anInteger 
 
 	super classListIndex: anInteger.
+	self updateAspect.! !
+
+!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/29/2008 11:06'!
+decorateButtons
+
+	super decorateButtons.
 	self updateAspect.! !
 
 !DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/15/2008 16:41'!
