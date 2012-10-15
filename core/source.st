@@ -55,13 +55,13 @@ Object subclass: #DAAspectClass
 	category: 'DynamicAspects-Kernel'!
 
 DAAspectClass class
-	instanceVariableNames: 'Advices Pointcuts Links'!
+	instanceVariableNames: 'AdviceNames PointcutNames LinkNames'!
 
 !DAAspectClass commentStamp: 'as 8/14/2007 10:04' prior: 0!
 This makes the transition from an object to an aspect.!
 
 DAAspectClass class
-	instanceVariableNames: 'Advices Pointcuts Links'!
+	instanceVariableNames: 'AdviceNames PointcutNames LinkNames'!
 
 DAAspectClass subclass: #DAAspect
 	instanceVariableNames: ''
@@ -81,21 +81,31 @@ Although aspects are not necessarily objects or classes, in this implementation 
 DAAspect class
 	instanceVariableNames: 'Instance'!
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
-adviceNames
-
-	^ self superclass adviceNames addAll: (self advices); yourself.! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:49'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
 advicesString
 
 	^ String streamContents: [
 		:stream |
-		self advices do: [
+		self adviceNames do: [
 			:each |
 			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
 	].! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:12'!
+allAdviceNames
+
+	^ self superclass adviceNames addAll: self adviceNames; yourself.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:13'!
+allLinkNames
+
+	^ self superclass linkNames addAll: self linkNames; yourself.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:13'!
+allPointcutNames
+
+	^ self superclass pointcutNames addAll: self pointcutNames; yourself.! !
 
 !DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 7/18/2007 15:47'!
 definitionST80
@@ -131,17 +141,12 @@ instance
 
 	^ Instance ifNil: [ Instance _ self basicNew initialize. ].! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
-linkNames
-
-	^ self superclass linkNames addAll: (self links); yourself.! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:50'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
 linksString
 
 	^ String streamContents: [
 		:stream |
-		self links do: [
+		self linkNames do: [
 			:each |
 			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
@@ -152,17 +157,12 @@ new
 
 	self error: 'I''m singleton, use ', self class name, '>>instance'.! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
-pointcutNames
-
-	^ self superclass pointcutNames addAll: (self pointcuts); yourself.! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:50'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 9/10/2007 17:14'!
 pointcutsString
 
 	^ String streamContents: [
 		:stream |
-		self pointcuts do: [
+		self pointcutNames do: [
 			:each |
 			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
@@ -193,21 +193,31 @@ advice: aSymbol
 	].
 	^ advice.! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 7/23/2007 11:47'!
-adviceNames
-
-	^ self class adviceNames.! !
-
-!DAAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:43'!
+!DAAspect methodsFor: 'advices' stamp: 'as 9/10/2007 15:40'!
 advices
 
-	^ self adviceNames collect: [
+	^ self allAdvices collect: [
 		:name |
 		self advice: name.
 	] thenSelect: [
 		:advice |
 		advice notNil.
 	].! !
+
+!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
+allAdviceNames
+
+	^ self class allAdviceNames.! !
+
+!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
+allLinkNames
+
+	^ self class allLinkNames.! !
+
+!DAAspect methodsFor: 'accessing' stamp: 'as 9/10/2007 17:16'!
+allPointcutNames
+
+	^ self class allPointcutNames.! !
 
 !DAAspect methodsFor: 'installing' stamp: 'as 7/4/2007 15:26'!
 install
@@ -232,15 +242,10 @@ link: aSymbol
 	].
 	^ link.! !
 
-!DAAspect methodsFor: 'linking' stamp: 'as 7/23/2007 11:47'!
-linkNames
-
-	^ self class linkNames.! !
-
-!DAAspect methodsFor: 'linking' stamp: 'as 7/4/2007 15:42'!
+!DAAspect methodsFor: 'linking' stamp: 'as 9/10/2007 15:40'!
 links
 
-	^ self linkNames collect: [
+	^ self allLinks collect: [
 		:name |
 		self link: name.
 	] thenSelect: [
@@ -259,15 +264,10 @@ pointcut: aSymbol
 	].
 	^ pointcut.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/23/2007 11:47'!
-pointcutNames
-
-	^ self class pointcutNames.! !
-
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:43'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 9/10/2007 15:41'!
 pointcuts
 
-	^ self pointcutNames collect: [
+	^ self allPointcuts collect: [
 		:name |
 		self pointcut: name.
 	] thenSelect: [
@@ -319,35 +319,35 @@ p1
 
 	^ DAMethodExecutionPointcut onClass: DAExamples method: #example.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 20:57'!
-advices
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:05'!
+adviceNames
 
-	^ Advices ifNil: [ Advices _ Set new. ].! !
+	^ AdviceNames ifNil: [ AdviceNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 17:25'!
-advices: aString
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:10'!
+adviceNames: aString
 
-	Advices _ self stringToSymbols: aString.! !
+	AdviceNames _ self stringToSymbols: aString.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 20:57'!
-links
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+linkNames
 
-	^ Links ifNil: [ Links _ Set new. ].! !
+	^ LinkNames ifNil: [ LinkNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 17:26'!
-links: aString
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+linkNames: aString
 
-	Links _ self stringToSymbols: aString.! !
+	LinkNames _ self stringToSymbols: aString.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:00'!
-pointcuts
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+pointcutNames
 
-	^ Pointcuts ifNil: [ Pointcuts _ Set new. ].! !
+	^ PointcutNames ifNil: [ PointcutNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 17:26'!
-pointcuts: aString
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 9/10/2007 17:11'!
+pointcutNames: aString
 
-	Pointcuts _ self stringToSymbols: aString.! !
+	PointcutNames _ self stringToSymbols: aString.! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
 stringToSymbols: aString
@@ -360,7 +360,7 @@ stringToSymbols: aString
 	].
 	^ set.! !
 
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 7/23/2007 11:13'!
+!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 9/10/2007 17:11'!
 subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
 
 	| newClass |
@@ -370,9 +370,9 @@ subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links 
 		poolDictionaries: pools
 		category: cat.
 	newClass
-		pointcuts: pointcuts;
-		advices: advices;
-		links: links.
+		pointcutNames: pointcuts;
+		adviceNames: advices;
+		linkNames: links.
 	^ newClass.! !
 
 !DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 7/18/2007 17:04'!
@@ -517,11 +517,6 @@ classesInCategory: aSymbol
 	^ (SystemOrganization listAtCategoryNamed: aSymbol)
 		collect: [ :each | Smalltalk at: each. ].! !
 
-!DAPointcut methodsFor: 'searching-obsolete' stamp: 'as 8/23/2007 11:07'!
-classesMatching: aString
-
-	^ self classesMatching: aString in: Smalltalk allClasses.! !
-
 !DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:40'!
 classesMatching: aString in: aCollection
 
@@ -545,28 +540,6 @@ classesMatching: classString inCategoriesMatching: categoryString
 methods
 
 	^ self methodsMatching: method inClassesMatching: class inCategoriesMatching: category.! !
-
-!DAPointcut methodsFor: 'searching-obsolete' stamp: 'as 8/23/2007 11:07'!
-methodsMatching: methodString
-
-	| candidates |
-	candidates _ Set new.
-	Smalltalk allClasses do: [
-		:class |
-		candidates addAll: class methods.
-	].
-	^ candidates select: [ :method | method selector asString match: methodString. ].! !
-
-!DAPointcut methodsFor: 'searching-obsolete' stamp: 'as 8/23/2007 11:07'!
-methodsMatching: methodString inClassesMatching: classString
-
-	| candidates |
-	candidates _ Set new.
-	(self classesMatching: classString) do: [
-		:class |
-		candidates addAll: class methods.
-	].
-	^ candidates select: [ :method | method selector asString match: methodString. ].! !
 
 !DAPointcut methodsFor: 'searching methods' stamp: 'as 8/23/2007 14:42'!
 methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: categoryString
