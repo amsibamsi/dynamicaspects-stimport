@@ -3418,13 +3418,18 @@ empty
 
 	^ DAEmptyPointcut new.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 10:07'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 7/31/2008 11:55'!
+fieldRead
+
+	^ self fieldRead: '*'.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 7/31/2008 13:25'!
 fieldRead: aString
 
 	^ self node: [
 		:node |
 		| return |
-		return _ node isVariable and: [ node name = aString. ].
+		return _ node isVariable and: [ aString match: node name. ].
 		(node parent isKindOf: RBProgramNode) ifTrue: [
 			| parent |
 			parent _ node parent.
@@ -3436,13 +3441,21 @@ fieldRead: aString
 		return.
 	].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 09:07'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 7/31/2008 11:52'!
+fieldWrite
+
+	^ self node: [
+		:node |
+		node isAssignment.
+	].! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 7/31/2008 13:25'!
 fieldWrite: aString
 
 	^ self node: [
 		:node |
 		node isAssignment and: [
-			node variable name = aString.
+			aString match: node variable name.
 		].
 	].! !
 
@@ -3702,16 +3715,20 @@ visit: aDAPointcut
 	self initializeJoinPoints.
 	aDAPointcut acceptVisitor: self.! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/25/2008 18:02'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 7/31/2008 13:38'!
 visitAnd: pc
+
+	| lefts rights |
 
 	pc left acceptVisitor: self.
 	self push.
 	pc right acceptVisitor: self.
 	self push.
-	self pop do: [
+	lefts _ self pop.
+	rights _ self pop.
+	lefts do: [
 		:left |
-		self pop do: [
+		rights do: [
 			:right |
 			joinPoints add: (left and: right).
 		].
@@ -4830,18 +4847,13 @@ insteadNoEndWithArg1: n operation: operation
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
 
 DAAspect subclass: #DAStoreExample
-	instanceVariableNames: 'orders trace'
+	instanceVariableNames: 'orders fields'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Examples'!
 
 !DAStoreExample commentStamp: 'as 7/21/2008 16:46' prior: 0!
 The famous sushi store example.!
-
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 23:02'!
-allMethods
-
-	^ PC className: 'WAStore*'.! !
 
 !DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 20:58'!
 closed
@@ -4853,23 +4865,29 @@ confirmation
 
 	^ PC class: WAStoreTask method: #shipTo:billTo:payWith:.! !
 
-!DAStoreExample class methodsFor: 'options' stamp: 'as 7/30/2008 21:15'!
+!DAStoreExample class methodsFor: 'options' stamp: 'as 7/31/2008 14:36'!
 disabledAdvices
 
 	^ #(
-		"insteadTitle"
+		insteadTitle
 		insteadTitle2
 		insteadTitleWithOperation:
 		insteadSubtitleWithOperation:
 		afterConfirmation
 		beforeRenderingWithArg1:object:
 		insteadClosedWithObject:
+		afterFields
 	).! !
 
-!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 21:17'!
+!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/31/2008 14:19'!
+fields
+
+	^ (PC className: 'WAStore*') & (PC fieldWrite: 'cart').! !
+
+!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/31/2008 13:40'!
 pointcutNames
 
-	^ #(title title2 subtitle confirmation rendering closed allMethods).! !
+	^ #(title title2 subtitle confirmation rendering closed fields).! !
 
 !DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/30/2008 15:33'!
 rendering
@@ -4896,10 +4914,30 @@ afterConfirmation
 
 	self ordered: 1.! !
 
+!DAStoreExample methodsFor: 'advices' stamp: 'as 7/31/2008 14:15'!
+afterFields
+
+	Transcript show: 'debug'; cr.! !
+
 !DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:24'!
 beforeRenderingWithArg1: html object: component
 
 	html paragraph: [ html small: [ html text: component asString. ]. ].! !
+
+!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
+fieldAt: anObject
+
+	^ self fields at: anObject ifAbsent: [ 0. ].! !
+
+!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
+fieldAt: aObject put: aNumber
+
+	self fields at: aObject put: aNumber.! !
+
+!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:53'!
+fields
+
+	^ fields ifNil: [ fields _ Dictionary new. ].! !
 
 !DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 21:04'!
 insteadClosedWithObject: task
@@ -4945,11 +4983,6 @@ orders
 orders: aNumber
 
 	orders _ aNumber.! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 21:19'!
-trace
-
-	^ trace ifNil: [ trace _ OrderedCollection new. ].! !
 
 DAAspect subclass: #DATranscriptExample
 	instanceVariableNames: ''
