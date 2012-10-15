@@ -3351,13 +3351,13 @@ DAProtoAspect subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors failed disabled'!
+	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
 
 !DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
 Combines several pointcuts and advices by hosting multiple connectors.!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors failed disabled'!
+	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
 adviceControls
@@ -3459,37 +3459,60 @@ definitionAspect
 
 	^ aStream contents! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:39'!
 disable
 
-	disabled _ true.! !
+	disabled _ true.
+	self uninstall.! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 10:47'!
+disable: aBoolean
+
+	aBoolean ifTrue: [ self disable. ] ifFalse: [ self enable. ].! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/19/2008 11:56'!
 disabled
 
-	disabled ifNil: [ disabled _ false. ].! !
+	^ disabled ifNil: [ disabled _ false. ].! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 5/19/2008 11:30'!
+doneCompiling
+
+	self isEnabled ifTrue: [ self installQuietly. ].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:39'!
 enable
 
-	disabled _ false.! !
+	disabled _ false.
+	self install.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:29'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 10:47'!
+enable: aBoolean
+
+	self disable: aBoolean not.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/19/2008 11:31'!
+failure
+
+	^ failure.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:33'!
 install
 
 	self installFailed ifTrue: [ self error: 'cleanly uninstall first (if necessary by hand)'. ].
 	self notInstalled ifTrue: [
 		connectors _ Set new.
+		failure _ nil.
 		[
 			[
 				self installConnectors.
 			] on: Exception do: [
 				:e |
-				failed _ true.
+				failure _ true.
 				e pass.
 			].
 		] ensure: [
-			failed ifTrue: [ self uninstall. ].
+			failure ifNotNil: [ self uninstall. ].
 		].
 	].! !
 
@@ -3503,15 +3526,25 @@ installConnectors
 	].
 		! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 17:47'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/19/2008 11:36'!
 installFailed
 
-	^ failed notNil and: [ failed. ].! !
+	^ failure notNil.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:34'!
+installQuietly
+
+	[ self install. ] on: Exception do: [].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
 isDisabled
 
 	^ self disabled.! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/19/2008 11:29'!
+isEnabled
+
+	^ self isDisabled not.! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 18:04'!
 isInstalled
@@ -3575,6 +3608,11 @@ possibleAdviceNames
 	].
 	^ names.! !
 
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:21'!
+reinstall
+
+	self uninstall; install.! !
+
 !DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
 scope
 
@@ -3595,21 +3633,28 @@ templateForSubclassOf: aClass category: aSymbol
 	poolDictionaries: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:42'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:41'!
 uninstall
 
 	self uninstallConnectors.
 	connectors _ nil.
-	failed _ false.! !
+	failure _ nil.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:31'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:42'!
 uninstallConnectors
 
-	connectors copy do: [
-		:con |
-		con uninstall.
-		connectors remove: con.
+	connectors ifNotNil: [
+		connectors copy do: [
+			:con |
+			con uninstall.
+			connectors remove: con.
+		].
 	].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:34'!
+uninstallQuietly
+
+	[ self uninstall. ] on: Exception do: [].! !
 
 DAAspect subclass: #DAExampleAspect
 	instanceVariableNames: ''
@@ -3735,8 +3780,8 @@ initialize
 	TheWorldMenu registerOpenCommand: {'Aspect Browser'. {self. #openBrowser}}.
 	self registerInAppRegistry.! !
 
-!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/15/2008 16:41'!
-adaptAspectButtonColor: classNotMeta
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:12'!
+adaptAspectButtonColor
 
 	| button color |
 
@@ -3746,11 +3791,11 @@ adaptAspectButtonColor: classNotMeta
 			[ morph actionSelector = #openAspectMenu. ].
 	].
 
-	(classNotMeta includesBehavior: DAAspect) ifTrue: [
-		classNotMeta isInstalled ifTrue: [
+	self editingAspect ifTrue: [
+		self aspect isInstalled ifTrue: [
 			color _ Color lightGreen.
 		] ifFalse: [
-			classNotMeta installFailed ifTrue: [
+			self aspect installFailed ifTrue: [
 				color _ Color lightRed.
 			] ifFalse: [
 				color _ Color lightBlue.
@@ -3762,6 +3807,13 @@ adaptAspectButtonColor: classNotMeta
 
 	button offColor: color.! !
 
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:18'!
+aspect
+
+	(self selectedClass notNil and: [ self selectedClass includesBehavior: DAAspect. ])
+		ifTrue: [ ^ self selectedClass. ]
+		ifFalse: [ ^ nil. ].! !
+
 !DAAspectBrowser methodsFor: 'accessing' stamp: 'as 5/16/2008 12:54'!
 aspectMenu
 
@@ -3772,7 +3824,7 @@ aspectMenuEnabled: aBoolean
 
 	self aspectMenu items do: [ :m | m isEnabled: aBoolean. ].! !
 
-!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/16/2008 13:12'!
+!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/19/2008 15:37'!
 buildAspectMenu
 
 	| menu |
@@ -3782,29 +3834,29 @@ buildAspectMenu
 		addTitle: 'Aspect';
 		defaultTarget: self.
 	menu addList: #(
-		('1. Disable aspect' disableAspect)
-		('2. Enable aspect' enableAspect)
+		('1. Enable/Disable' disableEnableAspect)
+		('2. Reinstall manually' reinstallAspect)
 	).
 	^ menu.! !
 
-!DAAspectBrowser methodsFor: 'class functions' stamp: 'as 5/14/2008 14:59'!
+!DAAspectBrowser methodsFor: 'class functions' stamp: 'as 5/19/2008 15:31'!
 classDefinitionText
 
 	| theClass |
 	
 	theClass _ self selectedClassOrMetaClass.
 	theClass ifNil: [ ^ ''. ].
-	(theClass includesBehavior: DAAspect) ifTrue: [
+	(self editingAspect and: [ theClass isInstanceSide. ]) ifTrue: [
 		^ theClass definitionAspect.
 	] ifFalse: [		
 		^theClass definitionST80.
 	].! !
 
-!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/15/2008 16:35'!
+!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/19/2008 11:54'!
 classListIndex: anInteger 
 
 	super classListIndex: anInteger.
-	self adaptAspectButtonColor: self selectedClass.! !
+	self updateAspect.! !
 
 !DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/15/2008 16:41'!
 defaultBrowserTitle
@@ -3857,22 +3909,23 @@ Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName si
 				^ true]
 		ifFalse: [^ false]! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:08'!
-disableAspect
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:09'!
+disableEnableAspect
 
-	self selectedClass disable.! !
+	self aspect disable: self aspect isDisabled not.
+	self updateAspect.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:12'!
-enableAspect
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 5/19/2008 15:00'!
+editingAspect
 
-	self selectedClass enable.! !
+	^ self aspect notNil.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:18'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:25'!
 openAspectMenu
 
-	(self selectedClass isNil or: [ (self selectedClass includesBehavior: DAAspect) not. ])
-		ifTrue: [ self aspectMenuEnabled: false. ]
-		ifFalse: [ self aspectMenuEnabled: true. ].
+	self editingAspect
+		ifTrue: [ self aspectMenuEnabled: true. ]
+		ifFalse: [ self aspectMenuEnabled: false. ].
 	self aspectMenu popUpInWorld.! !
 
 !DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/15/2008 16:29'!
@@ -3883,5 +3936,16 @@ optionalButtonPairs
 green: the aspect is installed
 blue: the aspect is not installed
 red: the aspect failed to install')).! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:34'!
+reinstallAspect
+
+	self aspect reinstall.
+	self updateAspect.! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:10'!
+updateAspect
+
+	self adaptAspectButtonColor.! !
 DAFlowContext initialize!
 DAAspectBrowser initialize!
