@@ -3,6 +3,53 @@ SystemOrganization addCategory: #'DynamicAspects-Joinpoints'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Aspects'!
+SystemOrganization addCategory: #'DynamicAspects-Test'!
+
+!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
 
 Object subclass: #DAAspectClass
 	instanceVariableNames: ''
@@ -28,19 +75,19 @@ DAAspect class
 DAAspect class
 	instanceVariableNames: 'Instance'!
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/18/2007 21:09'!
-advices
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
+adviceNames
 
-	^ self superclass advices addAll: (Advices ifNil: [ Advices _ #(). ]); yourself.! !
+	^ self superclass adviceNames addAll: (self advices); yourself.! !
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/18/2007 18:14'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:49'!
 advicesString
 
 	^ String streamContents: [
 		:stream |
 		self advices do: [
 			:each |
-			stream nextPutAll: each.
+			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
 	].! !
 
@@ -78,19 +125,19 @@ instance
 
 	^ Instance ifNil: [ Instance _ self basicNew initialize. ].! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/18/2007 21:12'!
-links
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
+linkNames
 
-	^ self superclass links addAll: (Links ifNil: [ Links _ #(). ]); yourself.! !
+	^ self superclass linkNames addAll: (self links); yourself.! !
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/18/2007 18:14'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:50'!
 linksString
 
 	^ String streamContents: [
 		:stream |
 		self links do: [
 			:each |
-			stream nextPutAll: each.
+			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
 	].! !
 
@@ -99,19 +146,19 @@ new
 
 	self error: 'I am singleton, use ', self class name, '>>instance'.! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/18/2007 21:13'!
-pointcuts
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/23/2007 14:43'!
+pointcutNames
 
-	^ self superclass pointcuts addAll: (Pointcuts ifNil: [ Pointcuts _ #(). ]); yourself.! !
+	^ self superclass pointcutNames addAll: (self pointcuts); yourself.! !
 
-!DAAspect class methodsFor: 'printing' stamp: 'as 7/18/2007 18:14'!
+!DAAspect class methodsFor: 'printing' stamp: 'as 7/23/2007 11:50'!
 pointcutsString
 
 	^ String streamContents: [
 		:stream |
 		self pointcuts do: [
 			:each |
-			stream nextPutAll: each.
+			stream nextPutAll: each asString.
 		] separatedBy: [ stream space. ].
 	].! !
 
@@ -140,10 +187,10 @@ advice: aSymbol
 	].
 	^ advice.! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 7/3/2007 11:46'!
+!DAAspect methodsFor: 'advices' stamp: 'as 7/23/2007 11:47'!
 adviceNames
 
-	^ self class advices.! !
+	^ self class adviceNames.! !
 
 !DAAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:43'!
 advices
@@ -179,10 +226,10 @@ link: aSymbol
 	].
 	^ link.! !
 
-!DAAspect methodsFor: 'linking' stamp: 'as 7/3/2007 11:46'!
+!DAAspect methodsFor: 'linking' stamp: 'as 7/23/2007 11:47'!
 linkNames
 
-	^ self class links.! !
+	^ self class linkNames.! !
 
 !DAAspect methodsFor: 'linking' stamp: 'as 7/4/2007 15:42'!
 links
@@ -206,10 +253,10 @@ pointcut: aSymbol
 	].
 	^ pointcut.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/3/2007 11:46'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/23/2007 11:47'!
 pointcutNames
 
-	^ self class pointcuts.! !
+	^ self class pointcutNames.! !
 
 !DAAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:43'!
 pointcuts
@@ -283,7 +330,7 @@ links: aString
 
 	Links _ self stringToSymbols: aString.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 20:57'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:00'!
 pointcuts
 
 	^ Pointcuts ifNil: [ Pointcuts _ Set new. ].! !
@@ -293,15 +340,18 @@ pointcuts: aString
 
 	Pointcuts _ self stringToSymbols: aString.! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/18/2007 17:26'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
 stringToSymbols: aString
 
-	^ (aString subStrings: ' ') collect: [
+	| set |
+	set _ Set new.
+	(aString subStrings: ' ') do: [
 		:substring |
-		substring asSymbol.
-	].! !
+		set add: substring asSymbol.
+	].
+	^ set.! !
 
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 7/18/2007 17:05'!
+!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 7/23/2007 11:13'!
 subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
 
 	| newClass |
