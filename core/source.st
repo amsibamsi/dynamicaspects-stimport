@@ -1907,11 +1907,6 @@ visitOr: pc
 	pc right acceptVisitor: self.
 	joinPoints addAll: self pop.! !
 
-!GPCondition class methodsFor: '*DA' stamp: 'as 3/6/2008 15:26'!
-condition: aBooleanOrBlock arguments: args
-
-	^ self new condition: aBooleanOrBlock; arguments: args; yourself.! !
-
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
 
@@ -1935,11 +1930,6 @@ hookOnJoinPoint: aDAJoinPoint
 		:node |
 		self hookOn: node.
 	].! !
-
-!BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
-and: aBlock
-
-	^ DACombinedBlock block: self block: aBlock message: #and:.! !
 
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
