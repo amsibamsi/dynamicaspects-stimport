@@ -725,8 +725,8 @@ DACompositePointcut subclass: #DAAndPointcut
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DAAndPointcut commentStamp: 'as 1/18/2008 10:40' prior: 0!
-Returns the intersecting join points of two pointcuts.!
+!DAAndPointcut commentStamp: 'as 1/31/2008 17:05' prior: 0!
+Selects all join points that fullfill all requirements of two pointcuts.!
 
 !DAAndPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:04'!
 visitName
@@ -759,8 +759,8 @@ DACompositePointcut subclass: #DAOrPointcut
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DAOrPointcut commentStamp: 'as 1/18/2008 10:54' prior: 0!
-Returns the unified join points of two pointcuts.!
+!DAOrPointcut commentStamp: 'as 1/31/2008 17:06' prior: 0!
+Selects all join points that fullfill either's pointcut requirements.!
 
 !DAOrPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:03'!
 visitName
@@ -775,54 +775,6 @@ DAPointcut subclass: #DADesignatePointcut
 
 !DADesignatePointcut commentStamp: 'as 1/24/2008 15:45' prior: 0!
 Designates join points in the system.!
-
-DADesignatePointcut subclass: #DACategoryPointcut
-	instanceVariableNames: 'filter'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcuts'!
-
-!DACategoryPointcut commentStamp: 'as 1/31/2008 16:39' prior: 0!
-Filter for categories.!
-
-!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:27'!
-filter
-
-	^ filter.! !
-
-!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:27'!
-filter: regexString
-
-	filter _ regexString.! !
-
-!DACategoryPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:29'!
-visitName
-
-	^ 'category'.! !
-
-DADesignatePointcut subclass: #DAClassPointcut
-	instanceVariableNames: 'filter'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcuts'!
-
-!DAClassPointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
-Filter for classes.!
-
-!DAClassPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:46'!
-filter
-
-	^ filter.! !
-
-!DAClassPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:46'!
-filter: regexString
-
-	filter _ regexString.! !
-
-!DAClassPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:46'!
-visitName
-
-	^ 'class'.! !
 
 DADesignatePointcut subclass: #DAConditionPointcut
 	instanceVariableNames: 'condition'
@@ -848,8 +800,60 @@ visitName
 
 	^ 'condition'.! !
 
-DADesignatePointcut subclass: #DAMethodPointcut
+DADesignatePointcut subclass: #DAFilterPointcut
 	instanceVariableNames: 'filter'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAFilterPointcut commentStamp: 'as 1/31/2008 16:58' prior: 0!
+Specifies a filter for designating join points.!
+
+DAFilterPointcut subclass: #DACategoryPointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DACategoryPointcut commentStamp: 'as 1/31/2008 16:39' prior: 0!
+Filter for categories.!
+
+!DACategoryPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:29'!
+visitName
+
+	^ 'category'.! !
+
+DAFilterPointcut subclass: #DAClassPointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAClassPointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
+Filter for classes.!
+
+!DAClassPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:46'!
+visitName
+
+	^ 'class'.! !
+
+!DAFilterPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 16:59'!
+filter: anObject
+
+	^ self new filter: anObject; yourself.! !
+
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 1/31/2008 16:59'!
+filter
+
+	^ filter.! !
+
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 1/31/2008 16:59'!
+filter: anObject
+
+	filter _ anObject.! !
+
+DAFilterPointcut subclass: #DAMethodPointcut
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
@@ -857,23 +861,13 @@ DADesignatePointcut subclass: #DAMethodPointcut
 !DAMethodPointcut commentStamp: 'as 1/31/2008 16:42' prior: 0!
 Filter for methods.!
 
-!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:47'!
-filter
-
-	^ filter.! !
-
-!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:47'!
-filter: regexString
-
-	filter _ regexString.! !
-
 !DAMethodPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:47'!
 visitName
 
 	^ 'method'.! !
 
-DADesignatePointcut subclass: #DANodePointcut
-	instanceVariableNames: 'filter'
+DAFilterPointcut subclass: #DANodePointcut
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
@@ -881,20 +875,30 @@ DADesignatePointcut subclass: #DANodePointcut
 !DANodePointcut commentStamp: 'as 1/31/2008 16:41' prior: 0!
 Filter the nodes within a reflective method (sub-method level).!
 
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:49'!
-filter
-
-	^ filter.! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:49'!
-filter: aBlock
-
-	filter _ aBlock.! !
-
 !DANodePointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:48'!
 visitName
 
 	^ 'node'.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:16'!
+category: aSymbol
+
+	^ DACategoryPointcut filter: aSymbol.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:17'!
+categoryName: regexString
+
+	^ DACategoryPointcut filter: regexString.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:16'!
+class: aClass
+
+	^ DAClassPointcut filter: aClass name.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:17'!
+className: regexString
+
+	^ DAClassPointcut filter: regexString.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/27/2008 19:53'!
 if: aBlockOrBoolean
@@ -911,13 +915,21 @@ if: aBlockOrBoolean arguments: aCollection
 		arguments: aCollection;
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/27/2008 19:43'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:12'!
 method: aMethod
 
-	^ DAPointcut new
-		class: aMethod methodClass name;
-		method: aMethod selector;
-		yourself.! !
+	^ (DAClassPointcut filter: aMethod methodClass name) and:
+		(DAMethodPointcut filter: aMethod selector).! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:17'!
+methodName: regexString
+
+	^ DAMethodPointcut filter: regexString.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:18'!
+node: aBlock
+
+	^ DANodePointcut filter: aBlock.! !
 
 !DAPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:00'!
 acceptVisitor: aDAPointcutVisitor
@@ -1381,15 +1393,17 @@ tearDown
 
 	self removeAllLinksOn: DAGeppettoExamples.! !
 
-!DAGeppettoTests methodsFor: 'testing' stamp: 'as 1/21/2008 08:52'!
+!DAGeppettoTests methodsFor: 'testing' stamp: 'as 2/1/2008 10:09'!
 testArgumentListCondition
 
-	| link asserted |
+	| link asserted condition |
 	asserted _ false.
 	link _ GPLink metaObject: [ asserted _ true. ].
 	link before.
-	link singleArgCondition:
-		[ :args | (args at: #object) = DAGeppettoExamples. ] arguments: #(object).
+	condition _ DACondition
+		with: [ :args | (args at: #object) = DAGeppettoExamples. ]
+		arguments: #(object).
+	link conditionObject: condition.
 	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
 	DAGeppettoExamples example1.
 	self assert: asserted.! !
@@ -1467,3 +1481,6 @@ TestCase subclass: #DAPointcutTest
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
+
+!DAPointcutTest commentStamp: 'as 2/1/2008 10:10' prior: 0!
+Testing point cuts.!
