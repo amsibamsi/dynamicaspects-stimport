@@ -1,4 +1,5 @@
-SystemOrganization addCategory: #DynamicAspects!
+SystemOrganization addCategory: #'DynamicAspects-Aspects'!
+SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
@@ -51,7 +52,7 @@ Object subclass: #DAAspect
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects'!
+	category: 'DynamicAspects-Kernel'!
 
 !DAAspect commentStamp: 'as 11/19/2007 12:50' prior: 0!
 An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
@@ -61,7 +62,7 @@ DAAspect subclass: #DAAnonymousAspect
 	instanceVariableNames: 'pointcut advice control condition link'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects'!
+	category: 'DynamicAspects-Kernel'!
 
 !DAAnonymousAspect commentStamp: 'as 11/19/2007 12:49' prior: 0!
 An aspect that doesn't need to be defined in the browser.!
@@ -117,6 +118,39 @@ uninstall
 
 	self isInstalled ifTrue: [ link uninstall. link _ nil. ].! !
 
+DAAnonymousAspect subclass: #DAControlFlow
+	instanceVariableNames: 'active'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Aspects'!
+
+!DAControlFlow commentStamp: 'as 11/28/2007 13:28' prior: 0!
+States whether the control flow is under a specified method or not.!
+
+!DAControlFlow class methodsFor: 'instance creation' stamp: 'as 11/28/2007 10:30'!
+method: aMethod
+
+	^ self new
+		method: aMethod;
+		yourself.! !
+
+!DAControlFlow methodsFor: 'initialize-release' stamp: 'as 11/28/2007 11:14'!
+initialize
+
+	active _ false.
+	self advice: [ active _ active not. ].
+	self control: #beforeafter.! !
+
+!DAControlFlow methodsFor: 'testing' stamp: 'as 11/28/2007 11:14'!
+isActive
+
+	^ active.! !
+
+!DAControlFlow methodsFor: 'pointcut' stamp: 'as 11/28/2007 10:46'!
+method: aMethod
+
+	self pointcut: (DAPointcut method: aMethod).! !
+
 !DAAspect methodsFor: 'advices' stamp: 'as 11/19/2007 08:29'!
 adviceControls
 
@@ -141,7 +175,7 @@ DAAspect subclass: #DAAspectClass
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects'!
+	category: 'DynamicAspects-Kernel'!
 
 DAAspectClass class
 	instanceVariableNames: 'pointcutNames'!
@@ -190,7 +224,7 @@ DAAspectClass subclass: #DACodedAspect
 	instanceVariableNames: 'links pc'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects'!
+	category: 'DynamicAspects-Kernel'!
 
 DACodedAspect class
 	instanceVariableNames: 'instance'!
@@ -307,7 +341,7 @@ initializeLinks
 
 	links _ IdentitySet new.! !
 
-!DACodedAspect methodsFor: 'installing' stamp: 'as 11/19/2007 13:29'!
+!DACodedAspect methodsFor: 'installing' stamp: 'as 11/26/2007 11:23'!
 install
 
 	self isInstalled ifFalse: [
@@ -322,6 +356,7 @@ install
 				control: (self controlForAdvice: adv);
 				yourself.
 			pointcut condition ifNotNil: [ link condition: pointcut condition. ].
+			pointcut extraAspects do: [ :aspect | aspect install. ].
 			self install: link on: pointcut nodes.
 		].
 	].! !
@@ -472,64 +507,41 @@ outer
 
 	self inner.! !
 
-Object subclass: #DAFlag
-	instanceVariableNames: 'flag'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects'!
-
-!DAFlag commentStamp: 'as 11/19/2007 12:52' prior: 0!
-A simple flag that can be on or off.!
-
-!DAFlag class methodsFor: 'instance creation' stamp: 'as 11/19/2007 10:02'!
-off
-
-	^ self new off; yourself.! !
-
-!DAFlag class methodsFor: 'instance creation' stamp: 'as 11/19/2007 10:02'!
-on
-
-	^ self new on; yourself.! !
-
-!DAFlag methodsFor: 'initialize-release' stamp: 'as 11/19/2007 09:29'!
-initialize
-
-	flag _ false.! !
-
-!DAFlag methodsFor: 'testing' stamp: 'as 11/19/2007 10:00'!
-isOn
-
-	^ flag.! !
-
-!DAFlag methodsFor: 'flag' stamp: 'as 11/19/2007 10:00'!
-off
-
-	flag _ false.! !
-
-!DAFlag methodsFor: 'flag' stamp: 'as 11/19/2007 10:00'!
-on
-
-	flag _ true.! !
-
-!DAFlag methodsFor: 'flag' stamp: 'as 11/19/2007 09:30'!
-switch
-
-	flag _ flag not.! !
-
 Object subclass: #DAPointcut
 	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter categories classes methods nodes condition extraAspects'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects'!
+	category: 'DynamicAspects-Kernel'!
 
 !DAPointcut commentStamp: 'as 11/19/2007 12:52' prior: 0!
 Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/14/2007 18:20'!
-if: aBlock
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/28/2007 13:34'!
+condition: aBlock
 
 	^ self new
 		condition: aBlock;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:10'!
+fieldAccess: fieldRegex
+
+	^ self new
+		node: [ :node | self node: node isVariable: fieldRegex. ];
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
+fieldRead: fieldRegex
+
+	^ self new
+		node: [ :node | (self node: node isVariable: fieldRegex) and: [ node isRead. ]. ];
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
+fieldWrite: fieldRegex
+
+	^ self new
+		node: [ :node | (self node: node isVariable: fieldRegex) and: [ node isWrite. ]. ];
 		yourself.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/14/2007 18:19'!
@@ -541,17 +553,18 @@ method: aMethod
 		node: [ :node | node isMethod. ];
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/19/2007 10:04'!
+!DAPointcut class methodsFor: 'testing' stamp: 'as 11/26/2007 11:10'!
+node: aPEProgramNode isVariable: fieldRegex
+
+	^ aPEProgramNode isVariable and: [ aPEProgramNode name matchesRegex: fieldRegex. ].! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/28/2007 13:33'!
 withinMethod: aMethod
 
-	| flag aspect |
-	flag _ DAFlag off.
-	aspect _ DAAnonymousAspect
-		pointcut: (self method: aMethod)
-		advice: [ flag switch. ]
-		control: #beforeafter.
-	^ (self if: [ flag isOn. ])
-		extraAspect: aspect;
+	| cflow |
+	cflow _ DAControlFlow method: aMethod.
+	^ (self condition: [ cflow isActive. ])
+		extraAspect: cflow;
 		yourself.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 11/14/2007 16:58'!
@@ -568,12 +581,12 @@ categories
 		].
 	].! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:32'!
+!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
 category: regexString
 
 	categoryFilter _ regexString.! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:32'!
+!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
 class: regexString
 
 	classFilter _ regexString.! !
@@ -600,7 +613,7 @@ condition
 
 	^ condition.! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 16:56'!
+!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 16:56'!
 condition: aBlock
 
 	condition _ aBlock.! !
@@ -622,7 +635,7 @@ initialize
 	nodeFilter _ [ :node | true. ].
 	extraAspects _ Set new.! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:32'!
+!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
 method: regexString
 
 	methodFilter _ regexString.! !
@@ -645,7 +658,7 @@ methods
 		methods _ matches.
 	].! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:33'!
+!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:33'!
 node: aBlock
 
 	nodeFilter _ aBlock.! !
