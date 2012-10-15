@@ -14,6 +14,39 @@ asRegexFilter
 
 	^ DARegexFilter new: self.! !
 
+TestResource subclass: #DATestAspectResource
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Testing'!
+
+!DATestAspectResource commentStamp: 'as 2/18/2008 10:35' prior: 0!
+The test aspect should be installed/uninstalled once for all tests that run on it.!
+
+!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:45'!
+removeAllLinksOn: aClass
+
+	aClass methodDict values, aClass class methodDict values do: [
+		:method |
+		method reflectiveMethod methodNode nodesDo: [
+			:node |
+			node hasAnyLink ifTrue: [ node removeAllLinks. ].
+			self assert: node hasAnyLink not.
+		].
+	].! !
+
+!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:47'!
+setUp
+
+	self removeAllLinksOn: DAExamples.
+	DATestAspect instance install.! !
+
+!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:46'!
+tearDown
+
+	DATestAspect instance uninstall.
+	self removeAllLinksOn: DAExamples.! !
+
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -1688,7 +1721,7 @@ TestCase subclass: #DATestingWithLinks
 	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Tests'!
+	category: 'DA-Testing'!
 
 !DATestingWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
 A test that uses Geppetto links.
@@ -1704,20 +1737,21 @@ DATestingWithLinks subclass: #DAAspectTest
 !DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
 Testing DAAspect.!
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+!DAAspectTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
+isAbstract
+
+	^ false.! !
+
+!DAAspectTest class methodsFor: 'accessing' stamp: 'as 2/18/2008 11:05'!
+resources
+
+	^ {DATestAspectResource}.! !
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 2/18/2008 10:47'!
 setUp
 
 	super setUp.
-	self removeAllLinksOn: DAExamples.
-	DAExamples initializeCounter.
-	DATestAspect instance install.! !
-
-!DAAspectTest methodsFor: 'running' stamp: 'as 2/14/2008 17:43'!
-tearDown
-
-	super tearDown.
-	DATestAspect instance uninstall.
-	self removeAllLinksOn: DAExamples.! !
+	DAExamples initializeCounter.! !
 
 !DAAspectTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:29'!
 testAfter
@@ -1753,6 +1787,11 @@ DATestingWithLinks subclass: #DAConditionTest
 
 !DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
 Testing DACondition.!
+
+!DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
+isAbstract
+
+	^ false.! !
 
 !DAConditionTest methodsFor: 'running' stamp: 'as 2/11/2008 17:20'!
 setUp
@@ -1837,6 +1876,11 @@ DATestingWithLinks subclass: #DAControlFowPointcutTest
 !DAControlFowPointcutTest commentStamp: 'as 2/1/2008 13:32' prior: 0!
 Testing DAControlFlowPointcut.!
 
+!DAControlFowPointcutTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:32'!
+isAbstract
+
+	^ false.! !
+
 !DAControlFowPointcutTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:53'!
 testDeployment
 
@@ -1855,6 +1899,11 @@ testDeployment
 	self deny: asserted.
 	DAExamples exampleForward.
 	self assert: asserted.! !
+
+!DATestingWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
+isAbstract
+
+	^ true.! !
 
 !DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
 cleanup: aGPLink
