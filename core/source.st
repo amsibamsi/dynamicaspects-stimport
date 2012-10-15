@@ -1,8 +1,8 @@
 SystemOrganization addCategory: #'DA-Condition'!
+SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Context'!
 SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Kernel'!
-SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
@@ -2223,7 +2223,7 @@ reset
 	self initializeCache.! !
 
 Object subclass: #DAPointcut
-	instanceVariableNames: 'parent evaluator joinPoints'
+	instanceVariableNames: 'parent evaluator joinPoints properties'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -2852,6 +2852,20 @@ fieldWrite: aString
 		].
 	].! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 15:24'!
+flow: aDAPointcut
+
+	| context connectors |
+	
+	context _ DAFlowContext in: aDAPointcut.
+	connectors _ {
+		DAFlow before: aDAPointcut.
+		DAFlow after: aDAPointcut.
+	}.
+
+	^ (DAContextPointcut context: context) &
+		(DADependencyPointcut connectors: connectors).! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 12:00'!
 globalVariable
 
@@ -2869,20 +2883,6 @@ if: aBlockOrBoolean
 if: aBlockOrBoolean arguments: aCollection
 
 	^ DAConditionPointcut condition: aBlockOrBoolean arguments: aCollection.! !
-
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 13:36'!
-in: aDAPointcut
-
-	| context connectors |
-	
-	context _ DAFlowContext in: aDAPointcut.
-	connectors _ {
-		DAFlow before: aDAPointcut.
-		DAFlow after: aDAPointcut.
-	}.
-
-	^ (DAContextPointcut context: context) &
-		(DADependencyPointcut connectors: connectors).! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:59'!
 instanceVariable
