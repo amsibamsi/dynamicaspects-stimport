@@ -3885,37 +3885,37 @@ createConnectors
 	].
 	^ cons.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:35'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
 disable
 
 	disabled _ true.
-	self uninstallQuietly.! !
+	self uninstallSilently.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 10:47'!
 disable: aBoolean
 
 	aBoolean ifTrue: [ self disable. ] ifFalse: [ self enable. ].! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 5/19/2008 11:56'!
-disabled
+!DAAspect class methodsFor: 'options' stamp: 'as 8/6/2008 19:57'!
+disableInitially
 
-	^ disabled ifNil: [ disabled _ false. ].! !
+	^ false.! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 17:06'!
 disabledAdvices
 
 	^ #().! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 5/19/2008 17:11'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:55'!
 doneCompiling
 
-	self isEnabled ifTrue: [ self reinstallQuietly. ].! !
+	self isEnabled ifTrue: [ self reinstallSilently. ].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:35'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
 enable
 
 	disabled _ false.
-	self installQuietly.! !
+	self installSilently.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 10:47'!
 enable: aBoolean
@@ -3966,8 +3966,8 @@ installFailed
 
 	^ failure notNil.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:34'!
-installQuietly
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:54'!
+installSilently
 
 	[ self install. ] on: Exception do: [].! !
 
@@ -3990,10 +3990,10 @@ isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean
 	^ (self isAdvice: aMethodOrSymbol meta: aBoolean)
 		or: [ self isPointcut: aMethodOrSymbol meta: aBoolean. ].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/6/2008 20:05'!
 isDisabled
 
-	^ self disabled.! !
+	^ disabled ifNil: [ self disableInitially. ].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/19/2008 11:29'!
 isEnabled
@@ -4068,21 +4068,21 @@ notInstalled
 
 	^ connectors isNil.! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 7/30/2008 18:19'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:56'!
 noteCompilationOf: aSelector meta: aBoolean
 
 	(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
-		self reinstallQuietly.
+		self reinstallSilently.
 	].! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 7/30/2008 18:17'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:56'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean
 
 	(self isEnabled and: [
 		aCollection anySatisfy: [
 			:sel | self isSpecialMethod: sel meta: aBoolean.
 		].
-	]) ifTrue: [ self reinstallQuietly. ].! !
+	]) ifTrue: [ self reinstallSilently. ].! !
 
 !DAAspect class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 14:57'!
 pointcut: aMethodOrSymbol
@@ -4096,17 +4096,6 @@ pointcut: aMethodOrSymbol
 pointcutNames
 
 	^ #().! !
-
-!DAAspect class methodsFor: 'printing' stamp: 'as 4/30/2008 17:43'!
-pointcutsString
-
-	^ String streamContents: [
-		:stream |
-		self pointcutNames do: [
-			:each |
-			stream nextPutAll: each asString.
-		] separatedBy: [ stream space. ].
-	].! !
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 7/21/2008 17:16'!
 possibleAdviceNames
@@ -4132,10 +4121,10 @@ reinstall
 
 	self uninstall; install.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/20/2008 14:15'!
-reinstallQuietly
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:56'!
+reinstallSilently
 
-	self uninstallQuietly; installQuietly.! !
+	self uninstallSilently; installSilently.! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 4/14/2008 15:47'!
 scope
@@ -4204,8 +4193,8 @@ uninstallConnectors
 		].
 	].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:34'!
-uninstallQuietly
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
+uninstallSilently
 
 	[ self uninstall. ] on: Exception do: [].! !
 
