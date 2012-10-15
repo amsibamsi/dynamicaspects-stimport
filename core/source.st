@@ -1555,7 +1555,7 @@ valueWithArguments: anArray
 	^ self negatedValue: (self doValueWithArguments: anArray).! !
 
 Object subclass: #DAConnector
-	instanceVariableNames: 'installed pointcut scope control links mo moCreator selector arguments aspect'
+	instanceVariableNames: 'installed pointcut scope control links mo moCreator selector arguments aspect level'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -1676,6 +1676,19 @@ install
 isInstalled
 
 	^ installed.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 7/21/2008 11:42'!
+level
+
+	^ level.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 7/21/2008 11:42'!
+level: aNumber
+
+	self
+		linksDo: [ :link | link key level: aNumber. ]
+		rollback: [ :link | link key level: aNumber. ].
+	level _ aNumber.! !
 
 !DAConnector methodsFor: 'private' stamp: 'as 5/6/2008 13:37'!
 linksDo: doBlock rollback: rollbackBlock
@@ -3835,7 +3848,7 @@ allPointcutNames
 
 	^ self superclass allPointcutNames copy; addAll: self pointcutNames; yourself.! !
 
-!DAAspect class methodsFor: 'private' stamp: 'as 6/2/2008 15:11'!
+!DAAspect class methodsFor: 'private' stamp: 'as 7/21/2008 11:44'!
 connectorForAdvice: aMethod
 
 	| connector split |
@@ -3856,6 +3869,8 @@ connectorForAdvice: aMethod
 			scope: self scope;
 			metaObjectCreator: self metaObjectCreator dict: self metaObjectDict.
 	].
+
+	self level ifNotNil: [ connector level: self level. ].
 
 	^ connector.! !
 
@@ -4004,7 +4019,7 @@ isPointcut: aMethodOrSymbol meta: aBoolean
 
 	^ aBoolean and: [ self isPointcut: aMethodOrSymbol. ].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/15/2008 11:04'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/21/2008 11:53'!
 isSpecialMethod: aMethodOrSymbol meta: aBoolean
 
 	| selector |
@@ -4014,8 +4029,14 @@ isSpecialMethod: aMethodOrSymbol meta: aBoolean
 	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
 		or: [ aBoolean and: [
 			selector = #pointcutNames or:
-			[ selector = #scope. ]. 
+			[ selector = #scope. ] or:
+			[ selector = #level. ]. 
 		]. ].! !
+
+!DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 11:39'!
+level
+
+	^ nil.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -4121,7 +4142,7 @@ reinstallQuietly
 
 	self uninstallQuietly; installQuietly.! !
 
-!DAAspect class methodsFor: 'metaobject' stamp: 'as 4/14/2008 15:47'!
+!DAAspect class methodsFor: 'options' stamp: 'as 4/14/2008 15:47'!
 scope
 
 	^ nil.! !
