@@ -13,10 +13,10 @@ return2
 
 	^ 2.! !
 
-!GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 14:43'!
+!GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 17:30'!
 testMethodInsteadBlock
 
-	gplink := GPLink new metaObject: [ ^ 2. ]; control: #instead.
+	gplink := GPLink new metaObject: [ 2. ]; control: #instead.
 	(GPExamples >> #exampleDA) methodNode link: gplink.
 	
 	GPCounter reset.
