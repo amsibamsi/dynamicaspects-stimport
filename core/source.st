@@ -1,15 +1,15 @@
-SystemOrganization addCategory: #'DynamicAspects-Geppetto'!
-SystemOrganization addCategory: #'DynamicAspects-Geppetto-Tests'!
-SystemOrganization addCategory: #'DynamicAspects-Kernel'!
-SystemOrganization addCategory: #'DynamicAspects-Kernel-Tests'!
-SystemOrganization addCategory: #'DynamicAspects-Pointcut'!
-SystemOrganization addCategory: #'DynamicAspects-Pointcut-Tests'!
-SystemOrganization addCategory: #'DynamicAspects-Testing'!
-SystemOrganization addCategory: #'DynamicAspects-Tests'!
-SystemOrganization addCategory: #'DynamicAspects-Utilities'!
-SystemOrganization addCategory: #'DynamicAspects-Utilities-Tests'!
+SystemOrganization addCategory: #'DA-Geppetto'!
+SystemOrganization addCategory: #'DA-Geppetto-Tests'!
+SystemOrganization addCategory: #'DA-Kernel'!
+SystemOrganization addCategory: #'DA-Kernel-Tests'!
+SystemOrganization addCategory: #'DA-Pointcut'!
+SystemOrganization addCategory: #'DA-Pointcut-Tests'!
+SystemOrganization addCategory: #'DA-Testing'!
+SystemOrganization addCategory: #'DA-Tests'!
+SystemOrganization addCategory: #'DA-Utilities'!
+SystemOrganization addCategory: #'DA-Utilities-Tests'!
 
-!String methodsFor: '*DynamicAspects' stamp: 'as 2/11/2008 08:14'!
+!String methodsFor: '*DA' stamp: 'as 2/11/2008 08:14'!
 asRegexFilter
 
 	^ DARegexFilter new: self.! !
@@ -18,7 +18,7 @@ Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Testing'!
+	category: 'DA-Testing'!
 
 DAExamples class
 	instanceVariableNames: 'counter'!
@@ -82,7 +82,7 @@ Object subclass: #DALink
 	instanceVariableNames: 'link filters cache'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Geppetto'!
+	category: 'DA-Geppetto'!
 
 !DALink commentStamp: 'as 1/31/2008 11:18' prior: 0!
 Host a GPLink together with a description of the nodes it should be installed on.!
@@ -341,7 +341,7 @@ Object subclass: #DAPointcut
 	instanceVariableNames: 'parent'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAPointcut commentStamp: 'as 1/17/2008 14:11' prior: 0!
 Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
@@ -350,7 +350,7 @@ DAPointcut subclass: #DACompositePointcut
 	instanceVariableNames: 'children'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DACompositePointcut commentStamp: 'as 2/8/2008 11:26' prior: 0!
 A composition of two pointcuts.!
@@ -359,7 +359,7 @@ DACompositePointcut subclass: #DAAndPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAAndPointcut commentStamp: 'as 1/31/2008 17:05' prior: 0!
 Selects all join points that fullfill all requirements of two pointcuts.!
@@ -429,7 +429,7 @@ DACompositePointcut subclass: #DAOrPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAOrPointcut commentStamp: 'as 1/31/2008 17:06' prior: 0!
 Selects all join points that fullfill either's pointcut requirements.!
@@ -448,7 +448,7 @@ DAPointcut subclass: #DADesignatePointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DADesignatePointcut commentStamp: 'as 1/24/2008 15:45' prior: 0!
 Designates join points in the system.!
@@ -457,7 +457,7 @@ DADesignatePointcut subclass: #DAConditionPointcut
 	instanceVariableNames: 'condition'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAConditionPointcut commentStamp: 'as 1/24/2008 15:52' prior: 0!
 Describes conditional attributes.!
@@ -501,7 +501,7 @@ DAConditionPointcut subclass: #DAControlFlowPointcut
 	instanceVariableNames: 'selector classKey isMeta level'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAControlFlowPointcut commentStamp: 'as 2/1/2008 11:31' prior: 0!
 The join points must be within a specific method call.!
@@ -575,7 +575,7 @@ DADesignatePointcut subclass: #DAFilterPointcut
 	instanceVariableNames: 'filter inverted'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAFilterPointcut commentStamp: 'as 1/31/2008 16:58' prior: 0!
 Specifies a filter for designating join points.!
@@ -584,7 +584,7 @@ DAFilterPointcut subclass: #DACategoryPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DACategoryPointcut commentStamp: 'as 1/31/2008 16:39' prior: 0!
 Filter for categories.!
@@ -603,7 +603,7 @@ DAFilterPointcut subclass: #DAClassPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAClassPointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
 Filter for classes.!
@@ -642,7 +642,7 @@ DAFilterPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAMethodPointcut commentStamp: 'as 1/31/2008 16:42' prior: 0!
 Filter for methods.!
@@ -661,7 +661,7 @@ DADesignatePointcut subclass: #DANodePointcut
 	instanceVariableNames: 'condition inverted'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DANodePointcut commentStamp: 'as 1/31/2008 16:41' prior: 0!
 Filter the nodes within a reflective method (sub-method level).!
@@ -843,7 +843,7 @@ Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DAPointcutVisitor commentStamp: 'as 1/24/2008 17:04' prior: 0!
 Visit a pointcut structure.!
@@ -852,7 +852,7 @@ DAPointcutVisitor subclass: #DALinkGenerator
 	instanceVariableNames: 'links stack'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut'!
+	category: 'DA-Pointcut'!
 
 !DALinkGenerator commentStamp: 'as 1/24/2008 17:14' prior: 0!
 Goes over a pointcut structure and prepares Geppetto links for it.!
@@ -976,7 +976,7 @@ Object subclass: #DAProtoAspect
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
+	category: 'DA-Kernel'!
 
 !DAProtoAspect commentStamp: 'as 11/19/2007 12:50' prior: 0!
 An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Object-Oriented Programming). Instead of trying to break down a program into different objects and their corresponding classes, in AOP the entities of modularization are aspects.
@@ -986,7 +986,7 @@ DAProtoAspect subclass: #DAAspect
 	instanceVariableNames: 'links pc'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
+	category: 'DA-Kernel'!
 
 DAAspect class
 	instanceVariableNames: 'instance'!
@@ -1130,7 +1130,7 @@ DAAspect subclass: #DATestAspect
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Testing'!
+	category: 'DA-Testing'!
 
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
@@ -1235,7 +1235,7 @@ Object subclass: #DARegexFilter
 	instanceVariableNames: 'regex negated'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Utilities'!
+	category: 'DA-Utilities'!
 
 !DARegexFilter commentStamp: 'as 2/8/2008 13:56' prior: 0!
 A regular expression (string) with an attribute that indicates if it is negated or not.!
@@ -1283,7 +1283,7 @@ GPCondition subclass: #DACondition
 	instanceVariableNames: 'negated'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Geppetto'!
+	category: 'DA-Geppetto'!
 
 !DACondition commentStamp: 'as 2/4/2008 10:35' prior: 0!
 Used instead of GPCondition. The GPTransformer will pass a single argument, which contains all reification arguments in a dictionary. This allows easier combination of blocks and thus conditions. It is difficult to combine blocks with variable number of arguments.!
@@ -1397,23 +1397,23 @@ value: anObjectA value: anObjectB value: anObjectC value: anObjectD
 
 	^ self condition value: anObjectA value: anObjectB value: anObjectC value: anObjectD.! !
 
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:55'!
+!GPLink methodsFor: '*DA' stamp: 'as 12/12/2007 15:55'!
 aspect
 
 	properties ifNil: [ ^ nil. ].
 	^self properties at: #aspect ifAbsent: [ nil. ].! !
 
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:54'!
+!GPLink methodsFor: '*DA' stamp: 'as 12/12/2007 15:54'!
 aspect: aDAAspect
 
 	self properties at: #aspect put: aDAAspect.! !
 
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 1/25/2008 11:58'!
+!GPLink methodsFor: '*DA' stamp: 'as 1/25/2008 11:58'!
 conditionObject: aGPCondition
 
 	condition _ aGPCondition.! !
 
-!GPTransformer methodsFor: '*DynamicAspects' stamp: 'as 1/14/2008 16:28'!
+!GPTransformer methodsFor: '*DA' stamp: 'as 1/14/2008 16:28'!
 genConditionArgumentsFor: aCollection
 
 	| messages dictionary |
@@ -1438,7 +1438,7 @@ genConditionArgumentsFor: aCollection
 	messages add: (RBMessageNode receiver: dictionary selector: #yourself).
 	^ OrderedCollection new add: (RBCascadeNode messages: messages); yourself.! !
 
-!GPTransformer methodsFor: '*DynamicAspects' stamp: 'as 1/21/2008 08:52'!
+!GPTransformer methodsFor: '*DA' stamp: 'as 1/21/2008 08:52'!
 transform
 	"Main transformation method"
 
@@ -1459,7 +1459,7 @@ transform
 	newNode _ self insertCode.
 	newNode ifNotNil: [node _ newNode].! !
 
-!GPTransformer methodsFor: '*DynamicAspects' stamp: 'as 1/21/2008 08:53'!
+!GPTransformer methodsFor: '*DA' stamp: 'as 1/21/2008 08:53'!
 wrapSingleArgCondition
 	
 	|  ifSelector ifArguments condReceiver condSelector condArguments blockBody blockBody2 |
@@ -1495,62 +1495,16 @@ wrapSingleArgCondition
 			arguments: ifArguments.
 	! !
 
-!Collection methodsFor: '*DynamicAspects' stamp: 'as 1/31/2008 15:23'!
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
-!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
-defineClass: defString notifying: aController  
-	"The receiver's textual content is a request to define a new class. The
-	source code is defString. If any errors occur in compilation, notify
-	aController."
-	| oldClass class newClassName defTokens keywdIx envt |
-	oldClass _ self selectedClassOrMetaClass.
-	defTokens _ defString findTokens: Character separators.
-	
-	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
-		or: [defTokens second = 'classTrait'])
-		ifTrue: [^self defineTrait: defString notifying: aController].
-		
-	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
-	envt _ Smalltalk.
-	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
-	
-	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
-	 but 'subaspect' instead."
-	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
-	
-	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
-	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
-		and: [envt includesKey: newClassName asSymbol]) ifTrue:
-			["Attempting to define new class over existing one when
-				not looking at the original one in this browser..."
-			(self confirm: ((newClassName , ' is an existing class in this system.
-Redefining it might cause serious problems.
-Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
-				ifFalse: [^ false]].
-	"ar 8/29/1999: Use oldClass superclass for defining oldClass
-	since oldClass superclass knows the definerClass of oldClass."
-	oldClass ifNotNil:[oldClass _ oldClass superclass].
-	class _ oldClass subclassDefinerClass
-				evaluate: defString
-				notifying: aController
-				logged: true.
-	(class isKindOf: Behavior)
-		ifTrue: [self changed: #systemCategoryList.
-				self changed: #classList.
-				self clearUserEditFlag.
-				self setClass: class selector: nil.
-				"self clearUserEditFlag; editClass."
-				^ true]
-		ifFalse: [^ false]! !
 
 TestCase subclass: #DAAndPointcutTest
 	instanceVariableNames: 'pointcut'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut-Tests'!
+	category: 'DA-Pointcut-Tests'!
 
 !DAAndPointcutTest commentStamp: 'as 2/11/2008 17:31' prior: 0!
 Testing DAAndPointcut.!
@@ -1572,7 +1526,7 @@ TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DA-Tests'!
 
 !DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
 Test coding guidelines.!
@@ -1596,7 +1550,7 @@ TestCase subclass: #DACompositePointcutTest
 	instanceVariableNames: 'pointcut'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut-Tests'!
+	category: 'DA-Pointcut-Tests'!
 
 !DACompositePointcutTest commentStamp: 'as 2/11/2008 19:06' prior: 0!
 Testing DACompositePointcut.!
@@ -1618,7 +1572,7 @@ TestCase subclass: #DALinkGeneratorTest
 	instanceVariableNames: 'generator pc'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut-Tests'!
+	category: 'DA-Pointcut-Tests'!
 
 !DALinkGeneratorTest commentStamp: 'as 2/11/2008 19:10' prior: 0!
 Testing DALinkGenerator.!
@@ -1633,7 +1587,7 @@ TestCase subclass: #DALinkTest
 	instanceVariableNames: 'link'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Geppetto-Tests'!
+	category: 'DA-Geppetto-Tests'!
 
 !DALinkTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
 Testing DALink.!
@@ -1643,13 +1597,13 @@ setUp
 
 	link _ DALink new.! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:17'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/18/2008 10:15'!
 testAndingLinks
 
 	| link2 link3 |
 
 	link
-		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		category: 'DA-Geppetto-Tests' asRegexFilter;
 		class: 'DALinkTest' asRegexFilter.
 	link2 _ DALink new
 		method: 'testAndingLinks' asRegexFilter;
@@ -1658,32 +1612,32 @@ testAndingLinks
 	link3 _ link and: link2.
 	self assert: (link3 methods includes: (DALinkTest >> #testAndingLinks) reflectiveMethod).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 10:05'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/18/2008 10:17'!
 testFilteringCategories
 
-	link category: 'DynamicAspects*' asRegexFilter.
-	self assert: (link categories includes: #'DynamicAspects-Geppetto-Tests').! !
+	link category: 'DA*' asRegexFilter.
+	self assert: (link categories includes: #'DA-Geppetto-Tests').! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/18/2008 10:16'!
 testFilteringClasses
 
-	link category: 'DynamicAspects-Geppetto-Tests' asRegexFilter; class: 'DALinkTest' asRegexFilter.
+	link category: 'DA-Geppetto-Tests' asRegexFilter; class: 'DALinkTest' asRegexFilter.
 	self assert: (link classes includes: DALinkTest).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/18/2008 10:16'!
 testFilteringMethods
 
 	link
-		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		category: 'DA-Geppetto-Tests' asRegexFilter;
 		class: 'DALinkTest' asRegexFilter;
 		method: 'testFilteringMethods' asRegexFilter.
 	self assert: (link methods includes: (DALinkTest >> #testFilteringMethods) reflectiveMethod).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:19'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/18/2008 10:16'!
 testFilteringNodes
 
 	link
-		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		category: 'DA-Geppetto-Tests' asRegexFilter;
 		class: 'DALinkTest' asRegexFilter;
 		method: 'testFilteringNodes' asRegexFilter;
 		node: [ :node | node isCascade. ].
@@ -1693,7 +1647,7 @@ TestCase subclass: #DAOrPointcutTest
 	instanceVariableNames: 'pointcut'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut-Tests'!
+	category: 'DA-Pointcut-Tests'!
 
 !DAOrPointcutTest commentStamp: 'as 2/11/2008 19:04' prior: 0!
 Testing DAOrPointcut.!
@@ -1715,7 +1669,7 @@ TestCase subclass: #DARegexFilterTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Utilities-Tests'!
+	category: 'DA-Utilities-Tests'!
 
 !DARegexFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
 Testing DARegexFilter.!
@@ -1734,7 +1688,7 @@ TestCase subclass: #DATestingWithLinks
 	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DA-Tests'!
 
 !DATestingWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
 A test that uses Geppetto links.
@@ -1745,7 +1699,7 @@ DATestingWithLinks subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel-Tests'!
+	category: 'DA-Kernel-Tests'!
 
 !DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
 Testing DAAspect.!
@@ -1795,7 +1749,7 @@ DATestingWithLinks subclass: #DAConditionTest
 	instanceVariableNames: 'trueCond falseCond blockCond'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Geppetto-Tests'!
+	category: 'DA-Geppetto-Tests'!
 
 !DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
 Testing DACondition.!
@@ -1878,7 +1832,7 @@ DATestingWithLinks subclass: #DAControlFowPointcutTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcut-Tests'!
+	category: 'DA-Pointcut-Tests'!
 
 !DAControlFowPointcutTest commentStamp: 'as 2/1/2008 13:32' prior: 0!
 Testing DAControlFlowPointcut.!
