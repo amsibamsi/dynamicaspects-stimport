@@ -5,6 +5,7 @@ SystemOrganization addCategory: #'DA-Context'!
 SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
+SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
@@ -55,11 +56,12 @@ initialize
 
 	examples _ DAExamples.! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 5/22/2008 21:08'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 5/23/2008 11:31'!
 setUp
 
 	aspect _ DAExampleAspect mo.
-	examples reset.! !
+	examples reset.
+	aspect reset.! !
 
 !DAAspectTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:48'!
 testAfter
@@ -85,6 +87,11 @@ testInstead
 
 	examples countI.
 	self assert: examples count = 1.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 5/23/2008 12:17'!
+testReifications
+
+	! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -1885,10 +1892,10 @@ countB
 
 	count _ 1.! !
 
-!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 21:49'!
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 18:41'!
 countI
 
-	self inc.! !
+	count _ 1.! !
 
 !DAExamples class methodsFor: 'counting' stamp: 'as 5/22/2008 18:44'!
 inc
@@ -3790,7 +3797,7 @@ uninstallQuietly
 	[ self uninstall. ] on: Exception do: [].! !
 
 DAAspect subclass: #DAExampleAspect
-	instanceVariableNames: ''
+	instanceVariableNames: 'reifications'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Tests'!
@@ -3813,6 +3820,11 @@ countI: p
 
 	^ p method: DAExamples class >> #countI.! !
 
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/23/2008 11:10'!
+noop: p
+
+	^ p method: DAExamples class >> #noop.! !
+
 !DAExampleAspect methodsFor: 'advices' stamp: 'as 5/22/2008 18:48'!
 afterCountA: object
 
@@ -3827,6 +3839,54 @@ beforeCountB: object
 insteadCountI: object
 
 	object inc.! !
+
+!DAExampleAspect methodsFor: 'advices' stamp: 'as 5/23/2008 12:57'!
+insteadNoop: arguments continuation: continuation control: control class: class link: link node: node object: object receiver: receiver selector: selector sender: sender context: context
+
+	! !
+
+!DAExampleAspect methodsFor: 'accessing' stamp: 'as 5/23/2008 12:52'!
+reifications
+
+	^ reifications.! !
+
+DAAspect subclass: #DAFibonacciExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Examples'!
+
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:24'!
+fib: n
+
+	^ n <= 1 ifTrue: [ n. ] ifFalse: [ (self fib: n - 1) + (self fib: n - 2). ].! !
+
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/26/2008 10:28'!
+fibNoEnd: n
+
+	^ (self fib: n - 1) + (self fib: n - 2).! !
+
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:42'!
+fibTail: n
+
+	"Tail recursion. A lot faster than #fib:."
+
+	^ n <= 1 ifTrue: [ n. ] ifFalse: [ self fibTail: n - 1 a: 0 b: 1. ].! !
+
+!DAFibonacciExample class methodsFor: 'fibonacci' stamp: 'as 5/24/2008 22:36'!
+fibTail: n a: a b: b
+
+	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
+
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 5/26/2008 10:21'!
+noEnd: pc
+
+	^ pc method: self class >> #fibNoEnd:.! !
+
+!DAFibonacciExample methodsFor: 'advices' stamp: 'as 5/25/2008 00:07'!
+insteadNoEnd
+
+	^ 1.! !
 
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
 pointcutNames
@@ -3850,6 +3910,15 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 	newClass
 		pointcutNames: pointcuts.
 	^ newClass.! !
+
+!GeppettoTest methodsFor: '*DA' stamp: 'as 5/26/2008 13:28'!
+testMethodInstead
+
+	gplink := GPLink new metaObject: [10]; control: #instead.
+	(GPExamples>>#exampleBlock) methodNode body do: [ :node | node link: gplink. ].
+	
+	GPCounter reset.
+	self assert: (GPExamples new exampleBlock = 10).! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -3889,6 +3958,32 @@ asDescription
 asDescription
 
 	^ DAClassDescription classObject: self.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flow
+
+	^ flow ifNil: [ flow _ Dictionary new. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowAt: aDAPointcut
+
+	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowInto: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
+	self flow at: aDAPointcut put: count + 1.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
+flowOutOf: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut.
+	self flow at: aDAPointcut put: count - 1.! !
 
 !GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
 count: aNumber
@@ -4085,32 +4180,6 @@ reinstallAspect
 updateAspect
 
 	self adaptAspectButtonColor.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
-flow
-
-	^ flow ifNil: [ flow _ Dictionary new. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowAt: aDAPointcut
-
-	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowInto: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
-	self flow at: aDAPointcut put: count + 1.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
-flowOutOf: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut.
-	self flow at: aDAPointcut put: count - 1.! !
 DAFlowContext initialize!
 DAAspect initialize!
 DAAspectBrowser initialize!
