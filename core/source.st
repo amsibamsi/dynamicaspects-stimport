@@ -780,10 +780,21 @@ visitName
 
 	^ 'node'.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:23'!
-call: regexString
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 16:30'!
+call: aMethod
 
-	^ self node: [ :node | node isMessage and: [ regexString matches: node selector. ]. ].! !
+	| className |
+	
+	"Store the class name, so the following will also work
+	 if the class is changed or gets removed and readded."
+	className _ aMethod methodClass name.
+	
+	^ (self method: aMethod) and: (
+		self if: [
+			:args |
+			(args at: #class) name = className.
+		] arguments: #(class)
+	).! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:29'!
 category: aSymbol
@@ -815,10 +826,21 @@ className: regexString
 
 	^ DAClassPointcut filter: (DAFilter class: regexString).! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:18'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 16:27'!
 classWithBehavior: aClass
 
-	^ DAClassPointcut filter: (DAFilter block: [ :class | class includesBehavior: aClass. ]).! !
+	| classKey |
+	
+	"Store the class name, so the following will also work
+	 if the class is changed or gets removed and readded."
+	classKey _ aClass name asSymbol.
+
+	^ DAClassPointcut filter: (
+		DAFilter block: [
+			:class |
+			class includesBehavior: (Smalltalk at: classKey).
+		]
+	).! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 10:07'!
 fieldRead: aString
@@ -858,6 +880,11 @@ if: aBlockOrBoolean arguments: aCollection
 
 	^ DAConditionPointcut condition: aBlockOrBoolean arguments: aCollection.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 15:48'!
+message: regexString
+
+	^ self node: [ :node | node isMessage and: [ regexString matches: node selector. ]. ].! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:30'!
 method: aMethod
 
@@ -888,10 +915,10 @@ and: aDAPointcut
 
 	^ DAAndPointcut child: self child: aDAPointcut.! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 2/11/2008 10:22'!
+!DAPointcut methodsFor: 'visiting' stamp: 'as 2/25/2008 09:53'!
 genLinks
 
-	^ DALinkGenerator new visit: self; yourself.! !
+	^ self visitor visit: self; yourself.! !
 
 !DAPointcut methodsFor: 'testing' stamp: 'as 2/4/2008 21:16'!
 hasParent
@@ -922,6 +949,11 @@ parent: aDACompositePointcut
 visitName
 
 	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'visiting' stamp: 'as 2/25/2008 09:53'!
+visitor
+
+	^ DALinkGenerator new.! !
 
 Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
