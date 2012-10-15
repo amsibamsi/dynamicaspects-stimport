@@ -4443,14 +4443,18 @@ openAspectMenu
 		ifFalse: [ self aspectMenuEnabled: false. ].
 	self aspectMenu popUpInWorld.! !
 
-!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/21/2008 14:36'!
+!DAAspectBrowser methodsFor: 'controls' stamp: 'as 7/14/2008 15:58'!
 optionalButtonPairs
 
 	^ super optionalButtonPairs,
-		#(('A' openAspectMenu 'manage aspects, the colors indicate:
+		#(('A' openAspectMenu 'Manage aspects, the colors indicate:
 green: the aspect is installed
 blue: the aspect is not installed
-red: the aspect failed to install')).! !
+red: the aspect failed to install.
+The letter indicates:
+''A'': selected an aspect class
+''a'': editing an advice
+''p'': editing a pointcut')).! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/20/2008 13:58'!
 reinstallAspect
