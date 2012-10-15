@@ -24,15 +24,20 @@ selfIfEmpty: aBlock
 	^ (self >> selector) reflectiveMethod.
 ! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/17/2008 14:57'!
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
-	^ DAClassMethodDescription methodObject: self.! !
+	^ DAMethodDescription methodObject: self.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/17/2008 15:17'!
 asPointcut
 
 	^ DAMethodPointcut method: self.! !
+
+!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAClassDescription classObject: self.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -406,10 +411,10 @@ copyAfterIndex: anIndex
 	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
 	^ self copyFrom: anIndex to: self size.! !
 
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/17/2008 14:58'!
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
-	^ DAClassMethodDescription methodObject: self.! !
+	^ DAMethodDescription methodObject: self.! !
 
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/17/2008 15:18'!
 asPointcut
@@ -625,16 +630,70 @@ countUp: aRBProgramNode
 
 	Processor activeProcess flowInto: aRBProgramNode method parent.! !
 
-Object subclass: #DAClassMethodDescription
-	instanceVariableNames: 'className methodName'
+Object subclass: #DAClassDescription
+	instanceVariableNames: 'className'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Utilities'!
 
-!DAClassMethodDescription commentStamp: 'as 3/25/2008 18:06' prior: 0!
-I store a description of a method and it's class or just of a class, instead of the objects itself. Each time I'm asked for the method/class I will re-evaluate and return the proper object. This helps in case of method/class recompilations.!
+!DAClassDescription commentStamp: 'as 4/18/2008 10:47' prior: 0!
+A description of a class that evaluates to the real object if asked.!
 
-!DAClassMethodDescription class methodsFor: 'instance creation' stamp: 'as 4/17/2008 10:56'!
+!DAClassDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 10:51'!
+className: aClass
+
+	^ self new className: aClass; yourself.! !
+
+!DAClassDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 10:50'!
+classObject: aClass
+
+	^ self new classObject: aClass; yourself.! !
+
+!DAClassDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 11:59'!
+= aDAClassDescription
+
+	^ className = aDAClassDescription className.! !
+
+!DAClassDescription methodsFor: 'converting' stamp: 'as 4/18/2008 10:50'!
+asPointcut
+
+	^ DAPointcut class: self classObject.! !
+
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
+className
+
+	^ className.! !
+
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
+className: aSymbol
+
+	className _ aSymbol.! !
+
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:08'!
+classObject
+
+	^ Smalltalk at: className ifAbsent: [ nil. ].! !
+
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
+classObject: aClass
+
+	className _ aClass name asSymbol.! !
+
+!DAClassDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 10:48'!
+hash
+
+	^ className hash.! !
+
+DAClassDescription subclass: #DAMethodDescription
+	instanceVariableNames: 'methodName'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Utilities'!
+
+!DAMethodDescription commentStamp: 'as 4/18/2008 11:44' prior: 0!
+Describes a method.!
+
+!DAMethodDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 11:47'!
 className: classSymbol methodName: methodSymbol
 
 	^ self new
@@ -642,69 +701,50 @@ className: classSymbol methodName: methodSymbol
 		methodName: methodSymbol;
 		yourself.! !
 
-!DAClassMethodDescription class methodsFor: 'instance creation' stamp: 'as 4/17/2008 10:56'!
-classObject: aClass
-
-	^ self new classObject: aClass; yourself.! !
-
-!DAClassMethodDescription class methodsFor: 'instance creation' stamp: 'as 4/17/2008 10:54'!
+!DAMethodDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 11:47'!
 methodObject: aMethod
 
 	^ self new methodObject: aMethod; yourself.! !
 
-!DAClassMethodDescription methodsFor: 'comparing' stamp: 'as 4/16/2008 16:21'!
-= aDAClassMethodDescription
+!DAMethodDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 11:59'!
+= aDAMethodDescription
 
-	^ className = aDAClassMethodDescription className and:
-		[ methodName = aDAClassMethodDescription methodName. ].! !
+	^ super = aDAMethodDescription and:
+		[ methodName = aDAMethodDescription methodName. ].! !
 
-!DAClassMethodDescription methodsFor: 'converting' stamp: 'as 4/17/2008 15:25'!
+!DAMethodDescription methodsFor: 'converting' stamp: 'as 4/18/2008 11:57'!
 asPointcut
 
 	^ DAPointcut method: self methodObject.! !
 
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 11:43'!
-className
-
-	^ className.! !
-
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:43'!
-className: aSymbol
-
-	className _ aSymbol.! !
-
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:44'!
+!DAMethodDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:48'!
 className: classSymbol methodName: methodSymbol
 
 	className _ classSymbol.
 	methodName _ methodSymbol.! !
 
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:42'!
-classObject
-
-	^ Smalltalk at: className.! !
-
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:43'!
-classObject: aClass
-
-	className _ aClass name asSymbol.! !
-
-!DAClassMethodDescription methodsFor: 'comparing' stamp: 'as 4/16/2008 16:19'!
+!DAMethodDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 12:01'!
 hash
 
 	^ (className, methodName) hash.! !
 
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 11:43'!
+!DAMethodDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:50'!
 methodName
 
 	^ methodName.! !
 
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:43'!
+!DAMethodDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:55'!
+methodName: aSymbol
+
+	methodName _ aSymbol.! !
+
+!DAMethodDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:53'!
 methodObject
 
-	^ self classObject >> methodName.! !
+	^ self classObject ifNotNil: [
+		self classObject compiledMethodAt: methodName ifAbsent: [ nil. ]. ].! !
 
-!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 4/17/2008 10:53'!
+!DAMethodDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:50'!
 methodObject: aMethod
 
 	self classObject: aMethod methodClass.
