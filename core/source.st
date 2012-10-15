@@ -429,13 +429,13 @@ Object subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict connectors'!
 
 !DAAspect commentStamp: 'as 4/11/2008 15:28' prior: 0!
 Combines several pointcuts and advices into multiple hooks.!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict connectors'!
 
 !DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:29'!
 after: aDAPointcut do: aSymbol
@@ -479,12 +479,17 @@ beforeAndAfter: aDAPointcut do: aSymbol with: aCollection
 		arguments: aCollection;
 		yourself.! !
 
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 14:35'!
-connectors
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 16:52'!
+connections
 
 	"Return a collection of instances of DAConnector."
 
 	self subclassResponsibility.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 15:30'!
+connectors
+
+	^ connectors ifNil: [ connectors _ self connections. ].! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:31'!
 disabled
@@ -533,19 +538,32 @@ needs
 
 	^ #().! !
 
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:28'!
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 16:51'!
 on: aDAPointcut do: aSymbol
 
+	| connector |
+
 	self scope ifNil: [
-		^ DAConnector on: aDAPointcut do: aSymbol on: self metaObject.
+		connector _ DAConnector on: aDAPointcut do: aSymbol on: self metaObject.
 	] ifNotNil: [
-		^ DAConnector on: aDAPointcut create: self metaObjectCreator per: self scope do: aSymbol.
-	].! !
+		connector _ DAConnector on: aDAPointcut create: self metaObjectCreator per: self scope do: aSymbol.
+	].
+
+	^ connector aspect: self; yourself.! !
 
 !DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:52'!
 provides
 
 	^ #().! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 16:53'!
+reset
+
+	connectors ifNotNil: [ connectors do: [ :con | con uninstall. ]. ].
+	connectors _ nil.
+	mo _ nil.
+	moDict _ nil.
+	moCreator _ nil.! !
 
 !DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
 scope
@@ -585,15 +603,15 @@ addMethod: aMethod
 
 	self descriptions add: aMethod asDescription.! !
 
-!DAControlFlowAspect class methodsFor: 'connecting' stamp: 'as 4/17/2008 15:38'!
-connectors
+!DAControlFlowAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 15:32'!
+connections
 
 	^ self descriptions inject: Set new into: [
 		:set :description |
 		| pc |
 		pc _ description asPointcut.
-		set add: (DAConnector before: pc do: #countUp: with: #(node)).
-		set add: (DAConnector after: pc do: #countDown: with: #(node)).
+		set add: (self before: pc do: #countUp: with: #(node)).
+		set add: (self after: pc do: #countDown: with: #(node)).
 		set.
 	].! !
 
@@ -2677,16 +2695,16 @@ conditionObject: aDACondition
 
 	condition _ aDACondition.! !
 
-!GPLink methodsFor: '*DA' stamp: 'as 3/25/2008 15:08'!
-hook
+!GPLink methodsFor: '*DA' stamp: 'as 4/22/2008 14:45'!
+connector
 
 	properties ifNil: [ ^ nil. ].
-	^self properties at: #hook ifAbsent: [ nil. ].! !
+	^self properties at: #connector ifAbsent: [ nil. ].! !
 
-!GPLink methodsFor: '*DA' stamp: 'as 4/4/2008 15:02'!
-hook: aDAHook
+!GPLink methodsFor: '*DA' stamp: 'as 4/22/2008 14:45'!
+connector: aDAConnector
 
-	self properties at: #hook put: aDAHook.! !
+	self properties at: #connector put: aDAConnector.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/23/2008 16:58'!
 hookOnJoinPoint: aDAJoinPoint
@@ -2711,7 +2729,7 @@ cflowCounters
 
 	^ cflowCounters ifNil: [ cflowCounters _ Dictionary new. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/17/2008 16:53'!
+!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:19'!
 flowInto: aMethod
 
 	| count |
@@ -2719,7 +2737,7 @@ flowInto: aMethod
 	count _ self cflowCounters at: aMethod asDescription ifAbsentPut: [ 0. ].
 	self cflowCounters at: aMethod asDescription put: count + 1.! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/17/2008 16:09'!
+!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:19'!
 flowOutOf: aMethod
 
 	| count |
