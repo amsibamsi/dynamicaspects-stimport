@@ -1,7 +1,7 @@
-SystemOrganization addCategory: #'DA-Context'!
-SystemOrganization addCategory: #'DA-Condition'!
-SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Aspects'!
+SystemOrganization addCategory: #'DA-Condition'!
+SystemOrganization addCategory: #'DA-Context'!
+SystemOrganization addCategory: #'DA-Contexts'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
@@ -46,8 +46,8 @@ TestCase subclass: #DACodingTest
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
-Test coding guidelines.!
+!DACodingTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing coding guidelines.!
 
 !DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:18'!
 packageName
@@ -70,8 +70,8 @@ TestCase subclass: #DAConditionTest
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
-Testing DACondition.!
+!DAConditionTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
+Testing conditions.!
 
 !DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
 isAbstract
@@ -200,8 +200,8 @@ TestCase subclass: #DAFilterTest
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DAFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
-Testing DARegexFilter.!
+!DAFilterTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing filtering.!
 
 !DAFilterTest methodsFor: 'testing' stamp: 'as 4/7/2008 15:40'!
 testNegation
@@ -219,8 +219,8 @@ TestCase subclass: #DAJoinPointTest
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DAJoinPointTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
-Testing DALink.!
+!DAJoinPointTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Testing join points.!
 
 !DAJoinPointTest methodsFor: 'running' stamp: 'as 3/25/2008 17:42'!
 setUp
@@ -355,30 +355,30 @@ A test that uses Geppetto links.
 
 This provides link cleanup at start/finish for any subclassed test.!
 
-DATestWithLinks subclass: #DAHookTest
+DATestWithLinks subclass: #DAConnectorTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DAHookTest commentStamp: 'as 4/1/2008 15:47' prior: 0!
-Testing hooks.!
+!DAConnectorTest commentStamp: 'as 4/23/2008 13:44' prior: 0!
+Testing connectors.!
 
-!DAHookTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
+!DAConnectorTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
 isAbstract
 
 	^ false.! !
 
-!DAHookTest methodsFor: 'testing' stamp: 'as 4/21/2008 15:50'!
+!DAConnectorTest methodsFor: 'testing' stamp: 'as 4/23/2008 13:38'!
 testSimple
 
-	| mo pc hook count |
+	| mo pc con count |
 
 	mo _ GPCounter new.
 	pc _ DAPointcut class: DAExamples class method: #noop.
-	hook _ DAConnector on: pc do: #inc on: mo.	
-	hook install.
-	self cleanup: hook.
+	con _ DAConnector on: pc do: #inc on: mo.	
+	con install.
+	self cleanup: con.
 
 	count _ mo count.
 	DAExamples noop.
@@ -431,8 +431,8 @@ Object subclass: #DAAspect
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors'!
 
-!DAAspect commentStamp: 'as 4/11/2008 15:28' prior: 0!
-Combines several pointcuts and advices into multiple hooks.!
+!DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
+Combines several pointcuts and advices by hosting multiple connectors.!
 
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors'!
@@ -1079,8 +1079,8 @@ Object subclass: #DAConnector
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAConnector commentStamp: 'as 3/19/2008 17:38' prior: 0!
-Connects pointcuts with advices.!
+!DAConnector commentStamp: 'as 4/23/2008 13:43' prior: 0!
+Connects a pointcut with an advices.!
 
 !DAConnector class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:34'!
 on: aDAPointcut create: aBlock per: scopeSymbol do: selectorSymbol
@@ -1599,8 +1599,8 @@ Object subclass: #DAExamples
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DAExamples commentStamp: 'as 4/4/2008 15:03' prior: 0!
-Examples to test aspects, hooks and links on.!
+!DAExamples commentStamp: 'as 4/23/2008 13:45' prior: 0!
+Examples to test aspects, connectors and links on.!
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 4/4/2008 15:04'!
 noop! !
@@ -1701,8 +1701,8 @@ Object subclass: #DAJoinPoint
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAJoinPoint commentStamp: 'as 3/25/2008 15:06' prior: 0!
-Describes and caches the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
+!DAJoinPoint commentStamp: 'as 4/23/2008 13:25' prior: 0!
+References the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
 
 !DAJoinPoint methodsFor: 'composing' stamp: 'as 4/7/2008 15:56'!
 and: aDAJoinPoint
@@ -1993,8 +1993,8 @@ DACompositePointcut subclass: #DAAndPointcut
 	poolDictionaries: ''
 	category: 'DA-Pointcuts'!
 
-!DAAndPointcut commentStamp: 'as 1/31/2008 17:05' prior: 0!
-Selects all join points that fullfill all requirements of two pointcuts.!
+!DAAndPointcut commentStamp: 'as 4/23/2008 13:43' prior: 0!
+Describes all join points that fullfill all requirements of two pointcuts.!
 
 !DAAndPointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:45'!
 negate
@@ -2582,8 +2582,8 @@ Object subclass: #DAPointcutEvaluator
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAPointcutEvaluator commentStamp: 'as 3/19/2008 15:46' prior: 0!
-Goes over a pointcut structure and evaluates the corresponding join points.!
+!DAPointcutEvaluator commentStamp: 'as 4/23/2008 13:43' prior: 0!
+Goes over a pointcut structure and evaluates the corresponding join points for it.!
 
 !DAPointcutEvaluator methodsFor: 'testing' stamp: 'as 3/31/2008 15:18'!
 hasEvaluated
@@ -2729,7 +2729,7 @@ cflowCounters
 
 	^ cflowCounters ifNil: [ cflowCounters _ Dictionary new. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:19'!
+!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:40'!
 flowInto: aMethod
 
 	| count |
@@ -2737,7 +2737,7 @@ flowInto: aMethod
 	count _ self cflowCounters at: aMethod asDescription ifAbsentPut: [ 0. ].
 	self cflowCounters at: aMethod asDescription put: count + 1.! !
 
-!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:19'!
+!Process methodsFor: '*DA' stamp: 'as 4/22/2008 17:40'!
 flowOutOf: aMethod
 
 	| count |
