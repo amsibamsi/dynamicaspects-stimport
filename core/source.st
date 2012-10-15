@@ -2,51 +2,16 @@ SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
-!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
-defineClass: defString notifying: aController  
-	"The receiver's textual content is a request to define a new class. The
-	source code is defString. If any errors occur in compilation, notify
-	aController."
-	| oldClass class newClassName defTokens keywdIx envt |
-	oldClass _ self selectedClassOrMetaClass.
-	defTokens _ defString findTokens: Character separators.
-	
-	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
-		or: [defTokens second = 'classTrait'])
-		ifTrue: [^self defineTrait: defString notifying: aController].
-		
-	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
-	envt _ Smalltalk.
-	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
-	
-	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
-	 but 'subaspect' instead."
-	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
-	
-	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
-	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
-		and: [envt includesKey: newClassName asSymbol]) ifTrue:
-			["Attempting to define new class over existing one when
-				not looking at the original one in this browser..."
-			(self confirm: ((newClassName , ' is an existing class in this system.
-Redefining it might cause serious problems.
-Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
-				ifFalse: [^ false]].
-	"ar 8/29/1999: Use oldClass superclass for defining oldClass
-	since oldClass superclass knows the definerClass of oldClass."
-	oldClass ifNotNil:[oldClass _ oldClass superclass].
-	class _ oldClass subclassDefinerClass
-				evaluate: defString
-				notifying: aController
-				logged: true.
-	(class isKindOf: Behavior)
-		ifTrue: [self changed: #systemCategoryList.
-				self changed: #classList.
-				self clearUserEditFlag.
-				self setClass: class selector: nil.
-				"self clearUserEditFlag; editClass."
-				^ true]
-		ifFalse: [^ false]! !
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/10/2007 13:11'!
+belongToAspect: aBoolean
+
+	self properties at: #belongsToAspect put: aBoolean.! !
+
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/10/2007 13:09'!
+belongsToAspect
+
+	properties ifNil: [ ^ true. ].
+	^self properties at: #belongsToAspect ifAbsent: [ false. ].! !
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
@@ -91,12 +56,13 @@ control: aSymbol
 
 	control _ aSymbol.! !
 
-!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 11/19/2007 09:18'!
+!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 12/12/2007 12:35'!
 install
 
 	| gplink |
 	self isInstalled ifFalse: [
 		gplink _ GPLink metaObject: advice.
+		gplink belongToAspect: true.
 		condition ifNotNil: [ gplink condition: condition. ].
 		pointcut nodes do: [ :node | node link: gplink. ].
 		pointcut extraAspects do: [ :aspect | aspect install. ].
@@ -341,7 +307,7 @@ initializeLinks
 
 	links _ IdentitySet new.! !
 
-!DACodedAspect methodsFor: 'installing' stamp: 'as 11/26/2007 11:23'!
+!DACodedAspect methodsFor: 'installing' stamp: 'as 12/12/2007 12:36'!
 install
 
 	self isInstalled ifFalse: [
@@ -354,6 +320,7 @@ install
 				selector: adv selector;
 				arguments: (self reificationsForAdvice: adv);
 				control: (self controlForAdvice: adv);
+				belongToAspect: true;
 				yourself.
 			pointcut condition ifNotNil: [ link condition: pointcut condition. ].
 			pointcut extraAspects do: [ :aspect | aspect install. ].
@@ -690,6 +657,52 @@ or: aDAPointcut
 reset
 
 	categories _ classes _ methods _ nodes _ nil.! !
+
+!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
