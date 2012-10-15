@@ -1,1 +1,1 @@
-(name 'AOP-as.1' message 'aop evaluation tests' id '77ba5140-19bf-11dc-a16a-001124784c86' date '13 June 2007' time '5:05:05 pm' author 'as' ancestors () stepChildren ())
+(name 'DynamicAspects-as.1' message 'join point and pointcut evaluation tests' id '6132fa44-1db4-11dc-83ef-001124784c86' date '18 June 2007' time '5:55:47 pm' author 'as' ancestors () stepChildren ())
