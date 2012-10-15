@@ -49,13 +49,26 @@ exampleBefore
 
 	counter _ 2.! !
 
-!DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:46'!
-exampleCondition! !
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/15/2008 13:32'!
+exampleCondition
+
+	self count.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/15/2008 13:33'!
+exampleField
+
+	counter _ 10.
+	^ counter.! !
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
 exampleForward
 
 	self exampleNoop.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 2/15/2008 13:29'!
+exampleInstead
+
+	self count.! !
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 2/14/2008 17:25'!
 exampleNoop! !
@@ -688,6 +701,11 @@ visitName
 
 	^ 'node'.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/15/2008 11:57'!
+call: aSymbol
+
+	^ self node: [ :node | node isMessage & (node selector = aSymbol). ].! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 11:20'!
 category: aSymbol
 
@@ -718,6 +736,34 @@ className: regexString
 
 	^ DAClassPointcut filter: regexString.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 10:07'!
+fieldRead: aString
+
+	^ self node: [
+		:node |
+		| return |
+		return _ node isVariable and: [ node name = aString. ].
+		(node parent isKindOf: RBProgramNode) ifTrue: [
+			| parent |
+			parent _ node parent.
+			parent isAssignment ifTrue: [
+				return _ return &
+					(parent variable ~~ node) & (parent value == node).
+			].
+		].
+		return.
+	].! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 09:07'!
+fieldWrite: aString
+
+	^ self node: [
+		:node |
+		node isAssignment and: [
+			node variable name = aString.
+		].
+	].! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 11:23'!
 if: aBlockOrBoolean
 
@@ -738,10 +784,10 @@ methodName: regexString
 
 	^ DAMethodPointcut filter: regexString.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 17:18'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/15/2008 13:38'!
 node: aBlock
 
-	^ DANodePointcut filter: aBlock.! !
+	^ DANodePointcut condition: aBlock.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 13:30'!
 within: aMethod
@@ -1089,10 +1135,15 @@ DAAspect subclass: #DATestAspect
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
 
-!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:48'!
+!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:30'!
 pointcutNames
 
-	^ #(exampleBefore exampleAfter exampleForward).! !
+	^ #(exampleBefore
+		exampleAfter
+		exampleInstead
+		exampleForward
+		exampleFieldRead
+		exampleFieldWrite).! !
 
 !DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
 afterExampleAfter
@@ -1119,11 +1170,36 @@ exampleBefore
 
 	^ pc method: DAExamples class >> #exampleBefore.! !
 
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:20'!
+exampleFieldRead
+
+	^ (pc method: DAExamples class >> #exampleField) and: (pc fieldRead: 'temp').! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:20'!
+exampleFieldWrite
+
+	^ (pc method: DAExamples class >> #exampleField) and: (pc fieldWrite: 'temp').! !
+
 !DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:27'!
 exampleForward
 
 	^ (pc cflow: DAExamples class >> #exampleForward) and:
 		(pc method: DAExamples class >> #exampleNoop).! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:29'!
+exampleInstead
+
+	^ pc method: DAExamples class >> #exampleInstead.! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/15/2008 13:28'!
+insteadExampleFieldRead
+
+	! !
+
+!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 09:00'!
+insteadExampleInstead
+
+	"do nothing"! !
 
 !DAProtoAspect class methodsFor: 'pointcuts' stamp: 'as 2/15/2008 10:46'!
 allPointcutNames
@@ -1708,6 +1784,12 @@ testCflow
 	self assert: DAExamples counter = 0.
 	DAExamples exampleForward.
 	self assert: DAExamples counter = 1.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 2/15/2008 13:34'!
+testInstead
+
+	DAExamples exampleInstead.
+	self assert: DAExamples counter = 0.! !
 
 DATestingWithLinks subclass: #DAConditionTest
 	instanceVariableNames: 'trueCond falseCond blockCond'
