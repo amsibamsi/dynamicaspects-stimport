@@ -7,12 +7,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -25,10 +19,16 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
 
-	^ self method parent.! !
+	^ (self >> selector) reflectiveMethod.
+! !
+
+!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAClassDescription classObject: self.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -39,6 +39,11 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -645,12 +650,6 @@ tearDown
 
 	links do: [ :link | link uninstall. ].! !
 
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
-
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -1183,7 +1182,7 @@ initialize
 	control _ self defaultControl.
 	links _ Dictionary new.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 5/5/2008 17:27'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/6/2008 14:11'!
 install
 
 	self dependencies do: [ :dep | dep install. ].
@@ -1200,11 +1199,12 @@ isInstalled
 
 	^ installed.! !
 
-!DAConnector methodsFor: 'private' stamp: 'as 5/5/2008 08:37'!
+!DAConnector methodsFor: 'private' stamp: 'as 5/6/2008 13:37'!
 linksDo: doBlock rollback: rollbackBlock
 
 	| passed |
 	
+	links ifNil: [ ^ self. ].
 	links ifEmpty: [ ^ self. ].
 
 	passed _ Dictionary new.
@@ -1372,13 +1372,13 @@ setMetaObject: moObject creator: creatorObject for: aGPLink
 	].
 	aGPLink metaObject: moObject.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 5/5/2008 17:27'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/6/2008 14:13'!
 uninstall
 
 	self isInstalled ifTrue: [
 		self
 			linksDo: [ :link | link value uninstall. ]
-			rollback: [ :link | self error: 'rollback not possible'. ].
+			rollback: [ :link | "not possible" ].
 		installed _ false.
 	].
 	self dependencies do: [ :dep | dep uninstall. ].! !
@@ -1388,16 +1388,16 @@ update
 
 	self isInstalled ifTrue: [ self reinstall. ].! !
 
-DAConnector subclass: #DAFlowConnector
+DAConnector subclass: #DAFlow
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Connectors'!
 
-!DAFlowConnector commentStamp: 'as 5/5/2008 17:10' prior: 0!
+!DAFlow commentStamp: 'as 5/5/2008 17:10' prior: 0!
 Manages control flow counting for a pointcut.!
 
-!DAFlowConnector class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:22'!
+!DAFlow class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:22'!
 after: aDAPointcut
 
 	^ self new
@@ -1406,7 +1406,7 @@ after: aDAPointcut
 		control: #after;
 		yourself.! !
 
-!DAFlowConnector class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:23'!
+!DAFlow class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:23'!
 before: aDAPointcut
 
 	^ self new
@@ -1415,19 +1415,20 @@ before: aDAPointcut
 		control: #before;
 		yourself.! !
 
-!DAFlowConnector methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
+!DAFlow methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
 flowIn
 
 	Processor activeProcess flowInto: pointcut.! !
 
-!DAFlowConnector methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
+!DAFlow methodsFor: 'counting' stamp: 'as 5/5/2008 16:23'!
 flowOut
 
 	Processor activeProcess flowOutOf: pointcut.! !
 
-!DAFlowConnector methodsFor: 'initialize-release' stamp: 'as 5/5/2008 16:07'!
+!DAFlow methodsFor: 'initialize-release' stamp: 'as 5/6/2008 13:38'!
 initialize
 
+	super initialize.
 	self metaObject: self.! !
 
 Object subclass: #DAContext
@@ -2080,10 +2081,10 @@ filter: aSymbol
 
 	^ self perform: (#filter, aSymbol capitalized) asSymbol.! !
 
-!DAJoinPoint methodsFor: 'accessing' stamp: 'as 3/25/2008 17:44'!
-filterAt: aSymbol put: aRegexFilter
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 5/6/2008 14:40'!
+filterAt: aSymbol put: aDAFilter
 
-	(filters at: aSymbol) add: aRegexFilter.! !
+	(filters at: aSymbol) add: aDAFilter.! !
 
 !DAJoinPoint methodsFor: 'filtering' stamp: 'as 4/30/2008 16:50'!
 filterCategory
@@ -2541,16 +2542,16 @@ visitName
 
 	^ 'empty'.! !
 
-DAPointcut subclass: #DAFilterPointcut
+DAPointcut subclass: #DAFilteringPointcut
 	instanceVariableNames: 'negated'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Pointcuts'!
 
-!DAFilterPointcut commentStamp: 'as 1/31/2008 16:58' prior: 0!
-Specifies a filter for designating join points.!
+!DAFilteringPointcut commentStamp: 'as 5/6/2008 14:19' prior: 0!
+Specifies filtering options.!
 
-DAFilterPointcut subclass: #DACategoryPointcut
+DAFilteringPointcut subclass: #DACategoryPointcut
 	instanceVariableNames: 'categoryName'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2588,7 +2589,7 @@ visitName
 
 	^ 'category'.! !
 
-DAFilterPointcut subclass: #DAClassPointcut
+DAFilteringPointcut subclass: #DAClassPointcut
 	instanceVariableNames: 'className'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2626,22 +2627,57 @@ visitName
 
 	^ 'class'.! !
 
-!DAFilterPointcut methodsFor: 'converting' stamp: 'as 4/29/2008 18:07'!
-asFilter
+DAFilteringPointcut subclass: #DAFilterPointcut
+	instanceVariableNames: 'filters'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Pointcuts'!
 
-	self subclassResponsibility.! !
+!DAFilterPointcut commentStamp: 'as 5/6/2008 14:24' prior: 0!
+Specifies arbitrary filters for join point selection.!
 
-!DAFilterPointcut methodsFor: 'initialize-release' stamp: 'as 4/29/2008 17:39'!
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 14:26'!
+categoryFilter: aBlock
+
+	filters at: #category put: aBlock.! !
+
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 14:26'!
+classFilter: aBlock
+
+	filters at: #class put: aBlock.! !
+
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 14:33'!
+filters
+
+	^ filters.! !
+
+!DAFilterPointcut methodsFor: 'initialize-release' stamp: 'as 5/6/2008 14:25'!
+initialize
+
+	super initialize.
+	filters _ Dictionary new.! !
+
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 14:26'!
+methodFilter: aBlock
+
+	filters at: #method put: aBlock.! !
+
+!DAFilterPointcut methodsFor: 'visiting' stamp: 'as 5/6/2008 14:32'!
+visitName
+
+	^ 'filter'.! !
+
+!DAFilteringPointcut methodsFor: 'initialize-release' stamp: 'as 4/29/2008 17:39'!
 initialize
 
 	negated _ false.! !
 
-!DAFilterPointcut methodsFor: 'negating' stamp: 'as 4/29/2008 17:38'!
+!DAFilteringPointcut methodsFor: 'negating' stamp: 'as 4/29/2008 17:38'!
 not
 
 	negated _ negated not.! !
 
-DAFilterPointcut subclass: #DAMethodPointcut
+DAFilteringPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: 'methodName'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2679,7 +2715,7 @@ visitName
 
 	^ 'method'.! !
 
-DAFilterPointcut subclass: #DANodePointcut
+DAFilteringPointcut subclass: #DANodePointcut
 	instanceVariableNames: 'block'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2717,23 +2753,15 @@ visitName
 
 	^ 'node'.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/30/2008 16:02'!
-call: aMethod
-
-	| methodDescr |
-	
-	methodDescr _ DAMethodDescription methodObject: aMethod.
-	^ (self method: aMethod) and: (
-		self if: [
-			:args |
-			(args at: #class) name = methodDescr method.
-		] arguments: #(class)
-	).! !
-
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:29'!
 category: aSymbol
 
 	^ self categoryName: aSymbol.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 14:32'!
+categoryFilter: aBlock
+
+	^ DAFilterPointcut new categoryFilter: aBlock.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/30/2008 16:01'!
 categoryName: regexString
@@ -2760,23 +2788,26 @@ class: aClass method: aSymbol
 
 	^ self method: aClass >> aSymbol.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 14:31'!
+classFilter: aBlock
+
+	^ DAFilterPointcut new classFilter: aBlock.! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/30/2008 16:01'!
 className: regexString
 
 	^ DAClassPointcut className: regexString.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:55'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 14:28'!
 classWithBehavior: aClass
 
 	| classDescr |
 	
-	classDescr _ DAClassMethodDescription class: aClass.
-	^ DAClassPointcut filter: (
-		DAFilter block: [
-			:class |
-			class includesBehavior: classDescr class.
-		]
-	).! !
+	classDescr _ DAClassDescription classObject: aClass.
+	^ self classFilter: [
+		:class |
+		class includesBehavior: classDescr classObject.
+	].! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/8/2008 17:19'!
 context: aDAContext
@@ -2834,15 +2865,15 @@ if: aBlockOrBoolean arguments: aCollection
 
 	^ DAConditionPointcut condition: aBlockOrBoolean arguments: aCollection.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 16:33'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 13:36'!
 in: aDAPointcut
 
 	| context connectors |
 	
 	context _ DAFlowContext in: aDAPointcut.
 	connectors _ {
-		DAFlowConnector before: aDAPointcut.
-		DAFlowConnector after: aDAPointcut.
+		DAFlow before: aDAPointcut.
+		DAFlow after: aDAPointcut.
 	}.
 
 	^ (DAContextPointcut context: context) &
@@ -2866,6 +2897,11 @@ method: aMethod
 
 	^ (self class: aMethod methodClass) and: (self methodName: aMethod selector).! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 14:32'!
+methodFilter: aBlock
+
+	^ DAFilterPointcut new methodFilter: aBlock.! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/30/2008 16:01'!
 methodName: regexString
 
@@ -2883,11 +2919,6 @@ tempVariable
 		:node |
 		node isVariable and: [ node isTemp. ].
 	].! !
-
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 13:30'!
-within: aMethod
-
-	^ DAControlFlowPointcut method: aMethod level: 1.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 4/9/2008 15:11'!
 & aDAPointcut
@@ -3069,6 +3100,18 @@ visitDependency: pc
 visitEmpty: pc
 
 	"Intentionally left blank."! !
+
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/6/2008 14:34'!
+visitFilter: pc
+
+	| jp |
+
+	jp _ DAJoinPoint new.
+	pc filters associationsDo: [
+		:filter |
+		jp filterAt: filter key put: (DABlockFilter block: filter value).
+	].
+	joinPoints add: jp.! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/29/2008 18:06'!
 visitMethod: pc
@@ -3366,10 +3409,11 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
 
-	^ DAClassDescription classObject: self.! !
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
