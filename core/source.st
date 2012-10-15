@@ -1,6 +1,7 @@
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Geppetto'!
+SystemOrganization addCategory: #'DynamicAspects-Testing'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
 Object subclass: #DAAspect
@@ -377,7 +378,7 @@ DACodedAspect subclass: #DATestAspect
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DynamicAspects-Testing'!
 
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
@@ -419,7 +420,7 @@ Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DynamicAspects-Testing'!
 
 DAExamples class
 	instanceVariableNames: 'counter'!
@@ -467,7 +468,7 @@ Object subclass: #DAGeppettoExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Tests'!
+	category: 'DynamicAspects-Testing'!
 
 !DAGeppettoExamples commentStamp: 'as 1/14/2008 16:35' prior: 0!
 Dummy class to test Geppetto links on.!
@@ -476,49 +477,229 @@ Dummy class to test Geppetto links on.!
 example1! !
 
 Object subclass: #DALink
-	instanceVariableNames: 'link nodes'
+	instanceVariableNames: 'link categoryFilters classFilters methodFilters nodeFilters'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Geppetto'!
 
-!DALink commentStamp: 'as 1/24/2008 17:27' prior: 0!
-Host a GPLink together with the nodes it should be installed on.!
+!DALink commentStamp: 'as 1/31/2008 11:18' prior: 0!
+Host a GPLink together with a description of the nodes it should be installed on.!
 
-!DALink class methodsFor: 'instance creation' stamp: 'as 1/25/2008 11:17'!
-nodes: aCollection
+!DALink methodsFor: 'composing' stamp: 'as 1/31/2008 15:30'!
+and: aDALink
 
-	^ self new nodes: aCollection; yourself.! !
+	^ self class new
+		condition: (self combineCondition: aDALink);
+		categories: self categoryFilters, aDALink categoryFilters;
+		classes: self classFilters, aDALink classFilters;
+		methods: self methodFilters, aDALink methodFilters;
+		nodes: self nodeFilters, aDALink nodeFilters;
+		yourself.! !
 
-!DALink class methodsFor: 'instance creation' stamp: 'as 1/25/2008 15:23'!
-nodes: aCollection condition: aDACondition
+!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:24'!
+categories
 
-	^ self new nodes: aCollection; condition: aDACondition; yourself.! !
+	| categories |
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/25/2008 11:53'!
+	categories _ SystemOrganization categories.
+	(categoryFilters selfIfEmpty: [ self defaultCategoryFilters. ]) do: [
+		: filter |
+		categories _ categories select: [
+			:each | each matchesRegex: filter.
+		].
+	].
+	^ categories.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
+categories: aCollection
+
+	categoryFilters _ aCollection.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
+category: regexString
+
+	categoryFilters add: regexString.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
+categoryFilters
+
+	^ categoryFilters.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
+class: regexString
+
+	classFilters add: regexString.! !
+
+!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 11:38'!
+class: aClass matches: regexString
+
+	^ (aClass name matchesRegex: regexString) and: [
+		self categories includes: aClass instanceSide category.
+	].! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
+classFilters
+
+	^ classFilters.! !
+
+!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:28'!
+classes
+
+	| classes |
+	
+	classes _ Smalltalk allClasses.
+	(classFilters selfIfEmpty: [ self defaultClassFilters. ]) do: [
+		:filter |
+		classes _ classes select: [
+			:each |
+			(self class: each instanceSide matches: filter)
+				or: [ self class: each classSide matches: filter. ].
+		].
+	].
+	^ classes.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
+classes: aCollection
+
+	classFilters _ aCollection.! !
+
+!DALink methodsFor: 'private' stamp: 'as 1/27/2008 17:25'!
+combineCondition: aDALink
+
+	self hasCondition ifTrue: [
+		aDALink hasCondition ifTrue: [
+			^ self condition and: aDALink condition.
+		] ifFalse: [
+			^ self condition.
+		].
+	] ifFalse: [
+		aDALink hasCondition ifTrue: [
+			^ aDALink condition.
+		] ifFalse: [
+			^ nil.
+		].
+	].! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/27/2008 17:16'!
+condition
+
+	^ link condition.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/27/2008 16:09'!
 condition: aDACondition
 
-	self shouldBeImplemented.! !
+	link conditionObject: aDACondition.! !
 
-!DALink methodsFor: 'initialize-release' stamp: 'as 1/24/2008 17:35'!
+!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
+defaultCategoryFilters
+
+	^ { '.*'. }.! !
+
+!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
+defaultClassFilters
+
+	^ { '.*'. }.! !
+
+!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
+defaultMethodFilters
+
+	^ { '.*'. }.! !
+
+!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
+defaultNodeFilters
+
+	^ { [ :node | node isMethod. ]. }.! !
+
+!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
+hasCondition
+
+	^ link hasCondition.! !
+
+!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
+hasNodes
+
+	^ nodes notEmpty.! !
+
+!DALink methodsFor: 'initialize-release' stamp: 'as 1/31/2008 15:13'!
 initialize
 
 	link _ GPLink new.
-	nodes _ OrderedCollection new.! !
+	categoryFilters _ Set new.
+	classFilters _ Set new.
+	methodFilters _ Set new.
+	nodeFilters _ Set new..! !
 
 !DALink methodsFor: 'accessing' stamp: 'as 1/24/2008 17:38'!
 link
 
 	^ link.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/25/2008 11:17'!
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
+method: regexString
+
+	methodFilters add: regexString.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
+methodFilters
+
+	^ methodFilters.! !
+
+!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:28'!
+methods
+	
+	| methods classMethods |
+	
+	methods _ Set new.
+	self classes do: [
+		:each |
+		classMethods _ each methods.
+		(methodFilters selfIfEmpty: [ self defaultMethodFilters. ]) do: [
+			:filter |
+			classMethods _ classMethods select: [
+				:method |
+				method selector matchesRegex: filter.
+			].
+		].
+		methods addAll: classMethods.
+	].
+	^ methods collect: [ :each | each reflectiveMethod. ].! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
+methods: aCollection
+
+	methodFilters _ aCollection.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
+node: aBlock
+
+	nodeFilters add: aBlock.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
+nodeFilters
+
+	^ nodeFilters.! !
+
+!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:28'!
 nodes
 
+	| nodes methodNodes |
+
+	nodes _ Set new.
+	self methods do: [
+		:each |
+		methodNodes _ each nodes.
+		(nodeFilters selfIfEmpty: [ self defaultNodeFilters. ]) do: [
+			:filter |
+			methodNodes _ methodNodes select: filter.
+		].
+		nodes addAll: methodNodes.
+	].
 	^ nodes.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/25/2008 11:16'!
+!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
 nodes: aCollection
 
-	nodes _ aCollection.! !
+	nodeFilters _ aCollection.! !
 
 Object subclass: #DAPointcut
 	instanceVariableNames: 'parent'
@@ -535,8 +716,8 @@ DAPointcut subclass: #DACompositePointcut
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DACompositePointcut commentStamp: 'as 1/17/2008 11:30' prior: 0!
-A composition of one or two pointcuts.!
+!DACompositePointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
+A composition two pointcuts.!
 
 DACompositePointcut subclass: #DAAndPointcut
 	instanceVariableNames: ''
@@ -595,6 +776,54 @@ DAPointcut subclass: #DADesignatePointcut
 !DADesignatePointcut commentStamp: 'as 1/24/2008 15:45' prior: 0!
 Designates join points in the system.!
 
+DADesignatePointcut subclass: #DACategoryPointcut
+	instanceVariableNames: 'filter'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DACategoryPointcut commentStamp: 'as 1/31/2008 16:39' prior: 0!
+Filter for categories.!
+
+!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:27'!
+filter
+
+	^ filter.! !
+
+!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:27'!
+filter: regexString
+
+	filter _ regexString.! !
+
+!DACategoryPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:29'!
+visitName
+
+	^ 'category'.! !
+
+DADesignatePointcut subclass: #DAClassPointcut
+	instanceVariableNames: 'filter'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAClassPointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
+Filter for classes.!
+
+!DAClassPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:46'!
+filter
+
+	^ filter.! !
+
+!DAClassPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:46'!
+filter: regexString
+
+	filter _ regexString.! !
+
+!DAClassPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:46'!
+visitName
+
+	^ 'class'.! !
+
 DADesignatePointcut subclass: #DAConditionPointcut
 	instanceVariableNames: 'condition'
 	classVariableNames: ''
@@ -604,10 +833,10 @@ DADesignatePointcut subclass: #DAConditionPointcut
 !DAConditionPointcut commentStamp: 'as 1/24/2008 15:52' prior: 0!
 Describes conditional attributes.!
 
-!DAConditionPointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:56'!
+!DAConditionPointcut methodsFor: 'designating' stamp: 'as 1/27/2008 19:48'!
 condition: aBlockOrBoolean
 
-	self condition: aBlockOrBoolean arguments: nil.! !
+	condition _ DACondition with: aBlockOrBoolean.! !
 
 !DAConditionPointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:55'!
 condition: aBlockOrBoolean arguments: aCollection
@@ -619,152 +848,76 @@ visitName
 
 	^ 'condition'.! !
 
-DADesignatePointcut subclass: #DANodePointcut
-	instanceVariableNames: 'filters'
+DADesignatePointcut subclass: #DAMethodPointcut
+	instanceVariableNames: 'filter'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DANodePointcut commentStamp: 'as 1/24/2008 16:38' prior: 0!
-Selects specific join points (nodes in reflective methods) in the system.!
+!DAMethodPointcut commentStamp: 'as 1/31/2008 16:42' prior: 0!
+Filter for methods.!
 
-!DANodePointcut methodsFor: 'filtering' stamp: 'as 1/24/2008 16:43'!
-categories
+!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:47'!
+filter
 
-	self categoryFilter ifNil: [
-		^ #().
-	] ifNotNil: [
-		^ SystemOrganization categories select: [
-			:each | each matchesRegex: self categoryFilter.
-		].
-	].! !
+	^ filter.! !
 
-!DANodePointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:46'!
-category: regexString
+!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:47'!
+filter: regexString
 
-	self categoryFilter: regexString.
-	self reset.! !
+	filter _ regexString.! !
 
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:40'!
-categoryFilter
+!DAMethodPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:47'!
+visitName
 
-	^ filters at: #category ifAbsent: [ nil. ].! !
+	^ 'method'.! !
 
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:48'!
-categoryFilter: regexString
+DADesignatePointcut subclass: #DANodePointcut
+	instanceVariableNames: 'filter'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
 
-	filters at: #category put: regexString.! !
+!DANodePointcut commentStamp: 'as 1/31/2008 16:41' prior: 0!
+Filter the nodes within a reflective method (sub-method level).!
 
-!DANodePointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:46'!
-class: regexString
+!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:49'!
+filter
 
-	self classFilter: regexString.
-	self reset.! !
+	^ filter.! !
 
-!DANodePointcut methodsFor: 'filtering' stamp: 'as 1/24/2008 16:41'!
-class: aClass matches: regexString
+!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/28/2008 08:49'!
+filter: aBlock
 
-	^ (aClass name matchesRegex: regexString) and: [
-		self categories includes: aClass instanceSide category.
-	].! !
+	filter _ aBlock.! !
 
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:40'!
-classFilter
-
-	^ filters at: #class ifAbsent: [ nil. ].! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:48'!
-classFilter: regexString
-
-	filters at: #class put: regexString.! !
-
-!DANodePointcut methodsFor: 'filtering' stamp: 'as 1/24/2008 16:44'!
-classes
-
-	self classFilter ifNil: [
-		^ #().
-	] ifNotNil: [
-		^ Smalltalk allClasses select: [
-			:each |
-			(self class: each instanceSide matches: self classFilter)
-				or: [ self class: each classSide matches: self classFilter. ].
-		].
-	].! !
-
-!DANodePointcut methodsFor: 'initialize-release' stamp: 'as 1/24/2008 16:39'!
-initialize
-
-	filters _ Dictionary new.! !
-
-!DANodePointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:46'!
-method: regexString
-
-	self methodFilter: regexString.
-	self reset.! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:41'!
-methodFilter
-
-	^ filters at: #method ifAbsent: [ nil. ].! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:48'!
-methodFilter: regexString
-
-	filters at: #method put: regexString.! !
-
-!DANodePointcut methodsFor: 'filtering' stamp: 'as 1/24/2008 16:45'!
-methods
-	
-	| methods |
-	
-	methods _ Set new.
-	self methodFilter ifNotNil: [
-		self classes do: [
-			:each |
-			each methods do: [
-				:method |
-				(method selector matchesRegex: self methodFilter) ifTrue: [
-					methods add: method reflectiveMethod.
-				].
-			].
-		].
-	].
-	^ methods.! !
-
-!DANodePointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:46'!
-node: aBlock
-
-	self nodeFilter: aBlock.
-	self reset.! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:41'!
-nodeFilter
-
-	^ filters at: #node ifAbsent: [ nil. ].! !
-
-!DANodePointcut methodsFor: 'accessing' stamp: 'as 1/24/2008 16:48'!
-nodeFilter: regexString
-
-	filters at: #node put: regexString.! !
-
-!DANodePointcut methodsFor: 'filtering' stamp: 'as 1/24/2008 16:46'!
-nodes
-
-	| nodes |
-
-	nodes _ Set new.
-	self nodeFilter ifNotNil: [
-		self methods do: [
-			:each |
-			nodes addAll: (each nodes select: self nodeFilter).
-		].
-	].
-	^ nodes.! !
-
-!DANodePointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:03'!
+!DANodePointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:48'!
 visitName
 
 	^ 'node'.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/27/2008 19:53'!
+if: aBlockOrBoolean
+
+	^ DAConditionPointcut new
+		condition: aBlockOrBoolean;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/27/2008 19:47'!
+if: aBlockOrBoolean arguments: aCollection
+
+	^ DAConditionPointcut new
+		condition: aBlockOrBoolean;
+		arguments: aCollection;
+		yourself.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 1/27/2008 19:43'!
+method: aMethod
+
+	^ DAPointcut new
+		class: aMethod methodClass name;
+		method: aMethod selector;
+		yourself.! !
 
 !DAPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:00'!
 acceptVisitor: aDAPointcutVisitor
@@ -806,7 +959,7 @@ Object subclass: #DAPointcutVisitor
 Visit a pointcut structure.!
 
 DAPointcutVisitor subclass: #DALinkGenerator
-	instanceVariableNames: 'links nodes condition stack'
+	instanceVariableNames: 'links stack'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
@@ -820,63 +973,69 @@ initialize
 	self initializeVariables.
 	stack _ Stack new.! !
 
-!DALinkGenerator methodsFor: 'initialize-release' stamp: 'as 1/25/2008 14:09'!
+!DALinkGenerator methodsFor: 'initialize-release' stamp: 'as 1/27/2008 16:18'!
 initializeVariables
 
-	links _ Dictionary new.
-	nodes _ condition _ nil.! !
+	links _ OrderedCollection new.! !
 
 !DALinkGenerator methodsFor: 'stacking' stamp: 'as 1/25/2008 14:35'!
 pop
 
 	^ stack pop.! !
 
-!DALinkGenerator methodsFor: 'stacking' stamp: 'as 1/25/2008 14:15'!
+!DALinkGenerator methodsFor: 'stacking' stamp: 'as 1/27/2008 16:23'!
 push
 
-	stack push: { #links -> links. #nodes -> nodes. #condition -> condition. }.
+	stack push: links.
 	self initializeVariables.! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/25/2008 11:11'!
-visitAnd: pc! !
-
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/25/2008 14:04'!
-visitCondition: pc
-
-	condition _ pc condition.! !
-
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/25/2008 14:03'!
-visitNode: pc
-
-	nodes _ pc nodes.! !
-
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/25/2008 15:51'!
-visitOr: pc
-
-	| pop |
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/27/2008 17:07'!
+visitAnd: pc
 
 	pc left acceptVisitor: self.
 	self push.
 	pc right acceptVisitor: self.
-	
-	pop _ self pop.
-	links addAll: (pop at: #links).
-	
-	{ { nodes. condition. }. { pop at: #nodes. pop at: #condition. }. } do: [
-		:tupel |
-		| n c |
-		n _ tupel first.
-		c _ tupel last.
-		n ifNil: [
-			c ifNotNil: [ self error: 'found condition without node specification'. ].
-		] ifNotNil: [
-			c ifNil: [
-				links add: (DALink nodes: n).
-			] ifNotNil: [
-				links add: (DALink nodes: n condition: c).
-			].
+	self push.
+	self pop do: [
+		:leftLink |
+		self pop do: [
+			:rightLink |
+			links add: (leftLink and: rightLink).
 		].
 	].! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+visitCategory: pc
+
+	links add: (DALink new category: pc filter).! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+visitClass: pc
+
+	links add: (DALink new class: pc filter).! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:54'!
+visitCondition: pc
+
+	links add: (DALink new condition: pc condition).! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+visitMethod: pc
+
+	links add: (DALink new method: pc filter).! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+visitNode: pc
+
+	links add: (DALink new node: pc filter).! !
+
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/27/2008 16:23'!
+visitOr: pc
+
+	pc left acceptVisitor: self.
+	self push.
+	pc right acceptVisitor: self.
+	links addAll: self pop.! !
 
 !DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:15'!
 visit: aDAPointcut
@@ -888,8 +1047,23 @@ visitAnd: aDAAndPointcut
 
 	self subclassResponsibility.! !
 
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
+visitCategory: aDACategoryPointcut
+
+	self subclassResponsibility.! !
+
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
+visitClass: aDAClassPointcut
+
+	self subclassResponsibility.! !
+
 !DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/24/2008 17:17'!
 visitCondition: aDAConditionPointcut
+
+	self subclassResponsibility.! !
+
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 1/28/2008 08:49'!
+visitMethod: aDAMethodPointcut
 
 	self subclassResponsibility.! !
 
@@ -925,11 +1099,11 @@ with: aBlockOrBoolean arguments: aCollection
 		arguments: aCollection;
 		yourself.! !
 
-!DACondition methodsFor: 'composing' stamp: 'as 1/24/2008 13:41'!
+!DACondition methodsFor: 'composing' stamp: 'as 1/27/2008 18:59'!
 and: aDACondition
 
-	(condition = true) | (aDACondition = false) ifTrue: [ ^ aDACondition. ].
-	(aDACondition = true) | (condition = false) ifTrue: [ ^ self. ].
+	(condition = true) | (aDACondition condition = false) ifTrue: [ ^ aDACondition. ].
+	(aDACondition condition = true) | (condition = false) ifTrue: [ ^ self. ].
 	^ self combineWith: aDACondition using: #&.! !
 
 !DACondition methodsFor: 'accessing' stamp: 'as 1/24/2008 12:15'!
@@ -951,13 +1125,18 @@ combineBlock: firstBlock args: firstCollection withBlock: secondBlock args: seco
 		(firstBlock value: args1) perform: aSymbol with: (secondBlock value: args2).
 	].! !
 
-!DACondition methodsFor: 'private' stamp: 'as 1/24/2008 12:11'!
+!DACondition methodsFor: 'private' stamp: 'as 1/27/2008 19:09'!
 combineWith: aDACondition using: aSymbol
 
 	| block args |
 	
-	block _ self combineBlock: condition args: arguments withBlock: aDACondition condition args: aDACondition arguments using: aSymbol.
-	args _ arguments union: aDACondition arguments.
+	block _ self
+		combineBlock: condition
+		args: self arguments
+		withBlock: aDACondition condition
+		args: aDACondition arguments
+		using: aSymbol.
+	args _ self arguments union: aDACondition arguments.
 	^ self class with: block arguments: args.! !
 
 !DACondition methodsFor: 'testing' stamp: 'as 1/24/2008 12:16'!
@@ -985,6 +1164,11 @@ aspect: aDAAspect
 conditionObject: aGPCondition
 
 	condition _ aGPCondition.! !
+
+!Collection methodsFor: '*DynamicAspects' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
 defineClass: defString notifying: aController  
@@ -1111,6 +1295,60 @@ testClassComment
 		self assert: each hasComment.
 	].! !
 
+TestCase subclass: #DAConditionTest
+	instanceVariableNames: 'trueCond falseCond blockCond'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
+Testing DACondition.!
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 1/27/2008 19:33'!
+setUp
+
+	trueCond _ DACondition with: true.
+	falseCond _ DACondition with: false.
+	blockCond _ DACondition with: [ :args | true. ].! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 19:28'!
+testCombiningBlocks
+
+	| cond1 cond2 combCond blockArgs |
+	
+	cond1 _ DACondition
+		with: [ :args | args includesKey: #arg1. ]
+		arguments: #(arg1).
+	cond2 _ DACondition
+		with: [ :args | args includesKey: #arg2. ]
+		arguments: #(arg2).
+	combCond _ cond1 and: cond2.
+	self assert: combCond arguments size = 2.
+	self assert: (combCond arguments includes: #arg1).
+	self assert: (combCond arguments includes: #arg2).
+	blockArgs _ Dictionary new at: #arg1 put: nil; at: #arg2 put: nil; yourself.
+	self assert: (combCond value: blockArgs).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 18:58'!
+testCombiningBooleanWithBlock
+
+	| combCond |
+	
+	blockCond arguments: #(object class).
+	combCond _ trueCond and: blockCond.
+	self assert: combCond arguments = blockCond arguments.
+	self assert: combCond condition = blockCond condition.
+	combCond _ blockCond and: falseCond.
+	self assert: combCond condition = false.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 17:56'!
+testCombiningBooleans
+
+	self assert: (trueCond and: falseCond) condition = false.
+	self assert: (falseCond and: trueCond) condition = false.
+	self assert: (falseCond and: falseCond) condition = false.
+	self assert: (trueCond and: trueCond) condition = true.! !
+
 TestCase subclass: #DAGeppettoTests
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -1166,3 +1404,66 @@ testConditionArguments
 	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
 	DAGeppettoExamples example1.
 	self assert: asserted.! !
+
+TestCase subclass: #DALinkTest
+	instanceVariableNames: 'link'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DALinkTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
+Testing DALink.!
+
+!DALinkTest methodsFor: 'running' stamp: 'as 1/31/2008 14:17'!
+setUp
+
+	link _ DALink new.! !
+
+!DALinkTest methodsFor: 'testing' stamp: 'as 1/31/2008 16:15'!
+testAndingLinks
+
+	| link2 link3 |
+
+	link
+		category: 'DynamicAspects-Tests';
+		class: 'DALinkTest'.
+	link2 _ DALink new
+		method: 'testAndingLinks';
+		node: [ :node | node isMethodNode. ];
+		yourself.
+	link3 _ link and: link2.
+	self assert: (link3 methods includes: (DALinkTest >> #testAndingLinks) reflectiveMethod).! !
+
+!DALinkTest methodsFor: 'testing' stamp: 'as 1/31/2008 14:18'!
+testFilteringCategories
+
+	link category: 'DynamicAspects.*'.
+	self assert: (link categories includes: #'DynamicAspects-Tests').! !
+
+!DALinkTest methodsFor: 'testing' stamp: 'as 1/31/2008 14:28'!
+testFilteringClasses
+
+	link category: 'DynamicAspects-Tests'; class: 'DALinkTest'.
+	self assert: (link classes includes: DALinkTest).! !
+
+!DALinkTest methodsFor: 'testing' stamp: 'as 1/31/2008 14:30'!
+testFilteringMethods
+
+	link category: 'DynamicAspects-Tests'; class: 'DALinkTest'; method: 'testFilteringMethods'.
+	self assert: (link methods includes: (DALinkTest >> #testFilteringMethods) reflectiveMethod).! !
+
+!DALinkTest methodsFor: 'testing' stamp: 'as 1/31/2008 14:39'!
+testFilteringNodes
+
+	link
+		category: 'DynamicAspects-Tests';
+		class: 'DALinkTest';
+		method: 'testFilteringNodes';
+		node: [ :node | node isCascade. ].
+	self assert: (link nodes size = 1).! !
+
+TestCase subclass: #DAPointcutTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
