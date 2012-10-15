@@ -8,6 +8,18 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -29,27 +41,20 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
 
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+	^ DAMethodDescription methodObject: self.! !
 
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
 
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+	^ DAPointcut method: self.! !
 
 !GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
 exampleDA
 
 	^ 1.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
 
 TestCase subclass: #DAAspectContextTest
 	instanceVariableNames: 'aspect'
@@ -1103,15 +1108,10 @@ isInvalid
 	
 	! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-	^ DAMethodDescription methodObject: self.! !
-
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
-
-	^ DAPointcut method: self.! !
+	^ self method parent.! !
 
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
@@ -3830,18 +3830,19 @@ adviceNames
 
 	^ self advices collect: [ :adv | adv selector. ].! !
 
-!DAAspect class methodsFor: 'advices' stamp: 'as 6/2/2008 14:38'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 7/21/2008 17:20'!
 advices
 
-	| possibilities |
+	| possibilities advices |
 	possibilities _ self possibleAdviceNames.
-	^ self methods select: [
+	advices _ self methods select: [
 		:method |
 		possibilities anySatisfy: [
 			:pos |
 			method selector asLowercase startsWith: pos.
 		].
-	].! !
+	].
+	^ advices select: [ :a | (self disabledAdvices includes: a selector) not. ].! !
 
 !DAAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:33'!
 allPointcutNames
@@ -3906,6 +3907,11 @@ disable: aBoolean
 disabled
 
 	^ disabled ifNil: [ disabled _ false. ].! !
+
+!DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 17:06'!
+disabledAdvices
+
+	^ #().! !
 
 !DAAspect class methodsFor: 'compiling' stamp: 'as 5/19/2008 17:11'!
 doneCompiling
@@ -4019,7 +4025,7 @@ isPointcut: aMethodOrSymbol meta: aBoolean
 
 	^ aBoolean and: [ self isPointcut: aMethodOrSymbol. ].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/21/2008 11:53'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/21/2008 17:23'!
 isSpecialMethod: aMethodOrSymbol meta: aBoolean
 
 	| selector |
@@ -4027,11 +4033,7 @@ isSpecialMethod: aMethodOrSymbol meta: aBoolean
 	selector _ self selector: aMethodOrSymbol.
 
 	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
-		or: [ aBoolean and: [
-			selector = #pointcutNames or:
-			[ selector = #scope. ] or:
-			[ selector = #level. ]. 
-		]. ].! !
+		or: [ aBoolean and: [ self specialClassMethods includes: selector. ]. ].! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 11:39'!
 level
@@ -4113,7 +4115,7 @@ pointcutsString
 		] separatedBy: [ stream space. ].
 	].! !
 
-!DAAspect class methodsFor: 'advices' stamp: 'as 6/2/2008 14:42'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 7/21/2008 17:16'!
 possibleAdviceNames
 
 	| names |
@@ -4152,6 +4154,11 @@ selector: aMethodOrSymbol
 
 	^ aMethodOrSymbol isSymbol
 		ifTrue: [ aMethodOrSymbol. ] ifFalse: [ aMethodOrSymbol selector. ].! !
+
+!DAAspect class methodsFor: 'private' stamp: 'as 7/21/2008 17:21'!
+specialClassMethods
+
+	^ #(scope level disabledAdvices).! !
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 7/14/2008 10:56'!
 splitAdvice: aMethodOrSymbol
@@ -4833,6 +4840,45 @@ pointcutNames
 insteadNoEnd
 
 	^ 1.! !
+
+DAAspect subclass: #DAStoreExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Examples'!
+
+!DAStoreExample commentStamp: 'as 7/21/2008 16:46' prior: 0!
+The famous sushi store example.!
+
+!DAStoreExample class methodsFor: 'options' stamp: 'as 7/21/2008 17:23'!
+disabledAdvices
+
+	^ #(insteadTitle2).! !
+
+!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:50'!
+pointcutNames
+
+	^ #(title title2).! !
+
+!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:49'!
+title
+
+	^ PC class: WAStore method: #title.! !
+
+!DAStoreExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:51'!
+title2
+
+	^ PC class: self method: #insteadTitle.! !
+
+!DAStoreExample methodsFor: 'advices' stamp: 'as 7/21/2008 16:47'!
+insteadTitle
+
+	^ 'sushiNet (modified)'.! !
+
+!DAStoreExample methodsFor: 'advices' stamp: 'as 7/21/2008 16:51'!
+insteadTitle2
+
+	^ 'sushiNet (modified2)'.! !
 
 DAAspect subclass: #DATranscriptExample
 	instanceVariableNames: ''
