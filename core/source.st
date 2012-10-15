@@ -1109,6 +1109,15 @@ on: aDAPointcut create: aBlock per: scopeSymbol do: selectorSymbol
 		scope: scopeSymbol;
 		yourself.! !
 
+!DAConnector class methodsFor: 'instance creation' stamp: 'as 5/6/2008 16:16'!
+on: aDAPointcut do: aBlock
+
+	^ self new
+		pointcut: aDAPointcut;
+		metaObject: aBlock;
+		selector: aBlock valueSelector;
+		yourself.! !
+
 !DAConnector class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:35'!
 on: aDAPointcut do: aSymbol on: anObject
 
@@ -1170,6 +1179,11 @@ defaultControl
 
 	^ #before.! !
 
+!DAConnector methodsFor: 'accessing' stamp: 'as 5/6/2008 16:18'!
+dependencies
+
+	^ pointcut dependencies.! !
+
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:28'!
 hookScope
 
@@ -1221,6 +1235,23 @@ linksDo: doBlock rollback: rollbackBlock
 		].
 	].! !
 
+!DAConnector methodsFor: 'private' stamp: 'as 5/7/2008 16:49'!
+mergeCondition: aDACondition withContext: aDAContext
+
+	aDACondition ifNil: [
+		aDAContext ifNil: [
+			^ nil.
+		] ifNotNil: [
+			^ aDAContext asCondition.
+		].
+	] ifNotNil: [
+		aDAContext ifNil: [
+			^ aDACondition.
+		] ifNotNil: [
+			^ aDACondition and: aDAContext asCondition.
+		].
+	].! !
+
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
 metaObject
 
@@ -1263,10 +1294,10 @@ metaObjectCreator: aBlock dict: aDictionary
 	mo _ aDictionary.
 	moCreator _ aBlock.! !
 
-!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 11:17'!
+!DAConnector methodsFor: 'private' stamp: 'as 5/7/2008 16:45'!
 newLink: aDAJoinPoint
 
-	| link |
+	| link condition |
 
 	link _ GPLink new
 		selector: selector;
@@ -1274,8 +1305,8 @@ newLink: aDAJoinPoint
 		connector: self;
 		yourself.
 	arguments ifNotNil: [ link arguments: arguments. ].
-	aDAJoinPoint condition ifNotNil: [ link conditionObject: aDAJoinPoint condition. ].
-	aDAJoinPoint context ifNotNil: [ link addOnActiveContext: aDAJoinPoint context. ].
+	condition _ self mergeCondition: aDAJoinPoint condition withContext: aDAJoinPoint context.
+	condition ifNotNil: [ link conditionObject: condition. ].
 	self setMetaObject: mo creator: moCreator for: link.
 	scope ifNotNil: [ link moScope: scope. ].
 	
@@ -1297,14 +1328,15 @@ reinstall
 
 	self uninstall; install.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 13:56'!
+!DAConnector methodsFor: 'installing' stamp: 'as 5/7/2008 17:02'!
 reset
 
 	| reinstall |
 
+	reinstall _ false.
 	self isInstalled ifTrue: [ self uninstall. reinstall _ true. ].
-	links removeAll.
-	self initializeMoDict.
+	links _ Dictionary new.
+	mo isDictionary ifTrue: [ mo _ Dictionary new. ].
 	pointcut reset.
 	reinstall ifTrue: [ self install. ].! !
 
@@ -1465,6 +1497,14 @@ and: aDAContextOrActiveContextClass
 
 	^ self current and: aDAContextOrActiveContextClass.! !
 
+!DAActiveContext class methodsFor: 'converting' stamp: 'as 5/7/2008 16:40'!
+asCondition
+
+	| processor |
+	
+	processor _ self processor.
+	^ DABlockCondition block: [ processor current isActive. ].! !
+
 !DAActiveContext class methodsFor: 'instance creation' stamp: 'as 4/30/2008 16:35'!
 current
 
@@ -1591,20 +1631,10 @@ children: aCollection
 
 	children _ aCollection.! !
 
-!DAComposedContext methodsFor: 'composing' stamp: 'as 4/18/2008 13:54'!
-current
-
-	^ self.! !
-
 !DAComposedContext methodsFor: 'initialize-release' stamp: 'as 4/8/2008 16:57'!
 initialize
 
 	children _ Set new.! !
-
-!DAComposedContext methodsFor: 'composing' stamp: 'as 4/18/2008 13:53'!
-processor
-
-	^ self.! !
 
 DAComposedContext subclass: #DANotContext
 	instanceVariableNames: ''
@@ -1655,6 +1685,14 @@ and: aDAContextOrActiveContextClass
 	^ DAAndContext contexts:
 		{ self processor. aDAContextOrActiveContextClass processor. }.! !
 
+!DAContext methodsFor: 'converting' stamp: 'as 5/7/2008 16:39'!
+asCondition
+
+	| processor |
+	
+	processor _ self processor.
+	^ DABlockCondition block: [ processor current isActive. ].! !
+
 !DAContext methodsFor: 'composing' stamp: 'as 5/5/2008 10:37'!
 current
 
@@ -1681,10 +1719,10 @@ or: aDAContextOrActiveContextClass
 	^ DAOrContext contexts:
 		{ self processor. aDAContextOrActiveContextClass processor. }.! !
 
-!DAContext methodsFor: 'composing' stamp: 'as 5/5/2008 10:37'!
+!DAContext methodsFor: 'composing' stamp: 'as 5/7/2008 14:30'!
 processor
 
-	"Something that when called #current will return the instance for the current process."
+	"Something that when called #current will return the instance for the current scope."
 
 	^ self.! !
 
@@ -1702,20 +1740,6 @@ DAContext subclass: #DAFlowContext
 !DAFlowContext commentStamp: 'as 4/22/2008 14:26' prior: 0!
 A context that is active if execution has entered a certain method and is at a certain nesting level of that method. Instances can only be created for specific methods.!
 
-!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/5/2008 10:28'!
-in: aDAPointcut
-
-	^ self in: aDAPointcut min: 1 max: 1.! !
-
-!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/5/2008 10:31'!
-in: aDAPointcut min: minNumber max: maxNumber
-
-	^ self new
-		pointcut: aDAPointcut;
-		min: minNumber;
-		max: maxNumber;
-		yourself.! !
-
 !DAFlowContext class methodsFor: 'initialize-release' stamp: 'as 5/5/2008 11:43'!
 initialize
 
@@ -1724,7 +1748,21 @@ initialize
 	super initialize.
 	(Process allInstVarNames includes: 'flow') ifFalse: [ Process addInstVarName: 'flow'. ].! !
 
-!DAFlowContext methodsFor: 'testing' stamp: 'as 5/5/2008 11:32'!
+!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/7/2008 14:35'!
+pointcut: aDAPointcut
+
+	^ self pointcut: aDAPointcut min: 1 max: 1.! !
+
+!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/7/2008 14:35'!
+pointcut: aDAPointcut min: minNumber max: maxNumber
+
+	^ self new
+		pointcut: aDAPointcut;
+		min: minNumber;
+		max: maxNumber;
+		yourself.! !
+
+!DAFlowContext methodsFor: 'testing' stamp: 'as 5/7/2008 15:09'!
 isActive
 
 	| count |
@@ -1756,8 +1794,16 @@ Object subclass: #DAExamples
 !DAExamples commentStamp: 'as 4/23/2008 13:45' prior: 0!
 Examples to test aspects, connectors and links on.!
 
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/6/2008 16:13'!
+inner! !
+
 !DAExamples class methodsFor: 'examples' stamp: 'as 4/4/2008 15:04'!
 noop! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/6/2008 16:14'!
+outer
+
+	self inner.! !
 
 Object subclass: #DAFilter
 	instanceVariableNames: 'negated'
@@ -1954,7 +2000,7 @@ value: anObject
 	value _ anObject.! !
 
 Object subclass: #DAJoinPoint
-	instanceVariableNames: 'condition context filters cache'
+	instanceVariableNames: 'condition context filters cache dependencies'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -1962,14 +2008,15 @@ Object subclass: #DAJoinPoint
 !DAJoinPoint commentStamp: 'as 4/23/2008 13:25' prior: 0!
 References the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
 
-!DAJoinPoint methodsFor: 'composing' stamp: 'as 4/7/2008 15:56'!
+!DAJoinPoint methodsFor: 'composing' stamp: 'as 5/6/2008 17:27'!
 and: aDAJoinPoint
 
 	| jp |
 	
 	jp _ self class new.
-	jp condition: (self combineCondition: jp).
-	jp context: (self combineContext: jp).
+	jp condition: (self combineCondition: aDAJoinPoint).
+	jp context: (self combineContext: aDAJoinPoint).
+	jp dependencies: self dependencies, aDAJoinPoint dependencies.
 	self keys do: [
 		:key |
 		jp filtersAt: key put: (self filtersAt: key), (aDAJoinPoint filtersAt: key).
@@ -2057,10 +2104,10 @@ context
 
 	^ context.! !
 
-!DAJoinPoint methodsFor: 'accessing' stamp: 'as 4/7/2008 15:54'!
-context: aContext
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 5/7/2008 16:28'!
+context: aDAContext
 
-	context _ aContext.! !
+	context _ aDAContext.! !
 
 !DAJoinPoint methodsFor: 'defaults' stamp: 'as 4/30/2008 16:06'!
 defaultFiltersAt: aSymbol
@@ -2075,6 +2122,16 @@ defaultFiltersAt: aSymbol
 defaultOrFiltersAt: aSymbol
 
 	^ (filters at: aSymbol) selfIfEmpty: [ self defaultFiltersAt: aSymbol. ].! !
+
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 5/6/2008 17:25'!
+dependencies
+
+	^ dependencies.! !
+
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 5/6/2008 17:25'!
+dependencies: aCollection
+
+	dependencies _ aCollection.! !
 
 !DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/4/2008 17:55'!
 filter: aSymbol
@@ -2168,11 +2225,12 @@ hasContext
 
 	^ context notNil.! !
 
-!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:01'!
+!DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 5/6/2008 17:25'!
 initialize
 
 	filters _ Dictionary new.
 	cache _ Dictionary new.
+	dependencies _ Set new.
 	self initializeFilters.
 	self initializeCache.! !
 
@@ -2228,8 +2286,8 @@ Object subclass: #DAPointcut
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAPointcut commentStamp: 'as 1/17/2008 14:11' prior: 0!
-Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
+!DAPointcut commentStamp: 'as 5/7/2008 15:04' prior: 0!
+Pointcuts describe a set of join points.!
 
 DAPointcut subclass: #DACompositePointcut
 	instanceVariableNames: 'children'
@@ -2466,30 +2524,32 @@ DAPointcut subclass: #DAContextPointcut
 	poolDictionaries: ''
 	category: 'DA-Pointcuts'!
 
-!DAContextPointcut commentStamp: 'as 4/7/2008 15:20' prior: 0!
-Describes contextual attributes.!
+!DAContextPointcut commentStamp: 'as 5/7/2008 16:31' prior: 0!
+Conditional attributes in form of contexts.!
 
-!DAContextPointcut class methodsFor: 'instance creation' stamp: 'as 4/7/2008 16:53'!
-context: aContext
+!DAContextPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 16:32'!
+context: aDAContext
 
-	^ self new context: aContext; yourself.! !
+	^ self new
+		context: aDAContext;
+		yourself.! !
 
-!DAContextPointcut methodsFor: 'accessing' stamp: 'as 4/7/2008 15:22'!
+!DAContextPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 16:32'!
 context
 
 	^ context.! !
 
-!DAContextPointcut methodsFor: 'accessing' stamp: 'as 4/8/2008 17:18'!
+!DAContextPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 16:32'!
 context: aDAContext
 
 	context _ aDAContext.! !
 
-!DAContextPointcut methodsFor: 'negating' stamp: 'as 4/8/2008 17:20'!
+!DAContextPointcut methodsFor: 'negating' stamp: 'as 5/7/2008 17:10'!
 not
 
 	context _ context not.! !
 
-!DAContextPointcut methodsFor: 'visiting' stamp: 'as 4/7/2008 15:21'!
+!DAContextPointcut methodsFor: 'visiting' stamp: 'as 5/7/2008 16:31'!
 visitName
 
 	^ 'context'.! !
@@ -2616,6 +2676,11 @@ connectors: aCollection
 	^ self new
 		connectors: aCollection;
 		yourself.! !
+
+!DADependencyPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 17:14'!
+connectors
+
+	^ connectors.! !
 
 !DADependencyPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 15:04'!
 connectors: aCollection
@@ -2814,7 +2879,7 @@ classWithBehavior: aClass
 		class includesBehavior: classDescr classObject.
 	].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/8/2008 17:19'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 16:35'!
 context: aDAContext
 
 	^ DAContextPointcut context: aDAContext.! !
@@ -2852,12 +2917,12 @@ fieldWrite: aString
 		].
 	].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 15:24'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 14:35'!
 flow: aDAPointcut
 
 	| context connectors |
 	
-	context _ DAFlowContext in: aDAPointcut.
+	context _ DAFlowContext pointcut: aDAPointcut.
 	connectors _ {
 		DAFlow before: aDAPointcut.
 		DAFlow after: aDAPointcut.
@@ -2997,10 +3062,10 @@ properties
 
 	^ properties ifNil: [ properties _ Dictionary new. ].! !
 
-!DAPointcut methodsFor: 'caching' stamp: 'as 4/29/2008 17:01'!
+!DAPointcut methodsFor: 'caching' stamp: 'as 5/6/2008 17:18'!
 reset
 
-	evaluator ifNotNil: [ evaluator reset. ].! !
+	self evaluator reset.! !
 
 !DAPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:00'!
 visitName
@@ -3013,7 +3078,7 @@ visitName
 	^ self or: aDAPointcut.! !
 
 Object subclass: #DAPointcutEvaluator
-	instanceVariableNames: 'joinPoints dependencies stack'
+	instanceVariableNames: 'joinPoints stack'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -3021,16 +3086,24 @@ Object subclass: #DAPointcutEvaluator
 !DAPointcutEvaluator commentStamp: 'as 4/23/2008 13:43' prior: 0!
 Goes over a pointcut structure and evaluates the corresponding join points for it.!
 
+!DAPointcutEvaluator methodsFor: 'accessing' stamp: 'as 5/6/2008 17:37'!
+dependencies
+
+	self hasEvaluated ifTrue: [
+		^ joinPoints inject: Set new into: [ :set :jp | set, jp dependencies. ].
+	] ifFalse: [
+		^ #().
+	].! !
+
 !DAPointcutEvaluator methodsFor: 'testing' stamp: 'as 3/31/2008 15:18'!
 hasEvaluated
 
 	^ joinPoints notNil.! !
 
-!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 5/5/2008 17:08'!
+!DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 5/6/2008 17:43'!
 initialize
 
 	joinPoints _ nil.
-	dependencies _ Set new.
 	stack _ Stack new.! !
 
 !DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
@@ -3081,32 +3154,35 @@ visitAnd: pc
 		].
 	].! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/29/2008 18:06'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitCategory: pc
 
-	joinPoints add: (DAJoinPoint new category: pc asFilter).! !
+	joinPoints add: (DAJoinPoint new category: pc asFilter; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/29/2008 18:06'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitClass: pc
 
-	joinPoints add: (DAJoinPoint new class: pc asFilter).! !
+	joinPoints add: (DAJoinPoint new class: pc asFilter; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:15'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:29'!
 visitCondition: pc
 
-	joinPoints add: (DAJoinPoint new condition: pc condition).! !
+	joinPoints add: (DAJoinPoint new condition: pc condition; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/8/2008 17:19'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitContext: pc
 
-	joinPoints add: (DAJoinPoint new context: pc context).! !
+	joinPoints add: (DAJoinPoint new context: pc context; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/6/2008 14:57'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/6/2008 17:30'!
 visitDependency: pc
 
+	| jp |
+	jp _ DAJoinPoint new.
 	pc isNegated ifFalse: [
-		dependencies addAll: pc connectors.
-	].! !
+		jp dependencies: pc connectors.
+	].
+	joinPoints add: jp.! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/28/2008 14:22'!
 visitEmpty: pc
@@ -3125,15 +3201,15 @@ visitFilter: pc
 	].
 	joinPoints add: jp.! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/29/2008 18:06'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitMethod: pc
 
-	joinPoints add: (DAJoinPoint new method: pc asFilter).! !
+	joinPoints add: (DAJoinPoint new method: pc asFilter; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/29/2008 18:06'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitNode: pc
 
-	joinPoints add: (DAJoinPoint new node: pc asFilter).! !
+	joinPoints add: (DAJoinPoint new node: pc asFilter; yourself).! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:16'!
 visitOr: pc
@@ -3451,11 +3527,6 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
-!GPLink methodsFor: '*DA' stamp: 'as 4/28/2008 13:31'!
-install
-
-	! !
-
 !GPLink methodsFor: '*DA' stamp: 'as 4/21/2008 15:19'!
 noScope
 
@@ -3466,26 +3537,26 @@ flow
 
 	^ flow ifNil: [ flow _ Dictionary new. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
 flowAt: aDAPointcut
 
-	^ self cflowCounters at: aDAPointcut ifAbsent: [ 0. ].! !
+	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
 
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:31'!
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
 flowInto: aDAPointcut
 
 	| count |
 
-	count _ self cflowCounters at: aDAPointcut asDescription ifAbsentPut: [ 0. ].
-	self cflowCounters at: aDAPointcut asDescription put: count + 1.! !
+	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
+	self flow at: aDAPointcut put: count + 1.! !
 
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:31'!
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
 flowOutOf: aDAPointcut
 
 	| count |
 
-	count _ self cflowCounters at: aDAPointcut asDescription.
-	self cflowCounters at: aDAPointcut asDescription put: count - 1.! !
+	count _ self flow at: aDAPointcut.
+	self flow at: aDAPointcut put: count - 1.! !
 
 !Browser methodsFor: '*DA' stamp: 'as 5/2/2008 10:25'!
 defineClass: defString notifying: aController  
