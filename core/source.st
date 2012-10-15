@@ -4105,8 +4105,8 @@ DAProtoAspect subclass: #DAAspect
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
 
-!DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
-Combines several pointcuts and advices by hosting multiple connectors.!
+!DAAspect commentStamp: 'as 8/26/2008 21:22' prior: 0!
+An aspect combines several pointcuts and advices. To create any aspects, subclass me.!
 
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
