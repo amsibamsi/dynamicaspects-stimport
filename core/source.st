@@ -83,6 +83,304 @@ method: aMethod
 	self class: aMethod methodClass.
 	methodName _ aMethod selector.! !
 
+Object subclass: #DACondition
+	instanceVariableNames: 'negated'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Geppetto'!
+
+!DACondition commentStamp: 'as 3/7/2008 09:48' prior: 0!
+Extends GPCondition by the ability to combine multiple block conditions.!
+
+DACondition subclass: #DAAndCondition
+	instanceVariableNames: 'left right'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Geppetto'!
+
+!DAAndCondition commentStamp: 'as 3/7/2008 10:46' prior: 0!
+Combines two conditions with a logical 'and'.!
+
+!DAAndCondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 13:42'!
+with: aDACondition1 with: aDACondition2
+
+	^ self new condition: aDACondition1 condition: aDACondition2; yourself.! !
+
+!DAAndCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:25'!
+andMessage
+
+	^ #and:.! !
+
+!DAAndCondition methodsFor: 'private' stamp: 'as 3/10/2008 16:56'!
+args: anArray forCond: aDACondition
+
+	^ (aDACondition arguments inject: OrderedCollection new into: [
+		:col :arg |
+		col add: (anArray at: (self arguments indexOf: arg)).
+		col.
+	]) asArray.! !
+
+!DAAndCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 15:57'!
+arguments
+
+	| args |
+
+	args _ left arguments asOrderedCollection.
+	right arguments do: [ :arg | (args includes: arg) ifFalse: [ args add: arg. ]. ].
+	^ args.! !
+
+!DAAndCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 13:55'!
+condition: aDACondition1 condition: aDACondition2
+
+	left _ aDACondition1.
+	right _ aDACondition2.! !
+
+!DAAndCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:36'!
+doValue
+
+	^ left value perform: self andMessage with: right value.! !
+
+!DAAndCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 16:23'!
+doValueWithArguments: anArray
+	
+	^ (self valueForCond: left args: anArray)
+		perform: self andMessage
+		with: (self valueForCond: right args: anArray).! !
+
+!DAAndCondition methodsFor: 'initialize-release' stamp: 'as 3/10/2008 15:50'!
+initialize
+
+	super initialize.! !
+
+!DAAndCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:00'!
+numArgs
+
+	^ self arguments size.! !
+
+!DAAndCondition methodsFor: 'private' stamp: 'as 3/10/2008 16:26'!
+valueForCond: aDACondition args: anArray
+
+	| args |
+	
+	args _ self args: anArray forCond: aDACondition.
+	args isEmpty ifTrue: [
+		^ aDACondition value.
+	] ifFalse: [
+		^ aDACondition valueWithArguments: args.
+	].! !
+
+DACondition subclass: #DABlockCondition
+	instanceVariableNames: 'block arguments'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Geppetto'!
+
+!DABlockCondition commentStamp: 'as 3/7/2008 10:45' prior: 0!
+Contains a single block as condition.!
+
+!DABlockCondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 14:43'!
+block: aBlock
+
+	^ self block: aBlock arguments: nil.! !
+
+!DABlockCondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 14:44'!
+block: aBlock arguments: args
+
+	^ self new block: aBlock; arguments: args; yourself.! !
+
+!DABlockCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:51'!
+arguments
+
+	^ arguments ifNil: [ block blockArgNames. ].! !
+
+!DABlockCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:50'!
+arguments: args
+
+	arguments _ args.! !
+
+!DABlockCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:45'!
+block: aBlock
+
+	block _ aBlock.! !
+
+!DABlockCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:52'!
+doValue
+
+	^ block value.! !
+
+!DABlockCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:52'!
+doValueWithArguments: anArray
+
+	^ block valueWithArguments: anArray.! !
+
+!DABlockCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:51'!
+numArgs
+
+	^ block numArgs.! !
+
+DACondition subclass: #DABooleanCondition
+	instanceVariableNames: 'value'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Geppetto'!
+
+!DABooleanCondition commentStamp: 'as 3/10/2008 13:40' prior: 0!
+Contains a single boolean value as condition.!
+
+!DABooleanCondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 14:54'!
+value: aBoolean
+
+	^ self new value: aBoolean; yourself.! !
+
+!DABooleanCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:55'!
+arguments
+
+	^ #().! !
+
+!DABooleanCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:55'!
+doValue
+
+	^ value.! !
+
+!DABooleanCondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:56'!
+doValueWithArguments: anArray
+
+	^ self doValue.! !
+
+!DABooleanCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:55'!
+numArgs
+
+	^ 0.! !
+
+!DABooleanCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:54'!
+value: aBoolean
+
+	value _ aBoolean.! !
+
+!DACondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 15:20'!
+with: aBlockOrBoolean
+
+	^ self with: aBlockOrBoolean arguments: nil.! !
+
+!DACondition class methodsFor: 'instance creation' stamp: 'as 3/10/2008 16:17'!
+with: aBlockOrBoolean arguments: args
+
+	aBlockOrBoolean isBlock ifTrue: [
+		^ DABlockCondition block: aBlockOrBoolean arguments: args.
+	].
+
+	aBlockOrBoolean isBoolean ifTrue: [
+		args ifNotNil: [ self error: 'a boolean condition can''t take arguments'. ].
+		^ DABooleanCondition value: aBlockOrBoolean.
+	].
+
+	self error: 'condition must either be a block or a boolean value'.! !
+
+!DACondition methodsFor: 'composing' stamp: 'as 3/7/2008 10:00'!
+and: aDACondition
+
+	^ DAAndCondition with: self with: aDACondition.! !
+
+!DACondition methodsFor: 'accessing' stamp: 'as 3/7/2008 10:18'!
+arguments
+
+	self subclassResponsibility.! !
+
+!DACondition methodsFor: 'pretending' stamp: 'as 3/10/2008 15:01'!
+blockArgNames
+
+	^ self arguments.! !
+
+!DACondition methodsFor: 'accessing' stamp: 'as 3/7/2008 10:17'!
+condition
+
+	"Disables inlining in GPTransformer."
+
+	^ self.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:35'!
+doValue
+
+	self subclassResponsibility.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:35'!
+doValueWithArguments: anArray
+
+	self subclassResponsibility.! !
+
+!DACondition methodsFor: 'initialize-release' stamp: 'as 2/8/2008 10:21'!
+initialize
+
+	negated _ false.! !
+
+!DACondition methodsFor: 'pretending' stamp: 'as 3/10/2008 15:01'!
+isBlock
+
+	^ true.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:34'!
+negatedValue: aBoolean
+
+	^ aBoolean xor: negated.! !
+
+!DACondition methodsFor: 'negating' stamp: 'as 2/8/2008 10:21'!
+not
+
+	negated _ negated not.! !
+
+!DACondition methodsFor: 'accessing' stamp: 'as 3/7/2008 10:17'!
+numArgs
+
+	self subclassResponsibility.! !
+
+!DACondition methodsFor: 'accessing' stamp: 'as 1/24/2008 12:15'!
+reifications
+
+	^ self arguments.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:35'!
+value
+
+	^ self negatedValue: self doValue.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 13:33'!
+value: anObject
+
+	^ self valueWithArguments: { anObject. }.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 13:34'!
+value: anObjectA value: anObjectB
+
+	^ self valueWithArguments: { anObjectA. anObjectB. }.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 13:34'!
+value: anObjectA value: anObjectB value: anObjectC
+
+	^ self valueWithArguments: { anObjectA. anObjectB. anObjectC. }.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 13:34'!
+value: anObjectA value: anObjectB value: anObjectC value: anObjectD
+
+	^ self valueWithArguments: { anObjectA. anObjectB. anObjectC. anObjectD. }.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:17'!
+valueSelector
+
+	self numArgs = 0 ifTrue: [ ^ #value. ].
+	
+	^ (String streamContents: [
+		:stream | 
+		stream nextPutAll: 'value:'.
+		(self numArgs - 1) timesRepeat: [
+			stream nextPutAll: 'value:'
+		].
+	]) asSymbol.! !
+
+!DACondition methodsFor: 'evaluating' stamp: 'as 3/10/2008 14:35'!
+valueWithArguments: anArray
+
+	^ self negatedValue: (self doValueWithArguments: anArray).! !
+
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -646,10 +944,10 @@ condition: aBlockOrBoolean
 
 	condition _ DACondition with: aBlockOrBoolean.! !
 
-!DAConditionPointcut methodsFor: 'designating' stamp: 'as 1/24/2008 16:55'!
-condition: aBlockOrBoolean arguments: aCollection
+!DAConditionPointcut methodsFor: 'designating' stamp: 'as 3/10/2008 15:09'!
+condition: aBlockOrBoolean arguments: args
 
-	condition _ DACondition with: aBlockOrBoolean arguments: aCollection.! !
+	condition _ DACondition with: aBlockOrBoolean arguments: args.! !
 
 !DAConditionPointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 10:40'!
 not
@@ -691,13 +989,13 @@ method: aMethod level: anInteger
 	anInteger > 1 ifFalse: [ self error: 'the nesting level must be greater than 1'. ].
 	^ self new method: aMethod level: anInteger; yourself.! !
 
-!DAControlFlowPointcut methodsFor: 'private' stamp: 'as 2/4/2008 10:43'!
+!DAControlFlowPointcut methodsFor: 'private' stamp: 'as 3/10/2008 17:01'!
 conditionBlock
 
 	^ [
-		:args |
+		:context |
 		| context m nesting result |
-		context _ (args at: #context) sender.
+		context _ context sender.
 		m _ self method.
 		nesting _ 1.
 		result _ false.
@@ -1426,123 +1724,10 @@ uninstall
 
 	self subclassResponsibility.! !
 
-GPCondition subclass: #DACondition
-	instanceVariableNames: 'negated'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+!GPCondition class methodsFor: '*DA' stamp: 'as 3/6/2008 15:26'!
+condition: aBooleanOrBlock arguments: args
 
-!DACondition commentStamp: 'as 2/4/2008 10:35' prior: 0!
-Used instead of GPCondition. The GPTransformer will pass a single argument, which contains all reification arguments in a dictionary. This allows easier combination of blocks and thus conditions. It is difficult to combine blocks with variable number of arguments.!
-
-!DACondition class methodsFor: 'instance creation' stamp: 'as 1/24/2008 12:24'!
-with: aBlockOrBoolean
-
-	^ self with: aBlockOrBoolean arguments: nil.! !
-
-!DACondition class methodsFor: 'instance creation' stamp: 'as 1/21/2008 11:47'!
-with: aBlockOrBoolean arguments: aCollection
-
-	^ self new
-		condition: aBlockOrBoolean;
-		arguments: aCollection;
-		yourself.! !
-
-!DACondition methodsFor: 'composing' stamp: 'as 2/8/2008 10:26'!
-and: aDACondition
-
-	(self condition = true) | (aDACondition condition = false) ifTrue: [ ^ aDACondition. ].
-	(aDACondition condition = true) | (self condition = false) ifTrue: [ ^ self. ].
-	^ self combineWith: aDACondition using: #&.! !
-
-!DACondition methodsFor: 'accessing' stamp: 'as 2/4/2008 10:32'!
-arguments
-
-	arguments ifNotNil: [ ^ arguments. ].
-	^ #().! !
-
-!DACondition methodsFor: 'private' stamp: 'as 1/24/2008 11:56'!
-combineBlock: firstBlock args: firstCollection withBlock: secondBlock args: secondCollection using: aSymbol
-
-	^ [
-		:args |
-		| args1 args2 |
-		
-		args1 _ args associationsSelect: [ :asc | firstCollection includes: asc key. ].
-		args2 _ args associationsSelect: [ :asc | secondCollection includes: asc key. ].
-		(firstBlock value: args1) perform: aSymbol with: (secondBlock value: args2).
-	].! !
-
-!DACondition methodsFor: 'private' stamp: 'as 1/27/2008 19:09'!
-combineWith: aDACondition using: aSymbol
-
-	| block args |
-	
-	block _ self
-		combineBlock: condition
-		args: self arguments
-		withBlock: aDACondition condition
-		args: aDACondition arguments
-		using: aSymbol.
-	args _ self arguments union: aDACondition arguments.
-	^ self class with: block arguments: args.! !
-
-!DACondition methodsFor: 'accessing' stamp: 'as 2/8/2008 10:25'!
-condition
-
-	negated ifTrue: [ ^ self negatedCondition. ].
-	^ condition.! !
-
-!DACondition methodsFor: 'testing' stamp: 'as 1/24/2008 12:16'!
-hasArguments
-
-	^ arguments notNil.! !
-
-!DACondition methodsFor: 'initialize-release' stamp: 'as 2/8/2008 10:21'!
-initialize
-
-	negated _ false.! !
-
-!DACondition methodsFor: 'private' stamp: 'as 2/11/2008 17:01'!
-negatedCondition
-
-	condition isBoolean ifTrue: [ ^ condition not. ].
-	^ [ :args | (condition value: args) not. ].! !
-
-!DACondition methodsFor: 'negating' stamp: 'as 2/8/2008 10:21'!
-not
-
-	negated _ negated not.! !
-
-!DACondition methodsFor: 'accessing' stamp: 'as 1/24/2008 12:15'!
-reifications
-
-	^ self arguments.! !
-
-!DACondition methodsFor: 'evaluating' stamp: 'as 2/11/2008 17:07'!
-value
-
-	^ self condition value.! !
-
-!DACondition methodsFor: 'evaluating' stamp: 'as 2/11/2008 17:07'!
-value: anObject
-
-	^ self condition value: anObject.! !
-
-!DACondition methodsFor: 'evaluating' stamp: 'as 2/11/2008 17:08'!
-value: anObjectA value: anObjectB
-
-	^ self condition value: anObjectA value: anObjectB.! !
-
-!DACondition methodsFor: 'evaluating' stamp: 'as 2/11/2008 17:08'!
-value: anObjectA value: anObjectB value: anObjectC
-
-	^ self condition value: anObjectA value: anObjectB value: anObjectC.! !
-
-!DACondition methodsFor: 'evaluating' stamp: 'as 2/11/2008 17:08'!
-value: anObjectA value: anObjectB value: anObjectC value: anObjectD
-
-	^ self condition value: anObjectA value: anObjectB value: anObjectC value: anObjectD.! !
+	^ self new condition: aBooleanOrBlock; arguments: args; yourself.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 12/12/2007 15:55'!
 aspect
@@ -1555,97 +1740,20 @@ aspect: aDAAspect
 
 	self properties at: #aspect put: aDAAspect.! !
 
-!GPLink methodsFor: '*DA' stamp: 'as 1/25/2008 11:58'!
-conditionObject: aGPCondition
+!GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
+conditionObject: aDACondition
 
-	condition _ aGPCondition.! !
-
-!GPTransformer methodsFor: '*DA' stamp: 'as 1/14/2008 16:28'!
-genConditionArgumentsFor: aCollection
-
-	| messages dictionary |
-	
-	messages _ OrderedCollection new.
-	dictionary _ RBMessageNode
-		receiver: (RBGlobalVariableNode named: 'Dictionary')
-		selector: #new.
-	aCollection do: [
-		:reification |
-		| arguments |
-		arguments _ OrderedCollection new.
-		arguments add: (RBLiteralNode value: reification).
-		arguments add: (table at: reification).
-		messages add: (
-			RBMessageNode
-				receiver: dictionary
-				selector: #at:put:
-				arguments: arguments
-		).
-	].
-	messages add: (RBMessageNode receiver: dictionary selector: #yourself).
-	^ OrderedCollection new add: (RBCascadeNode messages: messages); yourself.! !
-
-!GPTransformer methodsFor: '*DA' stamp: 'as 1/21/2008 08:52'!
-transform
-	"Main transformation method"
-
-	| newNode |
-	(link isInlineCondition and: [link condition condition = false]) ifTrue: [^self]. "nothing to do..."
-	self setupTable.
-	link hasCondition ifFalse: [self addPreamble: node].
-	self genInitialHook.
-	self patchArguments.
-	(link condition isKindOf: DACondition) ifTrue: [
-		self wrapSingleArgCondition.
-	] ifFalse: [
-		self wrapCondition.
-	].
-	self wrapContext.
-	link requestsContinuation ifTrue: [self wrapContinuation].
-	link requestsResult ifTrue: [self wrapResult].
-	newNode _ self insertCode.
-	newNode ifNotNil: [node _ newNode].! !
-
-!GPTransformer methodsFor: '*DA' stamp: 'as 1/21/2008 08:53'!
-wrapSingleArgCondition
-	
-	|  ifSelector ifArguments condReceiver condSelector condArguments blockBody blockBody2 |
-	
-	link hasCondition ifFalse: [^self]. "no condition"
-	(link isInlineCondition and: [link condition condition = true]) ifTrue: [^self].  "no condition needed"
-	
-	condReceiver _ (link isInlineCondition ifTrue: [link condition condition] ifFalse: [link]) asLiteralNode.
-	condSelector _ self genSelectorFor: link condition condition.
-	
-	(condSelector numArgs = 0) ifTrue: [condArguments  _ #()].
-	(condSelector numArgs > 0) ifTrue: [
-			condArguments _ self genConditionArgumentsFor: link condition reifications.
-	].
-													
-	ifSelector _  link isInstead ifTrue: [#ifTrue:ifFalse:] ifFalse:[#ifTrue:].
-	
-	blockBody _ hook asSequenceNode.
-	self addPreamble: hook.
-	
-	blockBody2 _ (node isKindOf: RBMethodNode) ifTrue: [node body] ifFalse: [node copy asSequenceNode].
-	
-	ifArguments _ link isInstead
-				ifTrue: [{RBBlockNode body: blockBody. RBBlockNode body: blockBody2 }]
-				ifFalse: [{RBBlockNode body: blockBody}].		
-	
-	hook _ RBMessageNode
-			receiver: (RBMessageNode 
-							receiver: condReceiver
-							selector: condSelector
-							arguments: condArguments)
-			selector: ifSelector
-			arguments: ifArguments.
-	! !
+	condition _ aDACondition.! !
 
 !Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
+and: aBlock
+
+	^ DACombinedBlock block: self block: aBlock message: #and:.! !
 
 TestCase subclass: #DAAndPointcutTest
 	instanceVariableNames: 'pointcut'
@@ -1938,45 +2046,41 @@ setUp
 	falseCond _ DACondition with: false.
 	blockCond _ DACondition with: [ :args | true. ].! !
 
-!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 19:28'!
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/10/2008 16:49'!
 testCombiningBlocks
 
-	| cond1 cond2 combCond blockArgs |
+	| cond1 cond2 combCond |
 	
 	cond1 _ DACondition
-		with: [ :args | args includesKey: #arg1. ]
+		with: [ :arg1 | arg1 = 1. ]
 		arguments: #(arg1).
 	cond2 _ DACondition
-		with: [ :args | args includesKey: #arg2. ]
+		with: [ :arg2 | arg2 = 2. ]
 		arguments: #(arg2).
 	combCond _ cond1 and: cond2.
 	self assert: combCond arguments size = 2.
 	self assert: (combCond arguments includes: #arg1).
 	self assert: (combCond arguments includes: #arg2).
-	blockArgs _ Dictionary new at: #arg1 put: nil; at: #arg2 put: nil; yourself.
-	self assert: (combCond value: blockArgs).! !
+	self assert: (combCond value: 1 value: 2).! !
 
-!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 18:58'!
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/10/2008 16:07'!
 testCombiningBooleanWithBlock
 
 	| combCond |
 	
 	blockCond arguments: #(object class).
 	combCond _ trueCond and: blockCond.
-	self assert: combCond arguments = blockCond arguments.
-	self assert: combCond condition = blockCond condition.
-	combCond _ blockCond and: falseCond.
-	self assert: combCond condition = false.! !
+	self assert: combCond arguments asArray = blockCond arguments asArray.! !
 
-!DAConditionTest methodsFor: 'testing' stamp: 'as 1/27/2008 17:56'!
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/10/2008 16:07'!
 testCombiningBooleans
 
-	self assert: (trueCond and: falseCond) condition = false.
-	self assert: (falseCond and: trueCond) condition = false.
-	self assert: (falseCond and: falseCond) condition = false.
-	self assert: (trueCond and: trueCond) condition = true.! !
+	self assert: (trueCond and: falseCond) value = false.
+	self assert: (falseCond and: trueCond) value = false.
+	self assert: (falseCond and: falseCond) value = false.
+	self assert: (trueCond and: trueCond) value = true.! !
 
-!DAConditionTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:52'!
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/10/2008 16:56'!
 testDeployment
 
 	| link asserted condition |
@@ -1985,7 +2089,7 @@ testDeployment
 	self cleanup: link.
 	link before.
 	condition _ DACondition
-		with: [ :args | (args at: #object) = DAExamples. ]
+		with: [ :object | object = DAExamples. ]
 		arguments: #(object).
 	link conditionObject: condition.
 	link hookOn: (DAExamples class >> #exampleCondition) reflectiveMethod methodNode.
