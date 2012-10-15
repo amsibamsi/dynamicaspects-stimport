@@ -3573,6 +3573,21 @@ hasParent
 
 	^ parent notNil.! !
 
+!DAPointcut methodsFor: 'composing' stamp: 'as 7/21/2008 11:18'!
+in: aDAPointcut
+
+	^ self and: (self class flow: aDAPointcut).! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 7/21/2008 11:19'!
+in: aDAPointcut min: aNumber
+
+	^ self and: (self class flow: aDAPointcut min: aNumber).! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 7/21/2008 11:19'!
+in: aDAPointcut min: minNumber max: maxNumber
+
+	^ self and: (self class flow: aDAPointcut min: minNumber max: maxNumber).! !
+
 !DAPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 17:24'!
 joinPoints
 
