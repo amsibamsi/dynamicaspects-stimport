@@ -7,6 +7,23 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
+keywordArgumentPairs
+
+	| pairs |
+	
+	pairs _ Dictionary new.
+	self keywords withIndexDo: [
+		:key :index |
+		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
+	].
+	^ pairs.! !
+
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
+keywords
+
+	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
+
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -25,17 +42,10 @@ deregisterLocalSelector: aSymbol
 	self basicLocalSelectors notNil ifTrue: [
 		self basicLocalSelectors remove: aSymbol ifAbsent: []]! !
 
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+	^ self method parent.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -56,11 +66,6 @@ isAdvice
 isPointcut
 
 	^ self reflectiveMethod isPointcut.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
 
 TestCase subclass: #DAAdviceTest
 	instanceVariableNames: 'advice'
@@ -230,275 +235,6 @@ unequal
 
 	<advice: #p control: #c arguments: #(a b c) disabled: true>
 	<advice: #p control: #c arguments: #(a b d) disabled: true>! !
-
-TestCase subclass: #DAAspectContextTest
-	instanceVariableNames: 'aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectContextTest commentStamp: 'as 7/16/2008 15:48' prior: 0!
-Testing contexts in combination with aspects.!
-
-!DAAspectContextTest methodsFor: 'initialize-release' stamp: 'as 7/16/2008 15:51'!
-initialize
-
-	super initialize.
-	aspect _ DAAspectContextExample.! !
-
-!DAAspectContextTest methodsFor: 'running' stamp: 'as 7/16/2008 15:51'!
-setUp
-
-	aspect reset.! !
-
-!DAAspectContextTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:52'!
-testWithActiveContext
-
-	aspect context activate.
-	aspect noop.
-	self assert: aspect isFlagged.! !
-
-!DAAspectContextTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:52'!
-testWithInactiveContext
-
-	aspect context deactivate.
-	aspect noop.
-	self deny: aspect isFlagged.! !
-
-TestCase subclass: #DAAspectFlowTest
-	instanceVariableNames: 'aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectFlowTest commentStamp: 'as 7/16/2008 17:41' prior: 0!
-Testing flow pointcuts with aspects.!
-
-!DAAspectFlowTest methodsFor: 'initialize-release' stamp: 'as 7/16/2008 17:41'!
-initialize
-
-	aspect _ DAAspectFlowExample.! !
-
-!DAAspectFlowTest methodsFor: 'running' stamp: 'as 7/16/2008 17:41'!
-setUp
-
-	aspect reset.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:44'!
-testInner
-
-	aspect inner.
-	self assert: aspect count = 0.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:44'!
-testOuter
-
-	aspect outer.
-	self assert: aspect count = 1.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:45'!
-testOuter2
-
-	aspect outer; outer.
-	self assert: aspect count = 2.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:30'!
-testRecursive
-
-	aspect recursiveOuter: 0.
-	self assert: aspect count = 0.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:33'!
-testRecursiveMax
-
-	aspect recursiveOuter: 2.
-	self assert: aspect count = 1.! !
-
-!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:32'!
-testRecursiveMin
-
-	aspect recursiveOuter: 1.
-	self assert: aspect count = 1.! !
-
-TestCase subclass: #DAAspectReificationTest
-	instanceVariableNames: 'aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectReificationTest commentStamp: 'as 7/15/2008 14:16' prior: 0!
-Testing advice reifications.!
-
-!DAAspectReificationTest methodsFor: 'initialize-release' stamp: 'as 7/15/2008 14:23'!
-initialize
-
-	aspect _ DAAspectReificationExample.! !
-
-!DAAspectReificationTest methodsFor: 'running' stamp: 'as 7/15/2008 14:23'!
-setUp
-
-	aspect reset.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:20'!
-testArg1Reification
-
-	aspect mArg1: 1.
-	self assert: aspect reification = 1.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:23'!
-testArgumentsReification
-
-	aspect mArguments: 1 and: 2.
-	self assert: (aspect reification includesExactly: { 1. 2. }).! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:32'!
-testClassReification
-
-	aspect mClass.
-	self assert: aspect reification = aspect class.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:25'!
-testControlReification
-
-	aspect mControl.
-	self assert: aspect reification = #after.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:16'!
-testInstalled
-
-	self assert: aspect isInstalled.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:32'!
-testLinkReification
-
-	aspect mLink.
-	self assert: (aspect connectors includes: aspect reification connector).! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:41'!
-testNodeReification
-
-	aspect mNode.
-	self assert: (aspect reification == (aspect class >>> #mNode) methodNode).! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 14:24'!
-testObjectReification
-
-	aspect mObject.
-	self assert: aspect reification = aspect.! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:52'!
-testReceiverReification
-
-	aspect mReceiver.
-	self assert: (aspect reification == aspect).! !
-
-!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:57'!
-testSelectorReification
-
-	aspect mSelector.
-	self assert: (aspect reification == #mSelector).! !
-
-TestCase subclass: #DAAspectScopeTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectScopeTest commentStamp: 'as 7/14/2008 17:27' prior: 0!
-Testing aspect scope.!
-
-!DAAspectScopeTest methodsFor: 'running' stamp: 'as 7/15/2008 11:00'!
-setUp
-
-	DAAspectScopeExample reinstall.! !
-
-!DAAspectScopeTest methodsFor: 'testing' stamp: 'as 7/15/2008 10:20'!
-testObjectScope
-
-	| o1 o2 |
-
-	o1 _ DAAspectScopeTestObject new.
-	o1 noop.
-	o2 _ DAAspectScopeTestObject new.
-	o2 noop.
-	
-	self assert:
-		(DAAspectScopeExample metaObjectDict keys includesExactly: { o1. o2. }).! !
-
-TestCase subclass: #DAAspectTest
-	instanceVariableNames: 'aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectTest commentStamp: 'as 5/21/2008 16:08' prior: 0!
-Testing example aspects.!
-
-!DAAspectTest methodsFor: 'initialize-release' stamp: 'as 7/15/2008 14:13'!
-initialize
-
-	super initialize.
-	aspect _ DAAspectExample.! !
-
-!DAAspectTest methodsFor: 'running' stamp: 'as 7/15/2008 11:29'!
-setUp
-
-	aspect reset.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
-testAfterMethod
-
-	aspect mAfter.
-	self assert: aspect count = 3.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:24'!
-testAfterStatement
-
-	aspect mAfterStatement.
-	self assert: aspect count = 3.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
-testAspectIsInstalled
-
-	"If the examples aspect is not installed, all tests here will fail."
-	
-	self assert: aspect isInstalled.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
-testBeforeAfterMethod
-
-	aspect mBeforeafter.
-	self assert: aspect count = 3.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
-testBeforeAfterStatement
-
-	aspect mBeforeafterStatement.
-	self assert: aspect count = 3.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
-testBeforeMethod
-
-	aspect mBefore.
-	self assert: aspect count = 5.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
-testBeforeStatement
-
-	aspect mBeforeStatement.
-	self assert: aspect count = 5.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:21'!
-testInsteadMethod
-
-	aspect mInstead.
-	self assert: aspect count = 10.! !
-
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
-testInsteadStatement
-
-	aspect mInsteadStatement.
-	self assert: aspect count = 10.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -1042,6 +778,306 @@ testParent
 		:child |
 		self assert: child parent == pc.
 	].! !
+
+TestCase subclass: #DATestWithAspects
+	instanceVariableNames: 'aspect'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DATestWithAspects commentStamp: 'as 8/18/2008 16:02' prior: 0!
+A test that uses aspects.!
+
+DATestWithAspects subclass: #DAAspectContextTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectContextTest commentStamp: 'as 7/16/2008 15:48' prior: 0!
+Testing contexts in combination with aspects.!
+
+!DAAspectContextTest methodsFor: 'initialize-release' stamp: 'as 8/18/2008 16:56'!
+aspect
+
+	^ DAAspectContextExample.! !
+
+!DAAspectContextTest methodsFor: 'running' stamp: 'as 8/18/2008 16:58'!
+setUp
+
+	super setUp.
+	aspect reset.! !
+
+!DAAspectContextTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:52'!
+testWithActiveContext
+
+	aspect context activate.
+	aspect noop.
+	self assert: aspect isFlagged.! !
+
+!DAAspectContextTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:52'!
+testWithInactiveContext
+
+	aspect context deactivate.
+	aspect noop.
+	self deny: aspect isFlagged.! !
+
+DATestWithAspects subclass: #DAAspectFlowTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectFlowTest commentStamp: 'as 7/16/2008 17:41' prior: 0!
+Testing flow pointcuts with aspects.!
+
+!DAAspectFlowTest methodsFor: 'initialize-release' stamp: 'as 8/18/2008 17:31'!
+aspect
+
+	^ DAAspectFlowExample.! !
+
+!DAAspectFlowTest methodsFor: 'running' stamp: 'as 8/18/2008 17:31'!
+setUp
+
+	super setUp.
+	aspect reset.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:44'!
+testInner
+
+	aspect inner.
+	self assert: aspect count = 0.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:44'!
+testOuter
+
+	aspect outer.
+	self assert: aspect count = 1.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/16/2008 17:45'!
+testOuter2
+
+	aspect outer; outer.
+	self assert: aspect count = 2.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:30'!
+testRecursive
+
+	aspect recursiveOuter: 0.
+	self assert: aspect count = 0.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:33'!
+testRecursiveMax
+
+	aspect recursiveOuter: 2.
+	self assert: aspect count = 1.! !
+
+!DAAspectFlowTest methodsFor: 'testing' stamp: 'as 7/17/2008 00:32'!
+testRecursiveMin
+
+	aspect recursiveOuter: 1.
+	self assert: aspect count = 1.! !
+
+DATestWithAspects subclass: #DAAspectReificationTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectReificationTest commentStamp: 'as 7/15/2008 14:16' prior: 0!
+Testing advice reifications.!
+
+!DAAspectReificationTest methodsFor: 'initialize-release' stamp: 'as 8/18/2008 17:45'!
+aspect
+
+	^ DAAspectReificationExample.! !
+
+!DAAspectReificationTest methodsFor: 'running' stamp: 'as 8/18/2008 17:46'!
+setUp
+
+	super setUp.
+	aspect reset.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:20'!
+testArg1Reification
+
+	aspect mArg1: 1.
+	self assert: aspect reification = 1.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:23'!
+testArgumentsReification
+
+	aspect mArguments: 1 and: 2.
+	self assert: (aspect reification includesExactly: { 1. 2. }).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:32'!
+testClassReification
+
+	aspect mClass.
+	self assert: aspect reification = aspect class.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:25'!
+testControlReification
+
+	aspect mControl.
+	self assert: aspect reification = #after.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:16'!
+testInstalled
+
+	self assert: aspect isInstalled.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:32'!
+testLinkReification
+
+	aspect mLink.
+	self assert: (aspect connectors includes: aspect reification connector).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:41'!
+testNodeReification
+
+	aspect mNode.
+	self assert: (aspect reification == (aspect class >>> #mNode) methodNode).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 14:24'!
+testObjectReification
+
+	aspect mObject.
+	self assert: aspect reification = aspect.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:52'!
+testReceiverReification
+
+	aspect mReceiver.
+	self assert: (aspect reification == aspect).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:57'!
+testSelectorReification
+
+	aspect mSelector.
+	self assert: (aspect reification == #mSelector).! !
+
+DATestWithAspects subclass: #DAAspectScopeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectScopeTest commentStamp: 'as 7/14/2008 17:27' prior: 0!
+Testing aspect scope.!
+
+!DAAspectScopeTest methodsFor: 'initialize-release' stamp: 'as 8/18/2008 17:48'!
+aspect
+
+	^ DAAspectScopeExample.! !
+
+!DAAspectScopeTest methodsFor: 'testing' stamp: 'as 7/15/2008 10:20'!
+testObjectScope
+
+	| o1 o2 |
+
+	o1 _ DAAspectScopeTestObject new.
+	o1 noop.
+	o2 _ DAAspectScopeTestObject new.
+	o2 noop.
+	
+	self assert:
+		(DAAspectScopeExample metaObjectDict keys includesExactly: { o1. o2. }).! !
+
+DATestWithAspects subclass: #DAAspectTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAAspectTest commentStamp: 'as 5/21/2008 16:08' prior: 0!
+Testing example aspects.!
+
+!DAAspectTest methodsFor: 'initialize-release' stamp: 'as 8/18/2008 17:10'!
+aspect
+
+	^ DAAspectExample.! !
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 8/18/2008 17:09'!
+setUp
+
+	super setUp.
+	aspect reset.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
+testAfterMethod
+
+	aspect mAfter.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:24'!
+testAfterStatement
+
+	aspect mAfterStatement.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
+testAspectIsInstalled
+
+	"If the examples aspect is not installed, all tests here will fail."
+	
+	self assert: aspect isInstalled.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
+testBeforeAfterMethod
+
+	aspect mBeforeafter.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
+testBeforeAfterStatement
+
+	aspect mBeforeafterStatement.
+	self assert: aspect count = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:20'!
+testBeforeMethod
+
+	aspect mBefore.
+	self assert: aspect count = 5.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:23'!
+testBeforeStatement
+
+	aspect mBeforeStatement.
+	self assert: aspect count = 5.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:21'!
+testInsteadMethod
+
+	aspect mInstead.
+	self assert: aspect count = 10.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/16/2008 15:25'!
+testInsteadStatement
+
+	aspect mInsteadStatement.
+	self assert: aspect count = 10.! !
+
+!DATestWithAspects methodsFor: 'initialize-release' stamp: 'as 8/18/2008 16:10'!
+aspect
+
+	self subclassResponsibility.! !
+
+!DATestWithAspects methodsFor: 'initialize-release' stamp: 'as 8/18/2008 16:10'!
+initialize
+
+	aspect _ self aspect.! !
+
+!DATestWithAspects methodsFor: 'running' stamp: 'as 8/18/2008 17:08'!
+setUp
+
+	aspect reinstall.! !
+
+!DATestWithAspects methodsFor: 'running' stamp: 'as 8/18/2008 16:19'!
+tearDown
+
+	aspect uninstall.! !
 
 TestCase subclass: #DATestWithLinks
 	instanceVariableNames: 'links'
@@ -4434,28 +4470,29 @@ noop
 
 	^ self.! !
 
-!DAAspectContextExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:35'!
+!DAAspectContextExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 15:51'!
 noopMethod
+
+	<pointcut>
 
 	^ (self class >> #noop) asPointcut.! !
 
-!DAAspectContextExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:40'!
-p
+!DAAspectContextExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 15:51'!
+pointcut
+
+	<pointcut>
 
 	^ self noopMethod & (PC context: self context).! !
-
-!DAAspectContextExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:38'!
-pointcutNames
-
-	^ #(p).! !
 
 !DAAspectContextExample class methodsFor: 'flagging' stamp: 'as 7/16/2008 15:47'!
 reset
 
 	flag _ false.! !
 
-!DAAspectContextExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:47'!
-beforeP
+!DAAspectContextExample methodsFor: 'advices' stamp: 'as 8/18/2008 15:51'!
+before
+
+	<advice: #pointcut control: #before>
 
 	self class flag.! !
 
@@ -4489,134 +4526,160 @@ inc
 
 	count _ self count + 1.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 14:56'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:29'!
 mAfter
 
 	self count: 2.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mAfterStatement
 
 	self count: 2.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 14:55'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mBefore
 
 	self inc.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mBeforeStatement
 
 	self inc.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:13'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mBeforeafter
 
 	self inc.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:13'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mBeforeafterStatement
 
 	self inc.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mInstead
 
 	self count: 15.! !
 
-!DAAspectExample class methodsFor: 'examples' stamp: 'as 7/16/2008 15:12'!
+!DAAspectExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:30'!
 mInsteadStatement
 
 	self count: 15.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:13'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 16:59'!
 pAfter
+
+	<pointcut>
 
 	^ (self class >> #mAfter) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pAfterStatement
 
+	<pointcut>
+	
 	^ (self class >> #mAfterStatement) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:13'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pBefore
 
+	<pointcut>
+	
 	^ (self class >> #mBefore) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pBeforeStatement
 
+	<pointcut>
+	
 	^ (self class >> #mBeforeStatement) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pBeforeafter
 
+	<pointcut>
+	
 	^ (self class >> #mBeforeafter) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pBeforeafterStatement
 
+	<pointcut>
+	
 	^ (self class >> #mBeforeafterStatement) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pInstead
 
+	<pointcut>
+	
 	^ (self class >> #mInstead) asPointcut.! !
 
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:14'!
+!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:00'!
 pInsteadStatement
 
+	<pointcut>
+	
 	^ (self class >> #mInsteadStatement) asPointcut.! !
-
-!DAAspectExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 15:15'!
-pointcutNames
-
-	^ #(pBefore pAfter pInstead pBeforeafter
-		pBeforeStatement pAfterStatement pInsteadStatement pBeforeafterStatement).! !
 
 !DAAspectExample class methodsFor: 'initialize-release' stamp: 'as 7/15/2008 14:14'!
 reset
 
 	count _ nil.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:16'!
-afterPAfter
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:01'!
+after
+
+	<advice: #pAfter control: #after>
 
 	self class inc.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
-afterPAfterStatement
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:01'!
+afterStatement
+
+	<advice: #pAfterStatement control: #after>
 
 	self class inc.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:20'!
-beforePBefore
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:02'!
+before
+
+	<advice: #pBefore control: #before>
 
 	self class count: 4.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:23'!
-beforePBeforeStatement
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:03'!
+beforeAfter
+
+	<advice: #pBeforeafter control: #beforeafter>
+
+	self class inc.! !
+
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:02'!
+beforeStatement
+
+	<advice: #pBeforeStatement control: #before>
 
 	self class count: 4.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:23'!
-beforeafterPBeforeafter
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:03'!
+beforeafterStatement
+
+	<advice: #pBeforeafterStatement control: #beforeafter>
 
 	self class inc.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
-beforeafterPBeforeafterStatement
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:04'!
+instead
 
-	self class inc.! !
-
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:17'!
-insteadPInstead
+	<advice: #pInstead control: #instead>
 
 	self class count: 10.! !
 
-!DAAspectExample methodsFor: 'advices' stamp: 'as 7/16/2008 15:18'!
-insteadPInsteadStatement
+!DAAspectExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:04'!
+insteadStatement
+
+	<advice: #pInsteadStatement control: #instead>
 
 	self class count: 10.! !
 
@@ -4670,20 +4733,19 @@ outerMethod
 
 	^ (self class >> #outer) asPointcut.! !
 
-!DAAspectFlowExample class methodsFor: 'pointcuts' stamp: 'as 7/17/2008 00:30'!
+!DAAspectFlowExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:32'!
 pLevel
+
+	<pointcut>
 
 	^ self recursiveInnerMethod & (PC flow: self recursiveOuterMethod min: 2 max: 3).! !
 
-!DAAspectFlowExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 16:16'!
+!DAAspectFlowExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:32'!
 pSimple
 
+	<pointcut>
+
 	^ self innerMethod & (PC flow: self outerMethod).! !
-
-!DAAspectFlowExample class methodsFor: 'pointcuts' stamp: 'as 7/17/2008 00:04'!
-pointcutNames
-
-	^ #(pSimple pLevel).! !
 
 !DAAspectFlowExample class methodsFor: 'examples' stamp: 'as 7/17/2008 00:28'!
 recursiveInner
@@ -4710,13 +4772,17 @@ reset
 
 	count _ nil.! !
 
-!DAAspectFlowExample methodsFor: 'advices' stamp: 'as 7/16/2008 17:58'!
-beforePLevel
+!DAAspectFlowExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:33'!
+level
+
+	<advice: #pLevel control: #before>
 
 	self class inc.! !
 
-!DAAspectFlowExample methodsFor: 'advices' stamp: 'as 7/16/2008 17:18'!
-beforePSimple
+!DAAspectFlowExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:33'!
+simple
+
+	<advice: #pSimple control: #before>
 
 	self class inc.! !
 
@@ -4735,100 +4801,113 @@ For testing reifications.!
 DAAspectReificationExample class
 	instanceVariableNames: 'reification'!
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:19'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:44'!
 mArg1: arg1
 
 	^ arg1.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:21'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:44'!
 mArguments: x and: y
 
 	^ { x. y. }.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/15/2008 17:31'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:44'!
 mClass
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:24'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:44'!
 mControl
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:25'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:45'!
 mLink
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:38'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:45'!
 mNode
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/15/2008 17:28'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:45'!
 mObject
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:51'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:45'!
 mReceiver
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:52'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 8/18/2008 17:45'!
 mSelector
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pArg1
+
+	<pointcut>
 
 	^ (self class >> #mArg1:) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pArguments
+
+	<pointcut>
 
 	^ (self class >> #mArguments:and:) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pClass
+
+	<pointcut>
 
 	^ (self class >> #mClass) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pControl
+
+	<pointcut>
 
 	^ (self class >> #mControl) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pLink
+
+	<pointcut>
 
 	^ (self class >> #mLink) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pNode
+
+	<pointcut>
 
 	^ (self class >> #mNode) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pObject
+
+	<pointcut>
 
 	^ (self class >> #mObject) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:51'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pReceiver
+
+	<pointcut>
 
 	^ (self class >> #mReceiver) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:55'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:34'!
 pSelector
 
+	<pointcut>
+
 	^ (self class >> #mSelector) asPointcut.! !
-
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:59'!
-pointcutNames
-
-	^ #(pObject pClass pArg1 pArguments pControl pLink pNode pReceiver pSelector).! !
 
 !DAAspectReificationExample class methodsFor: 'accessing' stamp: 'as 7/15/2008 14:20'!
 reification
@@ -4845,50 +4924,68 @@ reset
 
 	reification _ nil.! !
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:20'!
-afterPArg1WithArg1: x
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:35'!
+arg1: arg
 
-	self class reification: x.! !
+	<advice: #pArg1 control: #after arguments: #(arg1)>
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:22'!
-afterPArgumentsWithArguments: x
+	self class reification: arg.! !
 
-	self class reification: x.! !
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:36'!
+arguments: args
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/15/2008 17:32'!
-afterPClassWithClass: x
+	<advice: #pArguments control: #after arguments: #(arguments)>
 
-	self class reification: x.! !
+	self class reification: args.! !
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:24'!
-afterPControlWithControl: x
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:36'!
+class: class
 
-	self class reification: x.! !
+	<advice: #pClass control: #after arguments: #(class)>
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:25'!
-afterPLinkWithLink: x
+	self class reification: class.! !
 
-	self class reification: x.! !
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:37'!
+control: ctrl
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:39'!
-afterPNodeWithNode: x
+	<advice: #pControl control: #after arguments: #(control)>
 
-	self class reification: x.! !
+	self class reification: ctrl.! !
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/15/2008 17:32'!
-afterPObjectWithObject: x
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:39'!
+link: link
 
-	self class reification: x.! !
+	<advice: #pLink control: #after arguments: #(link)>
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:52'!
-afterPReceiverWithReceiver: x
+	self class reification: link.! !
 
-	self class reification: x.! !
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:40'!
+node: node
 
-!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:56'!
-afterPSelectorWithSelector: x
+	<advice: #pNode control: #after arguments: #(node)>
 
-	self class reification: x.! !
+	self class reification: node.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:42'!
+object: obj
+
+	<advice: #pObject control: #after arguments: #(object)>
+
+	self class reification: obj.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:43'!
+receiver: recv
+
+	<advice: #pReceiver control: #after arguments: #(receiver)>
+
+	self class reification: recv.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:44'!
+selector: sel
+
+	<advice: #pSelector control: #after arguments: #(selector)>
+
+	self class reification: sel.! !
 
 DAAspect subclass: #DAAspectScopeExample
 	instanceVariableNames: ''
@@ -4899,23 +4996,22 @@ DAAspect subclass: #DAAspectScopeExample
 !DAAspectScopeExample commentStamp: 'as 7/14/2008 17:00' prior: 0!
 Testing aspect scope.!
 
-!DAAspectScopeExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 09:03'!
+!DAAspectScopeExample class methodsFor: 'pointcuts' stamp: 'as 8/18/2008 17:46'!
 noopMethod
 
+	<pointcut>
+
 	^ (DAAspectScopeTestObject >> #noop) asPointcut.! !
-
-!DAAspectScopeExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 21:13'!
-pointcutNames
-
-	^ #(noopMethod).! !
 
 !DAAspectScopeExample class methodsFor: 'metaobject' stamp: 'as 7/15/2008 10:36'!
 scope
 
 	^ #object.! !
 
-!DAAspectScopeExample methodsFor: 'advices' stamp: 'as 7/15/2008 11:09'!
-afterNoopMethod! !
+!DAAspectScopeExample methodsFor: 'advices' stamp: 'as 8/18/2008 17:47'!
+noop
+
+	<advice: #noopMethod control: #after>! !
 
 DAAspect subclass: #DAAspectScopeTestObject
 	instanceVariableNames: 'id'
@@ -4936,22 +5032,17 @@ advices
 
 	^ Set new.! !
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
-keywordArgumentPairs
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
 
-	| pairs |
+	"Answer whether both collections include exactly the same elements."
 	
-	pairs _ Dictionary new.
-	self keywords withIndexDo: [
-		:key :index |
-		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
-	].
-	^ pairs.! !
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
-keywords
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
 
-	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -5017,6 +5108,11 @@ flowOutOf: aDAPointcut
 
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -5257,11 +5353,6 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
