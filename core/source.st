@@ -1,19 +1,14 @@
 SystemOrganization addCategory: #'DA-Geppetto'!
-SystemOrganization addCategory: #'DA-Geppetto-Tests'!
 SystemOrganization addCategory: #'DA-Kernel'!
-SystemOrganization addCategory: #'DA-Kernel-Tests'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
-SystemOrganization addCategory: #'DA-Pointcuts-Tests'!
-SystemOrganization addCategory: #'DA-Testing'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
-SystemOrganization addCategory: #'DA-Utilities-Tests'!
 
 TestResource subclass: #DATestAspectResource
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Testing'!
+	category: 'DA-Tests'!
 
 !DATestAspectResource commentStamp: 'as 2/18/2008 10:35' prior: 0!
 The test aspect should be installed/uninstalled once for all tests that run on it.!
@@ -264,7 +259,7 @@ DAAspect subclass: #DATestAspect
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Testing'!
+	category: 'DA-Tests'!
 
 !DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
 An aspect to run tests on.!
@@ -699,7 +694,7 @@ Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Testing'!
+	category: 'DA-Tests'!
 
 DAExamples class
 	instanceVariableNames: 'counter'!
@@ -1746,6 +1741,11 @@ joinPoints
 	self evaluator hasEvaluated ifFalse: [ self evaluator visit: self. ].
 	^ self evaluator joinPoints.! !
 
+!DAPointcut methodsFor: 'accessing' stamp: 'as 3/31/2008 16:58'!
+nodes
+
+	^ self joinPoints inject: IdentitySet new into: [ :col :jp | col addAll: jp nodes; yourself. ].! !
+
 !DAPointcut methodsFor: 'inverting' stamp: 'as 2/4/2008 21:33'!
 not
 
@@ -1785,10 +1785,10 @@ Object subclass: #DAPointcutEvaluator
 !DAPointcutEvaluator commentStamp: 'as 3/19/2008 15:46' prior: 0!
 Goes over a pointcut structure and evaluates the corresponding join points.!
 
-!DAPointcutEvaluator methodsFor: 'testing' stamp: 'as 3/19/2008 15:24'!
+!DAPointcutEvaluator methodsFor: 'testing' stamp: 'as 3/31/2008 15:18'!
 hasEvaluated
 
-	^ joinPoints ifNotNil.! !
+	^ joinPoints notNil.! !
 
 !DAPointcutEvaluator methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:08'!
 initialize
@@ -1811,11 +1811,11 @@ pop
 
 	^ stack pop.! !
 
-!DAPointcutEvaluator methodsFor: 'stacking' stamp: 'as 3/19/2008 15:11'!
+!DAPointcutEvaluator methodsFor: 'stacking' stamp: 'as 3/31/2008 15:18'!
 push
 
 	stack push: joinPoints.
-	self initializeLinks.! !
+	self initializeJoinPoints.! !
 
 !DAPointcutEvaluator methodsFor: 'caching' stamp: 'as 3/19/2008 14:40'!
 reset
@@ -1905,37 +1905,28 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
 !BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
 and: aBlock
 
 	^ DACombinedBlock block: self block: aBlock message: #and:.! !
 
+!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
+
 !Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
-TestCase subclass: #DAAndPointcutTest
-	instanceVariableNames: 'pointcut'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Pointcuts-Tests'!
-
-!DAAndPointcutTest commentStamp: 'as 2/11/2008 17:31' prior: 0!
-Testing DAAndPointcut.!
-
-!DAAndPointcutTest methodsFor: 'running' stamp: 'as 2/11/2008 17:55'!
-setUp
-
-	pointcut _ (DAPointcut class: self class) and: (DAPointcut class: self class).! !
-
-!DAAndPointcutTest methodsFor: 'testing' stamp: 'as 2/11/2008 17:47'!
-testInverting
-
-	pointcut_ pointcut not.
-	self assert: (pointcut isKindOf: DAOrPointcut).
-	self assert: pointcut left filter isNegated.
-	self assert: pointcut right filter isNegated.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -1961,33 +1952,11 @@ testClassComment
 		self assert: each hasComment.
 	].! !
 
-TestCase subclass: #DACompositePointcutTest
-	instanceVariableNames: 'pointcut'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Pointcuts-Tests'!
-
-!DACompositePointcutTest commentStamp: 'as 2/11/2008 19:06' prior: 0!
-Testing DACompositePointcut.!
-
-!DACompositePointcutTest methodsFor: 'running' stamp: 'as 2/11/2008 19:08'!
-setUp
-
-	pointcut _ DACompositePointcut child: DAPointcut new child: DAPointcut new.! !
-
-!DACompositePointcutTest methodsFor: 'testing' stamp: 'as 2/11/2008 19:09'!
-testParent
-
-	pointcut children do: [
-		:child |
-		self assert: child parent == pointcut.
-	].! !
-
 TestCase subclass: #DAConditionTest
 	instanceVariableNames: 'trueBool falseBool trueBlock falseBlock altTrueBlock'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto-Tests'!
+	category: 'DA-Tests'!
 
 !DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
 Testing DACondition.!
@@ -2117,7 +2086,7 @@ TestCase subclass: #DAFilterTest
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Utilities-Tests'!
+	category: 'DA-Tests'!
 
 !DAFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
 Testing DARegexFilter.!
@@ -2136,7 +2105,7 @@ TestCase subclass: #DAJoinPointTest
 	instanceVariableNames: 'jp'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Kernel-Tests'!
+	category: 'DA-Tests'!
 
 !DAJoinPointTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
 Testing DALink.!
@@ -2223,33 +2192,51 @@ testSingleNode
 		node: (DAFilter node: [ :node | node isMethod. ]).
 	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
 
-TestCase subclass: #DAOrPointcutTest
-	instanceVariableNames: 'pointcut'
+TestCase subclass: #DAPointcutTest
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Pointcuts-Tests'!
+	category: 'DA-Tests'!
 
-!DAOrPointcutTest commentStamp: 'as 2/11/2008 19:04' prior: 0!
-Testing DAOrPointcut.!
+!DAPointcutTest commentStamp: 'as 3/31/2008 11:46' prior: 0!
+Testing pointcuts.!
 
-!DAOrPointcutTest methodsFor: 'running' stamp: 'as 2/11/2008 19:04'!
-setUp
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testAnd
 
-	pointcut _ (DAPointcut class: self class) or: (DAPointcut class: self class).! !
+	| m pc |
 
-!DAOrPointcutTest methodsFor: 'testing' stamp: 'as 2/11/2008 19:05'!
-testInverting
+	m _ Object >>> #=.
+	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
+	self assert: (pc nodes includesExactly: { m methodNode. }).! !
 
-	pointcut_ pointcut not.
-	self assert: (pointcut isKindOf: DAAndPointcut).
-	self assert: pointcut left filter isNegated.
-	self assert: pointcut right filter isNegated.! !
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testOr
+
+	| m1 m2 pc |
+	
+	m1 _ Object >>> #=.
+	m2 _ Object >>> #->.
+	pc _ (DAPointcut method: m1) or: (DAPointcut method: m2).
+	self assert: (pc nodes includesExactly: { m1 methodNode. m2 methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:59'!
+testParent
+
+	| pc |
+	
+	pc _ DACompositePointcut child: DAPointcut new child: DAPointcut new.
+
+	pc children do: [
+		:child |
+		self assert: child parent == pc.
+	].! !
 
 TestCase subclass: #DATestingWithLinks
 	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Testing'!
+	category: 'DA-Tests'!
 
 !DATestingWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
 A test that uses Geppetto links.
@@ -2260,7 +2247,7 @@ DATestingWithLinks subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Kernel-Tests'!
+	category: 'DA-Tests'!
 
 !DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
 Testing DAAspect.!
@@ -2327,39 +2314,6 @@ testParameters
 	self assert: (pars at: #class) == DAExamples class.
 	self assert: (pars at: #object) == DAExamples.
 	self assert: (pars at: #control) == #instead.! !
-
-DATestingWithLinks subclass: #DAControlFowPointcutTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Pointcuts-Tests'!
-
-!DAControlFowPointcutTest commentStamp: 'as 2/1/2008 13:32' prior: 0!
-Testing DAControlFlowPointcut.!
-
-!DAControlFowPointcutTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:32'!
-isAbstract
-
-	^ false.! !
-
-!DAControlFowPointcutTest methodsFor: 'testing' stamp: 'as 2/14/2008 17:53'!
-testDeployment
-
-	| pc visitor link asserted |
-	pc _ (DAPointcut cflow: DAExamples class >> #exampleForward) and:
-		(DAPointcut method: DAExamples class >> #exampleNoop).
-	visitor _ DALinkGenerator new.
-	visitor visit: pc.
-	self assert: visitor links size = 1.
-	link _ visitor links first.
-	self cleanup: link.
-	link link metaObject: [ asserted _ true. ].
-	link nodes do: [ :each | each link: link link. ].
-	asserted _ false.
-	DAExamples exampleNoop.
-	self deny: asserted.
-	DAExamples exampleForward.
-	self assert: asserted.! !
 
 !DATestingWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
 isAbstract
