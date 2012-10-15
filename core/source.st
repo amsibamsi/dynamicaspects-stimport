@@ -6,6 +6,13 @@ SystemOrganization addCategory: #'DynamicAspects-Pointcut'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcut-Tests'!
 SystemOrganization addCategory: #'DynamicAspects-Testing'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
+SystemOrganization addCategory: #'DynamicAspects-Utilities-Tests'!
+SystemOrganization addCategory: #'DynamicAspects-Utilities'!
+
+!String methodsFor: '*DynamicAspects' stamp: 'as 2/11/2008 08:14'!
+asRegexFilter
+
+	^ DARegexFilter new: self.! !
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
@@ -480,7 +487,7 @@ Dummy class to test Geppetto links on.!
 example1! !
 
 Object subclass: #DALink
-	instanceVariableNames: 'link categoryFilters classFilters methodFilters nodeFilters'
+	instanceVariableNames: 'link filters cache'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Geppetto'!
@@ -488,83 +495,50 @@ Object subclass: #DALink
 !DALink commentStamp: 'as 1/31/2008 11:18' prior: 0!
 Host a GPLink together with a description of the nodes it should be installed on.!
 
-!DALink methodsFor: 'composing' stamp: 'as 1/31/2008 15:30'!
+!DALink methodsFor: 'composing' stamp: 'as 2/4/2008 17:41'!
 and: aDALink
 
-	^ self class new
-		condition: (self combineCondition: aDALink);
-		categories: self categoryFilters, aDALink categoryFilters;
-		classes: self classFilters, aDALink classFilters;
-		methods: self methodFilters, aDALink methodFilters;
-		nodes: self nodeFilters, aDALink nodeFilters;
-		yourself.! !
+	| andLink |
+	
+	andLink _ self class new.
+	andLink condition: (self combineCondition: aDALink).
+	self keys do: [
+		:key |
+		andLink filtersAt: key put: (self filtersAt: key), (aDALink filtersAt: key).
+	].		
+	^ andLink.! !
 
-!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:24'!
+!DALink methodsFor: 'caching' stamp: 'as 2/4/2008 17:30'!
+cacheAt: aSymbol
+
+	^ (cache at: aSymbol) ifNil: [ cache at: aSymbol put: (self filter: aSymbol). ].! !
+
+!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 categories
 
-	| categories |
+	^ self cacheAt: #category.! !
 
-	categories _ SystemOrganization categories.
-	(categoryFilters selfIfEmpty: [ self defaultCategoryFilters. ]) do: [
-		: filter |
-		categories _ categories select: [
-			:each | each matchesRegex: filter.
-		].
-	].
-	^ categories.! !
+!DALink methodsFor: 'aliases' stamp: 'as 2/8/2008 11:54'!
+category: aRegexFilter
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
-categories: aCollection
+	self filterAt: #category put: aRegexFilter.! !
 
-	categoryFilters _ aCollection.! !
+!DALink methodsFor: 'aliases' stamp: 'as 2/8/2008 11:55'!
+class: aRegexFilter
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
-category: regexString
+	self filterAt: #class put: aRegexFilter.! !
 
-	categoryFilters add: regexString.! !
+!DALink methodsFor: 'filtering' stamp: 'as 2/8/2008 11:18'!
+class: aClass matches: aRegexFilter
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
-categoryFilters
-
-	^ categoryFilters.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:13'!
-class: regexString
-
-	classFilters add: regexString.! !
-
-!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 11:38'!
-class: aClass matches: regexString
-
-	^ (aClass name matchesRegex: regexString) and: [
-		self categories includes: aClass instanceSide category.
+	^ (aRegexFilter matches: aClass name) and: [
+		(self cacheAt: #category) includes: aClass instanceSide category.
 	].! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
-classFilters
-
-	^ classFilters.! !
-
-!DALink methodsFor: 'filtering' stamp: 'as 2/1/2008 15:28'!
+!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
 classes
 
-	| classes |
-	
-	classes _ Smalltalk allClasses collect: [ :each | each instanceSide. ].
-	classes addAll: (Smalltalk allClasses collect: [ :each | each classSide. ]).
-	(classFilters selfIfEmpty: [ self defaultClassFilters. ]) do: [
-		:filter |
-		classes _ classes select: [
-			:each |
-			self class: each matches: filter.
-		].
-	].
-	^ classes.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
-classes: aCollection
-
-	classFilters _ aCollection.! !
+	^ self cacheAt: #class.! !
 
 !DALink methodsFor: 'private' stamp: 'as 1/27/2008 17:25'!
 combineCondition: aDALink
@@ -593,105 +567,91 @@ condition: aDACondition
 
 	link conditionObject: aDACondition.! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
-defaultCategoryFilters
+!DALink methodsFor: 'defaults' stamp: 'as 2/11/2008 08:32'!
+defaultFiltersAt: aSymbol
 
-	^ { '.*'. }.! !
+	aSymbol = #category ifTrue: [ ^ { '.*' asRegexFilter }. ].
+	aSymbol = #class ifTrue: [ ^ { '.*' asRegexFilter }. ].
+	aSymbol = #method ifTrue: [ ^ { '.*' asRegexFilter }. ].
+	aSymbol = #node ifTrue: [ ^ { [ :node | node isMethod. ] }. ].
+	^ #().! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
-defaultClassFilters
+!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 17:21'!
+defaultOrFiltersAt: aSymbol
 
-	^ { '.*'. }.! !
+	^ (filters at: aSymbol) selfIfEmpty: [ self defaultFiltersAt: aSymbol. ].! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
-defaultMethodFilters
+!DALink methodsFor: 'filtering' stamp: 'as 2/4/2008 17:55'!
+filter: aSymbol
 
-	^ { '.*'. }.! !
+	^ self perform: (#filter, aSymbol capitalized) asSymbol.! !
 
-!DALink methodsFor: 'defaults' stamp: 'as 1/31/2008 15:25'!
-defaultNodeFilters
+!DALink methodsFor: 'accessing' stamp: 'as 2/8/2008 11:53'!
+filterAt: aSymbol put: aRegexFilter
 
-	^ { [ :node | node isMethod. ]. }.! !
+	(filters at: aSymbol) add: aRegexFilter.
+	self reset.! !
 
-!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
-hasCondition
+!DALink methodsFor: 'filtering' stamp: 'as 2/11/2008 08:30'!
+filterCategory
 
-	^ link hasCondition.! !
+	| categories |
 
-!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
-hasNodes
+	categories _ SystemOrganization categories.
+	(self defaultOrFiltersAt: #category) do: [
+		:filter |
+		categories _ categories select: [
+			:each | filter matches: each.
+		].
+	].
+	^ categories.! !
 
-	^ nodes notEmpty.! !
+!DALink methodsFor: 'filtering' stamp: 'as 2/4/2008 17:26'!
+filterClass
 
-!DALink methodsFor: 'initialize-release' stamp: 'as 1/31/2008 15:13'!
-initialize
+	| classes |
+	
+	classes _ Smalltalk allClasses collect: [ :each | each instanceSide. ].
+	classes addAll: (Smalltalk allClasses collect: [ :each | each classSide. ]).
+	(self defaultOrFiltersAt: #class) do: [
+		:filter |
+		classes _ classes select: [
+			:each |
+			self class: each matches: filter.
+		].
+	].
+	^ classes.! !
 
-	link _ GPLink new.
-	categoryFilters _ Set new.
-	classFilters _ Set new.
-	methodFilters _ Set new.
-	nodeFilters _ Set new..! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/24/2008 17:38'!
-link
-
-	^ link.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
-method: regexString
-
-	methodFilters add: regexString.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
-methodFilters
-
-	^ methodFilters.! !
-
-!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:28'!
-methods
+!DALink methodsFor: 'filtering' stamp: 'as 2/8/2008 11:18'!
+filterMethod
 	
 	| methods classMethods |
 	
 	methods _ Set new.
-	self classes do: [
+	(self cacheAt: #class) do: [
 		:each |
 		classMethods _ each methods.
-		(methodFilters selfIfEmpty: [ self defaultMethodFilters. ]) do: [
+		(self defaultOrFiltersAt: #method) do: [
 			:filter |
 			classMethods _ classMethods select: [
 				:method |
-				method selector matchesRegex: filter.
+				filter matches: method selector.
 			].
 		].
 		methods addAll: classMethods.
 	].
 	^ methods collect: [ :each | each reflectiveMethod. ].! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
-methods: aCollection
-
-	methodFilters _ aCollection.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
-node: aBlock
-
-	nodeFilters add: aBlock.! !
-
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:15'!
-nodeFilters
-
-	^ nodeFilters.! !
-
-!DALink methodsFor: 'filtering' stamp: 'as 1/31/2008 15:28'!
-nodes
+!DALink methodsFor: 'filtering' stamp: 'as 2/4/2008 17:27'!
+filterNode
 
 	| nodes methodNodes |
 
 	nodes _ Set new.
-	self methods do: [
+	(self cacheAt: #method) do: [
 		:each |
 		methodNodes _ each nodes.
-		(nodeFilters selfIfEmpty: [ self defaultNodeFilters. ]) do: [
+		(self defaultOrFiltersAt: #node) do: [
 			:filter |
 			methodNodes _ methodNodes select: filter.
 		].
@@ -699,10 +659,81 @@ nodes
 	].
 	^ nodes.! !
 
-!DALink methodsFor: 'accessing' stamp: 'as 1/31/2008 15:14'!
-nodes: aCollection
+!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 16:58'!
+filtersAt: aSymbol
 
-	nodeFilters _ aCollection.! !
+	^ filters at: aSymbol.! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 2/4/2008 17:00'!
+filtersAt: aSymbol put: aCollection
+
+	filters at: aSymbol put: aCollection.
+	self reset.! !
+
+!DALink methodsFor: 'testing' stamp: 'as 1/27/2008 17:19'!
+hasCondition
+
+	^ link hasCondition.! !
+
+!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 15:49'!
+initialize
+
+	link _ GPLink new.
+	filters _ Dictionary new.
+	cache _ Dictionary new.
+	self initializeFilters.
+	self initializeCache.! !
+
+!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 17:31'!
+initializeCache
+
+	self keys do: [
+		:key |
+		cache at: key put: nil.
+	].! !
+
+!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
+initializeFilters
+
+	self keys do: [
+		:key |
+		filters at: key put: Set new.
+	].! !
+
+!DALink methodsFor: 'initialize-release' stamp: 'as 2/4/2008 16:00'!
+keys
+
+	^ #(category class method node).! !
+
+!DALink methodsFor: 'accessing' stamp: 'as 1/24/2008 17:38'!
+link
+
+	^ link.! !
+
+!DALink methodsFor: 'aliases' stamp: 'as 2/8/2008 11:55'!
+method: aRegexFilter
+
+	self filterAt: #method put: aRegexFilter.! !
+
+!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+methods
+
+	^ self cacheAt: #method.! !
+
+!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:47'!
+node: aBlock
+
+	self filterAt: #node put: aBlock.! !
+
+!DALink methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+nodes
+
+	^ self cacheAt: #node.! !
+
+!DALink methodsFor: 'caching' stamp: 'as 2/4/2008 15:50'!
+reset
+
+	self initializeCache.! !
 
 Object subclass: #DAPointcut
 	instanceVariableNames: 'parent'
@@ -719,8 +750,8 @@ DAPointcut subclass: #DACompositePointcut
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcut'!
 
-!DACompositePointcut commentStamp: 'as 1/31/2008 16:40' prior: 0!
-A composition two pointcuts.!
+!DACompositePointcut commentStamp: 'as 2/8/2008 11:26' prior: 0!
+A composition of two pointcuts.!
 
 DACompositePointcut subclass: #DAAndPointcut
 	instanceVariableNames: ''
@@ -730,6 +761,11 @@ DACompositePointcut subclass: #DAAndPointcut
 
 !DAAndPointcut commentStamp: 'as 1/31/2008 17:05' prior: 0!
 Selects all join points that fullfill all requirements of two pointcuts.!
+
+!DAAndPointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:42'!
+invert
+
+	^ DAOrPointcut children: children.! !
 
 !DAAndPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:04'!
 visitName
@@ -741,16 +777,41 @@ child: aDAPointcut1 child: aDAPointcut2
 
 	^ self new children: (Array with: aDAPointcut1 with: aDAPointcut2); yourself.! !
 
+!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 2/5/2008 15:42'!
+children: aCollection
+
+	^ self new children: aCollection; yourself.! !
+
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 2/1/2008 14:36'!
 children: aSequenceableCollection
 
 	children _ aSequenceableCollection.
 	children do: [ :each | each parent: self. ].! !
 
+!DACompositePointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 10:36'!
+invert
+
+	self subclassResponsibility.! !
+
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 1/25/2008 14:30'!
 left
 
 	^ children first.! !
+
+!DACompositePointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:40'!
+not
+
+	| inverted |
+
+	children do: [ :child | child not. ].
+	inverted _ self invert.
+	self hasParent ifTrue: [ parent replace: self with: inverted. ].
+	^ inverted.! !
+
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 2/4/2008 21:32'!
+replace: oldDAPointcut with: newDAPointcut
+
+	children replaceAll: oldDAPointcut with: newDAPointcut.! !
 
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 1/25/2008 14:31'!
 right
@@ -765,6 +826,11 @@ DACompositePointcut subclass: #DAOrPointcut
 
 !DAOrPointcut commentStamp: 'as 1/31/2008 17:06' prior: 0!
 Selects all join points that fullfill either's pointcut requirements.!
+
+!DAOrPointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:42'!
+invert
+
+	^ DAAndPointcut children: children.! !
 
 !DAOrPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:03'!
 visitName
@@ -814,6 +880,11 @@ condition: aBlockOrBoolean arguments: aCollection
 
 	condition _ DACondition with: aBlockOrBoolean arguments: aCollection.! !
 
+!DAConditionPointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 10:40'!
+not
+
+	condition not.! !
+
 !DAConditionPointcut methodsFor: 'visiting' stamp: 'as 1/24/2008 17:04'!
 visitName
 
@@ -849,26 +920,27 @@ method: aMethod level: anInteger
 	anInteger > 1 ifFalse: [ self error: 'the nesting level must be greater than 1'. ].
 	^ self new method: aMethod level: anInteger; yourself.! !
 
-!DAControlFlowPointcut methodsFor: 'private' stamp: 'as 2/2/2008 11:13'!
+!DAControlFlowPointcut methodsFor: 'private' stamp: 'as 2/4/2008 10:43'!
 conditionBlock
 
 	^ [
 		:args |
-		| context m nesting return |
+		| context m nesting result |
 		context _ (args at: #context) sender.
 		m _ self method.
 		nesting _ 1.
-		return _ false.
-		[ (level isNil or: [ nesting <= level. ]) & (context notNil) & return not. ] whileTrue: [
-			context method reflectiveMethod = m ifTrue: [ return _ true. ].
+		result _ false.
+		[ (level isNil or: [ nesting <= level. ]) & (context notNil) & result not. ] whileTrue: [
+			context method reflectiveMethod = m ifTrue: [ result _ true. ].
 			context _ context sender.
 		].
-		return.
+		result.
 	].! !
 
-!DAControlFlowPointcut methodsFor: 'initialize-release' stamp: 'as 2/1/2008 13:25'!
+!DAControlFlowPointcut methodsFor: 'initialize-release' stamp: 'as 2/6/2008 20:07'!
 initialize
 
+	super initialize.
 	condition _ DACondition with: self conditionBlock arguments: #(context).! !
 
 !DAControlFlowPointcut methodsFor: 'accessing' stamp: 'as 2/1/2008 13:27'!
@@ -893,7 +965,7 @@ method: aMethod
 	isMeta _ aMethod methodClass isMeta.! !
 
 DADesignatePointcut subclass: #DAFilterPointcut
-	instanceVariableNames: 'filter'
+	instanceVariableNames: 'filter inverted'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcut'!
@@ -939,20 +1011,25 @@ visitName
 
 	^ 'class'.! !
 
-!DAFilterPointcut class methodsFor: 'instance creation' stamp: 'as 1/31/2008 16:59'!
-filter: anObject
+!DAFilterPointcut class methodsFor: 'instance creation' stamp: 'as 2/8/2008 11:25'!
+filter: regexOrFilter
 
-	^ self new filter: anObject; yourself.! !
+	^ self new filter: regexOrFilter; yourself.! !
 
 !DAFilterPointcut methodsFor: 'accessing' stamp: 'as 1/31/2008 16:59'!
 filter
 
 	^ filter.! !
 
-!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 1/31/2008 16:59'!
-filter: anObject
+!DAFilterPointcut methodsFor: 'accessing' stamp: 'as 2/11/2008 08:12'!
+filter: regexString
 
-	filter _ anObject.! !
+	filter _ regexString asRegexFilter.! !
+
+!DAFilterPointcut methodsFor: 'inverting' stamp: 'as 2/11/2008 08:46'!
+not
+
+	filter negate.! !
 
 DAFilterPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: ''
@@ -973,14 +1050,44 @@ visitName
 
 	^ 'method'.! !
 
-DAFilterPointcut subclass: #DANodePointcut
-	instanceVariableNames: ''
+DADesignatePointcut subclass: #DANodePointcut
+	instanceVariableNames: 'condition inverted'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcut'!
 
 !DANodePointcut commentStamp: 'as 1/31/2008 16:41' prior: 0!
 Filter the nodes within a reflective method (sub-method level).!
+
+!DANodePointcut class methodsFor: 'instance creation' stamp: 'as 2/8/2008 11:34'!
+condition: aBlock
+
+	^ self new condition: aBlock; yourself.! !
+
+!DANodePointcut methodsFor: 'accessing' stamp: 'as 2/8/2008 11:37'!
+condition
+
+	inverted ifTrue: [ ^ self invertedBlock. ] ifFalse: [ ^ condition. ].! !
+
+!DANodePointcut methodsFor: 'accessing' stamp: 'as 2/8/2008 11:34'!
+condition: aBlock
+
+	condition _ aBlock.! !
+
+!DANodePointcut methodsFor: 'initialize-release' stamp: 'as 2/8/2008 11:32'!
+initialize
+
+	inverted _ false.! !
+
+!DANodePointcut methodsFor: 'private' stamp: 'as 2/8/2008 11:37'!
+invertedBlock
+
+	^ [ :arg | (condition value: arg) not. ].! !
+
+!DANodePointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 11:33'!
+not
+
+	inverted _ inverted not.! !
 
 !DANodePointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:48'!
 visitName
@@ -1056,6 +1163,16 @@ acceptVisitor: aDAPointcutVisitor
 and: aDAPointcut
 
 	^ DAAndPointcut child: self child: aDAPointcut.! !
+
+!DAPointcut methodsFor: 'testing' stamp: 'as 2/4/2008 21:16'!
+hasParent
+
+	^ parent notNil.! !
+
+!DAPointcut methodsFor: 'inverting' stamp: 'as 2/4/2008 21:33'!
+not
+
+	self subclassResponsibility.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 1/24/2008 16:32'!
 or: aDAPointcut
@@ -1157,10 +1274,10 @@ visitMethod: pc
 
 	links add: (DALink new method: pc filter).! !
 
-!DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/31/2008 10:59'!
+!DALinkGenerator methodsFor: 'visiting' stamp: 'as 2/8/2008 11:40'!
 visitNode: pc
 
-	links add: (DALink new node: pc filter).! !
+	links add: (DALink new node: pc condition).! !
 
 !DALinkGenerator methodsFor: 'visiting' stamp: 'as 1/27/2008 16:23'!
 visitOr: pc
@@ -1210,6 +1327,54 @@ visitOr: aDAOrPointcut
 
 	self subclassResponsibility.! !
 
+Object subclass: #DARegexFilter
+	instanceVariableNames: 'regex negated'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Utilities'!
+
+!DARegexFilter commentStamp: 'as 2/8/2008 13:56' prior: 0!
+A regular expression (string) with an attribute that indicates if it is negated or not.!
+
+!DARegexFilter class methodsFor: 'instance creation' stamp: 'as 2/8/2008 13:48'!
+new: regexString
+
+	^ self new regex: regexString; yourself.! !
+
+!DARegexFilter methodsFor: 'initialize-release' stamp: 'as 2/8/2008 10:58'!
+initialize
+
+	negated _ false.! !
+
+!DARegexFilter methodsFor: 'testing' stamp: 'as 2/8/2008 10:58'!
+isNegated
+
+	^ negated.! !
+
+!DARegexFilter methodsFor: 'regex' stamp: 'as 2/8/2008 13:54'!
+matches: aString
+
+	| match |
+
+	match _ aString matchesRegex: regex.
+	self isNegated ifTrue: [ match _ match not. ].
+	^ match.! !
+
+!DARegexFilter methodsFor: 'negating' stamp: 'as 2/11/2008 08:46'!
+negate
+
+	negated _ negated not.! !
+
+!DARegexFilter methodsFor: 'accessing' stamp: 'as 2/8/2008 13:53'!
+regex
+
+	^ regex.! !
+
+!DARegexFilter methodsFor: 'accessing' stamp: 'as 2/8/2008 13:53'!
+regex: regexString
+
+	regex _ regexString.! !
+
 Object subclass: #DATest
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -1235,13 +1400,13 @@ context3
 	^ thisContext.! !
 
 GPCondition subclass: #DACondition
-	instanceVariableNames: ''
+	instanceVariableNames: 'negated'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Geppetto'!
 
-!DACondition commentStamp: 'as 1/21/2008 08:29' prior: 0!
-Used instead of GPCondition to make the GPTransformer aware of the fact that the condition wants a single argument passed, which will contain all reification arguments in a dictionary.!
+!DACondition commentStamp: 'as 2/4/2008 10:35' prior: 0!
+Used instead of GPCondition. The GPTransformer will pass a single argument, which contains all reification arguments in a dictionary. This allows easier combination of blocks and thus conditions. It is difficult to combine blocks with variable number of arguments.!
 
 !DACondition class methodsFor: 'instance creation' stamp: 'as 1/24/2008 12:24'!
 with: aBlockOrBoolean
@@ -1256,17 +1421,16 @@ with: aBlockOrBoolean arguments: aCollection
 		arguments: aCollection;
 		yourself.! !
 
-!DACondition methodsFor: 'composing' stamp: 'as 1/27/2008 18:59'!
+!DACondition methodsFor: 'composing' stamp: 'as 2/8/2008 10:26'!
 and: aDACondition
 
-	(condition = true) | (aDACondition condition = false) ifTrue: [ ^ aDACondition. ].
-	(aDACondition condition = true) | (condition = false) ifTrue: [ ^ self. ].
+	(self condition = true) | (aDACondition condition = false) ifTrue: [ ^ aDACondition. ].
+	(aDACondition condition = true) | (self condition = false) ifTrue: [ ^ self. ].
 	^ self combineWith: aDACondition using: #&.! !
 
-!DACondition methodsFor: 'accessing' stamp: 'as 1/24/2008 12:15'!
+!DACondition methodsFor: 'accessing' stamp: 'as 2/4/2008 10:32'!
 arguments
 
-	condition isBoolean ifTrue: [ ^ #(). ].
 	arguments ifNotNil: [ ^ arguments. ].
 	^ #().! !
 
@@ -1296,10 +1460,31 @@ combineWith: aDACondition using: aSymbol
 	args _ self arguments union: aDACondition arguments.
 	^ self class with: block arguments: args.! !
 
+!DACondition methodsFor: 'accessing' stamp: 'as 2/8/2008 10:25'!
+condition
+
+	negated ifTrue: [ ^ self negatedCondition. ].
+	^ condition.! !
+
 !DACondition methodsFor: 'testing' stamp: 'as 1/24/2008 12:16'!
 hasArguments
 
 	^ arguments notNil.! !
+
+!DACondition methodsFor: 'initialize-release' stamp: 'as 2/8/2008 10:21'!
+initialize
+
+	negated _ false.! !
+
+!DACondition methodsFor: 'private' stamp: 'as 2/8/2008 10:27'!
+negatedCondition
+
+	^ [ :args | (condition value: args) not. ].! !
+
+!DACondition methodsFor: 'negating' stamp: 'as 2/8/2008 10:21'!
+not
+
+	negated _ negated not.! !
 
 !DACondition methodsFor: 'accessing' stamp: 'as 1/24/2008 12:15'!
 reifications
@@ -1321,11 +1506,6 @@ aspect: aDAAspect
 conditionObject: aGPCondition
 
 	condition _ aGPCondition.! !
-
-!Collection methodsFor: '*DynamicAspects' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !GPTransformer methodsFor: '*DynamicAspects' stamp: 'as 1/14/2008 16:28'!
 genConditionArgumentsFor: aCollection
@@ -1408,6 +1588,11 @@ wrapSingleArgCondition
 			selector: ifSelector
 			arguments: ifArguments.
 	! !
+
+!Collection methodsFor: '*DynamicAspects' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
 defineClass: defString notifying: aController  
@@ -1547,48 +1732,70 @@ setUp
 
 	link _ DALink new.! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/1/2008 14:08'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:17'!
 testAndingLinks
 
 	| link2 link3 |
 
 	link
-		category: 'DynamicAspects-Geppetto-Tests';
-		class: 'DALinkTest'.
+		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		class: 'DALinkTest' asRegexFilter.
 	link2 _ DALink new
-		method: 'testAndingLinks';
+		method: 'testAndingLinks' asRegexFilter;
 		node: [ :node | node isMethodNode. ];
 		yourself.
 	link3 _ link and: link2.
 	self assert: (link3 methods includes: (DALinkTest >> #testAndingLinks) reflectiveMethod).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/1/2008 14:07'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
 testFilteringCategories
 
-	link category: 'DynamicAspects.*'.
+	link category: 'DynamicAspects.*' asRegexFilter.
 	self assert: (link categories includes: #'DynamicAspects-Geppetto-Tests').! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/1/2008 14:08'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
 testFilteringClasses
 
-	link category: 'DynamicAspects-Geppetto-Tests'; class: 'DALinkTest'.
+	link category: 'DynamicAspects-Geppetto-Tests' asRegexFilter; class: 'DALinkTest' asRegexFilter.
 	self assert: (link classes includes: DALinkTest).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/1/2008 14:08'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:18'!
 testFilteringMethods
 
-	link category: 'DynamicAspects-Geppetto-Tests'; class: 'DALinkTest'; method: 'testFilteringMethods'.
+	link
+		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		class: 'DALinkTest' asRegexFilter;
+		method: 'testFilteringMethods' asRegexFilter.
 	self assert: (link methods includes: (DALinkTest >> #testFilteringMethods) reflectiveMethod).! !
 
-!DALinkTest methodsFor: 'testing' stamp: 'as 2/1/2008 14:08'!
+!DALinkTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:19'!
 testFilteringNodes
 
 	link
-		category: 'DynamicAspects-Geppetto-Tests';
-		class: 'DALinkTest';
-		method: 'testFilteringNodes';
+		category: 'DynamicAspects-Geppetto-Tests' asRegexFilter;
+		class: 'DALinkTest' asRegexFilter;
+		method: 'testFilteringNodes' asRegexFilter;
 		node: [ :node | node isCascade. ].
 	self assert: (link nodes size = 1).! !
+
+TestCase subclass: #DARegexFilterTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Utilities-Tests'!
+
+!DARegexFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
+Testing DARegexFilter.!
+
+!DARegexFilterTest methodsFor: 'testing' stamp: 'as 2/11/2008 08:47'!
+testNegation
+
+	| filter |
+
+	filter _ 'abc' asRegexFilter.
+	self assert: (filter matches: 'abc').
+	filter negate.
+	self deny: (filter matches: 'abc').! !
 
 TestCase subclass: #DATestingWithLinks
 	instanceVariableNames: ''
