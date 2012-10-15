@@ -73,6 +73,36 @@ end: n operation: operation
 
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
 
+DAAspect subclass: #DAMethodAccessExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples'!
+
+!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 14:43'!
+innerMethod
+
+	^ PC class: OrderedCollection method: #add:.! !
+
+!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 15:16'!
+outerMethods
+
+	^ (PC class: OrderedCollection) & (PC methodName: #add:) not.! !
+
+!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 15:03'!
+pointcut
+
+	<pointcut>
+	
+	^ self innerMethod in: self outerMethods.! !
+
+!DAMethodAccessExample methodsFor: 'advices' stamp: 'as 9/19/2008 15:06'!
+log
+
+	<advice: #pointcut control: #before>
+	
+	Transcript show: 'debug'; cr.! !
+
 DAAspect subclass: #DAStoreClosedExample
 	instanceVariableNames: ''
 	classVariableNames: ''
