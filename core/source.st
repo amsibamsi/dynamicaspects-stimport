@@ -105,22 +105,64 @@ setUp
 
 	aspect reset.! !
 
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:20'!
+testArg1Reification
+
+	aspect mArg1: 1.
+	self assert: aspect reification = 1.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:23'!
+testArgumentsReification
+
+	aspect mArguments: 1 and: 2.
+	self assert: (aspect reification includesExactly: { 1. 2. }).! !
+
 !DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:32'!
 testClassReification
 
 	aspect mClass.
 	self assert: aspect reification = aspect class.! !
 
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:25'!
+testControlReification
+
+	aspect mControl.
+	self assert: aspect reification = #after.! !
+
 !DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 17:16'!
 testInstalled
 
 	self assert: aspect isInstalled.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:32'!
+testLinkReification
+
+	aspect mLink.
+	self assert: (aspect connectors includes: aspect reification connector).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:41'!
+testNodeReification
+
+	aspect mNode.
+	self assert: (aspect reification == (aspect class >>> #mNode) methodNode).! !
 
 !DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/15/2008 14:24'!
 testObjectReification
 
 	aspect mObject.
 	self assert: aspect reification = aspect.! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:52'!
+testReceiverReification
+
+	aspect mReceiver.
+	self assert: (aspect reification == aspect).! !
+
+!DAAspectReificationTest methodsFor: 'testing' stamp: 'as 7/16/2008 10:57'!
+testSelectorReification
+
+	aspect mSelector.
+	self assert: (aspect reification == #mSelector).! !
 
 TestCase subclass: #DAAspectScopeTest
 	instanceVariableNames: ''
@@ -3665,6 +3707,11 @@ connectorForAdvice: aMethod
 
 	^ connector.! !
 
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/16/2008 10:26'!
+connectors
+
+	^ connectors.! !
+
 !DAAspect class methodsFor: 'private' stamp: 'as 5/13/2008 15:10'!
 createConnectors
 
@@ -4101,8 +4148,33 @@ For testing reifications.!
 DAAspectReificationExample class
 	instanceVariableNames: 'reification'!
 
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:19'!
+mArg1: arg1
+
+	^ arg1.! !
+
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:21'!
+mArguments: x and: y
+
+	^ { x. y. }.! !
+
 !DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/15/2008 17:31'!
 mClass
+
+	^ self.! !
+
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:24'!
+mControl
+
+	^ self.! !
+
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:25'!
+mLink
+
+	^ self.! !
+
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:38'!
+mNode
 
 	^ self.! !
 
@@ -4111,20 +4183,65 @@ mObject
 
 	^ self.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 17:31'!
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:51'!
+mReceiver
+
+	^ self.! !
+
+!DAAspectReificationExample class methodsFor: 'examples' stamp: 'as 7/16/2008 10:52'!
+mSelector
+
+	^ self.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+pArg1
+
+	^ (self class >> #mArg1:) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+pArguments
+
+	^ (self class >> #mArguments:and:) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
 pClass
 
-	^ (self class >> #mClass) asPointcut! !
+	^ (self class >> #mClass) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 14:19'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:39'!
+pControl
+
+	^ (self class >> #mControl) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
+pLink
+
+	^ (self class >> #mLink) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
+pNode
+
+	^ (self class >> #mNode) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:38'!
 pObject
 
-	^ (self class >> #mObject) asPointcut! !
+	^ (self class >> #mObject) asPointcut.! !
 
-!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/15/2008 17:31'!
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:51'!
+pReceiver
+
+	^ (self class >> #mReceiver) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:55'!
+pSelector
+
+	^ (self class >> #mSelector) asPointcut.! !
+
+!DAAspectReificationExample class methodsFor: 'pointcuts' stamp: 'as 7/16/2008 10:59'!
 pointcutNames
 
-	^ #(pObject pClass).! !
+	^ #(pObject pClass pArg1 pArguments pControl pLink pNode pReceiver pSelector).! !
 
 !DAAspectReificationExample class methodsFor: 'accessing' stamp: 'as 7/15/2008 14:20'!
 reification
@@ -4141,13 +4258,48 @@ reset
 
 	reification _ nil.! !
 
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:20'!
+afterPArg1WithArg1: x
+
+	self class reification: x.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:22'!
+afterPArgumentsWithArguments: x
+
+	self class reification: x.! !
+
 !DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/15/2008 17:32'!
 afterPClassWithClass: x
 
 	self class reification: x.! !
 
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:24'!
+afterPControlWithControl: x
+
+	self class reification: x.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:25'!
+afterPLinkWithLink: x
+
+	self class reification: x.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:39'!
+afterPNodeWithNode: x
+
+	self class reification: x.! !
+
 !DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/15/2008 17:32'!
 afterPObjectWithObject: x
+
+	self class reification: x.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:52'!
+afterPReceiverWithReceiver: x
+
+	self class reification: x.! !
+
+!DAAspectReificationExample methodsFor: 'advices' stamp: 'as 7/16/2008 10:56'!
+afterPSelectorWithSelector: x
 
 	self class reification: x.! !
 
