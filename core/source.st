@@ -7,6 +7,12 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -19,11 +25,10 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
+!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
 
-	^ (self >> selector) reflectiveMethod.
-! !
+	^ DAClassDescription classObject: self.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -35,15 +40,371 @@ asPointcut
 
 	^ DAMethodPointcut method: self.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+TestCase subclass: #DACodingTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ self method parent.! !
+!DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
+Test coding guidelines.!
 
-!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:18'!
+packageName
 
-	^ DAClassDescription classObject: self.! !
+	^ 'DynamicAspects'.! !
+
+!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:17'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+TestCase subclass: #DAConditionTest
+	instanceVariableNames: 'trueBool falseBool trueBlock falseBlock altTrueBlock'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
+Testing DACondition.!
+
+!DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
+isAbstract
+
+	^ false.! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+altBlockArgs
+
+	^ #(class).! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+blockArgs
+
+	^ #(object).! !
+
+!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
+setUp
+
+	trueBool _ DACondition with: true.
+	falseBool _ DACondition with: false.
+	trueBlock _ DACondition with: [ :arg | true. ] arguments: self blockArgs.
+	falseBlock _ DACondition with: [ :arg | false. ] arguments: self blockArgs.
+	altTrueBlock _ DACondition with: [ :arg | true. ] arguments: self altBlockArgs.
+	! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:46'!
+testArgsBlock
+
+	self assert: trueBlock arguments = self blockArgs.
+	self assert: falseBlock arguments = self blockArgs.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 14:28'!
+testCombiningArgs
+
+	| cond |
+	
+	cond _ trueBlock and: falseBlock.
+	self assert: cond arguments = self blockArgs.
+	cond _ trueBlock and: altTrueBlock.
+	self assert: cond arguments = (self blockArgs, self altBlockArgs).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:31'!
+testCombiningBlocks
+
+	| cond |
+	
+	cond _ trueBlock and: falseBlock.
+	self deny: (cond value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:42'!
+testCombiningBooleanWithBlock
+
+	| cond |
+	
+	cond _ trueBool and: trueBlock.
+	self assert: (cond value: nil).
+	self assert: (cond arguments = self blockArgs).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testCombiningBooleans
+
+	| cond |
+	cond _ trueBool and: falseBool.
+	self deny: cond value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:34'!
+testCommutativeBlocks
+
+	| val1 val2 |
+
+	val1 _ (trueBlock and: falseBool) value: nil.
+	val2 _ (falseBool and: trueBool) value: nil.
+	self assert: val1 = val2.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testCommutativeBooleans
+
+	self assert: (trueBool and: falseBool) value = (falseBool and: trueBool) value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:22'!
+testEmptyArgs
+
+	self assert: trueBool arguments isEmpty.
+	self assert: falseBool arguments isEmpty.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:43'!
+testFalseBlock
+
+	self deny: (falseBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testFalseBoolean
+
+	self deny: falseBool value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:30'!
+testNegatingBlock
+
+	trueBlock not.
+	self deny: (trueBlock value: nil).
+	falseBlock not.
+	self assert: (falseBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:29'!
+testNegatingBoolean
+
+	trueBool not.
+	self deny: trueBool value.
+	falseBool not.
+	self assert: falseBool value.! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:27'!
+testTrueBlock
+
+	self assert: (trueBlock value: nil).! !
+
+!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
+testTrueBoolean
+
+	self assert: trueBool value.! !
+
+TestCase subclass: #DAFilterTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
+Testing DARegexFilter.!
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/7/2008 15:40'!
+testNegation
+
+	| filter |
+
+	filter _ DAFilter string: 'abc'.
+	self assert: (filter matches: 'abc').
+	filter not.
+	self deny: (filter matches: 'abc').! !
+
+TestCase subclass: #DAJoinPointTest
+	instanceVariableNames: 'jp'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAJoinPointTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
+Testing DALink.!
+
+!DAJoinPointTest methodsFor: 'running' stamp: 'as 3/25/2008 17:42'!
+setUp
+
+	jp _ DAJoinPoint new.! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:39'!
+testAnding
+
+	| jp1 jp2 |
+
+	jp1 _ DAJoinPoint new class: (DAFilter class: 'Object').
+	self assert: (jp1 classes includes: Object).
+	
+	jp2 _ DAJoinPoint new method: (DAFilter method: '=').
+	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
+	
+	jp _ jp1 and: jp2.
+	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
+	self assert: jp methods size = 1.! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:39'!
+testMultipleCategories
+
+	jp category: (DAFilter category: 'Kernel-*').
+	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 11:59'!
+testMultipleClasses
+
+	jp class: (DAFilter class: '*Object').
+	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 12:15'!
+testMultipleMethods
+
+	jp
+		class: (DAFilter class: 'ProtoObject');
+		method: (DAFilter method: '*').
+	self assert: (jp methods includesAllOf: {
+		(ProtoObject >> #==) reflectiveMethod.
+		(ProtoObject >> #become:) reflectiveMethod.
+	}).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 13:05'!
+testMultipleNodes
+
+	jp
+		class: (DAFilter class: 'Object');
+		method: (DAFilter method: 'class');
+		node: (DAFilter node: [ :node | true. ]).
+	self assert: (jp nodes includesAllOf:
+		(Object >> #class) reflectiveMethod methodNode allChildren).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/25/2008 18:22'!
+testSingleCategory
+
+	jp category: (DAFilter category: 'Kernel-Objects').
+	self assert: (jp categories includes: #'Kernel-Objects').! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:13'!
+testSingleClass
+
+	jp class: (DAFilter class: 'Object').
+	self assert: (jp classes includes: Object).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:14'!
+testSingleMethod
+
+	jp
+		class: (DAFilter class: 'Object');
+		method: (DAFilter method: '=').
+	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:38'!
+testSingleNode
+
+	jp
+		class: (DAFilter class: 'Object');
+		method: (DAFilter method: 'class');
+		node: (DAFilter node: [ :node | node isMethod. ]).
+	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
+
+TestCase subclass: #DAPointcutTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAPointcutTest commentStamp: 'as 3/31/2008 11:46' prior: 0!
+Testing pointcuts.!
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testAnd
+
+	| m pc |
+
+	m _ Object >>> #=.
+	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
+	self assert: (pc nodes includesExactly: { m methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
+testOr
+
+	| m1 m2 pc |
+	
+	m1 _ Object >>> #=.
+	m2 _ Object >>> #->.
+	pc _ (DAPointcut method: m1) or: (DAPointcut method: m2).
+	self assert: (pc nodes includesExactly: { m1 methodNode. m2 methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:59'!
+testParent
+
+	| pc |
+	
+	pc _ DACompositePointcut child: DAPointcut new child: DAPointcut new.
+
+	pc children do: [
+		:child |
+		self assert: child parent == pc.
+	].! !
+
+TestCase subclass: #DATestWithLinks
+	instanceVariableNames: 'links'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DATestWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
+A test that uses Geppetto links.
+
+This provides link cleanup at start/finish for any subclassed test.!
+
+DATestWithLinks subclass: #DAHookTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAHookTest commentStamp: 'as 4/1/2008 15:47' prior: 0!
+Testing hooks.!
+
+!DAHookTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
+isAbstract
+
+	^ false.! !
+
+!DAHookTest methodsFor: 'testing' stamp: 'as 4/21/2008 15:50'!
+testSimple
+
+	| mo pc hook count |
+
+	mo _ GPCounter new.
+	pc _ DAPointcut class: DAExamples class method: #noop.
+	hook _ DAConnector on: pc do: #inc on: mo.	
+	hook install.
+	self cleanup: hook.
+
+	count _ mo count.
+	DAExamples noop.
+	self assert: (count + 1) = mo count.! !
+
+!DATestWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
+isAbstract
+
+	^ true.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
+cleanup: aGPLink
+
+	"Register aGPLink for cleanup in #tearDown"
+	
+	links add: aGPLink.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
+setUp
+
+	links _ Set new.! !
+
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+tearDown
+
+	links do: [ :link | link uninstall. ].! !
 
 !SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
 copyAfterIndex: anIndex
@@ -68,86 +429,89 @@ Object subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'hooks mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict'!
 
 !DAAspect commentStamp: 'as 4/11/2008 15:28' prior: 0!
 Combines several pointcuts and advices into multiple hooks.!
 
 DAAspect class
-	instanceVariableNames: 'hooks mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict'!
 
-!DAAspect class methodsFor: 'aspects' stamp: 'as 4/11/2008 11:46'!
-advices
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:29'!
+after: aDAPointcut do: aSymbol
 
-	^ self connectors collect: [
-		:connector |
-		connector advice.
-	].! !
+	^ (self on: aDAPointcut do: aSymbol)
+		control: #after;
+		yourself.! !
 
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/16/2008 17:10'!
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:29'!
+after: aDAPointcut do: aSymbol with: aCollection
+
+	^ (self after: aDAPointcut do: aSymbol)
+		arguments: aCollection;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:32'!
+before: aDAPointcut do: aSymbol
+
+	^ (self on: aDAPointcut do: aSymbol)
+		control: #before;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
+before: aDAPointcut do: aSymbol with: aCollection
+
+	^ (self before: aDAPointcut do: aSymbol)
+		arguments: aCollection;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
+beforeAndAfter: aDAPointcut do: aSymbol
+
+	^ (self on: aDAPointcut do: aSymbol)
+		control: #beforeafter;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
+beforeAndAfter: aDAPointcut do: aSymbol with: aCollection
+
+	^ (self beforeAndAfter: aDAPointcut do: aSymbol)
+		arguments: aCollection;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 14:35'!
 connectors
 
 	"Return a collection of instances of DAConnector."
 
-	^ #().! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 4/17/2008 11:08'!
-createHooks
-
-	^ self connectors collect: [
-		:connector |
-		self hook: connector.
-	].! !
+	self subclassResponsibility.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:31'!
 disabled
 
 	^ false.! !
 
-!DAAspect class methodsFor: 'private' stamp: 'as 4/17/2008 11:24'!
-hook: aDAConnector
-
-	| hook |
-	self scope ifNil: [
-		hook _ DAHook
-			on: aDAConnector pointcut
-			do: aDAConnector advice
-			on: self metaObject.
-	] ifNotNil: [
-		hook _ DAHook
-			on: aDAConnector pointcut
-			create: self metaObjectCreator
-			per: self scope
-			do: aDAConnector advice.
-		hook metaObjectDict: self metaObjectDict.
-	].
-	hook
-		control: aDAConnector control;
-		arguments: aDAConnector arguments;
-		aspect: self.
-
-	^ hook.! !
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 4/14/2008 17:46'!
-hooks
-
-	^ hooks ifNil: [ hooks _ Set new. ].! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/15/2008 16:26'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 14:28'!
 install
 
-	self isInstalled ifFalse: [
-		self createHooks do: [
-			:hook |
-			hook install.
-			self hooks add: hook.
-		].
+	self connectors do: [
+		:con |
+		con install.
 	].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 4/15/2008 16:25'!
-isInstalled
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
+instead: aDAPointcut do: aSymbol
 
-	^ self hooks notEmpty.! !
+	^ (self on: aDAPointcut do: aSymbol)
+		control: #instead;
+		yourself.! !
+
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:34'!
+instead: aDAPointcut do: aSymbol with: aCollection
+
+	^ (self instead: aDAPointcut do: aSymbol)
+		arguments: aCollection;
+		yourself.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -169,22 +533,13 @@ needs
 
 	^ #().! !
 
-!DAAspect class methodsFor: 'private' stamp: 'as 4/15/2008 16:58'!
-pointcut: aSymbol
+!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:28'!
+on: aDAPointcut do: aSymbol
 
-	| method |
-
-	(aSymbol endsWith: ':')
-		ifTrue: [ method _ aSymbol. ]
-		ifFalse: [ method _ (aSymbol, ':') asSymbol. ].
-	^ self perform: method with: DAPointcut.! !
-
-!DAAspect class methodsFor: 'aspects' stamp: 'as 4/11/2008 11:45'!
-pointcuts
-
-	^ self connectors inject: Set new into: [
-		:set :connector |
-		set, connector pointcuts.
+	self scope ifNil: [
+		^ DAConnector on: aDAPointcut do: aSymbol on: self metaObject.
+	] ifNotNil: [
+		^ DAConnector on: aDAPointcut create: self metaObjectCreator per: self scope do: aSymbol.
 	].! !
 
 !DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:52'!
@@ -197,15 +552,12 @@ scope
 
 	^ nil.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/15/2008 16:26'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 14:29'!
 uninstall
 
-	self isInstalled ifTrue: [
-		self hooks do: [
-			:hook |
-			hook uninstall.
-			self hooks remove: hook.
-		].
+	self connectors do: [
+		:con |
+		con uninstall.
 	].! !
 
 !DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:52'!
@@ -704,148 +1056,234 @@ valueWithArguments: anArray
 	^ self negatedValue: (self doValueWithArguments: anArray).! !
 
 Object subclass: #DAConnector
-	instanceVariableNames: 'pointcut advice control arguments'
+	instanceVariableNames: 'installed pointcut scope control links mo moCreator selector arguments aspect'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAConnector commentStamp: 'as 4/16/2008 17:35' prior: 0!
-Connects one or more pointcuts with an advice, also declaring the control and the advice arguments/parameters.!
+!DAConnector commentStamp: 'as 3/19/2008 17:38' prior: 0!
+Connects pointcuts with advices.!
 
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:20'!
-after: aDAPointcut do: advSymbol
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #after;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:32'!
-after: aDAPointcut do: advSymbol with: aCollection
+!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:34'!
+on: aDAPointcut create: aBlock per: scopeSymbol do: selectorSymbol
 
 	^ self new
 		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #after;
-		arguments: aCollection;
+		metaObjectCreator: aBlock;
+		selector: selectorSymbol;
+		scope: scopeSymbol;
 		yourself.! !
 
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:20'!
-before: aDAPointcut do: advSymbol
+!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:35'!
+on: aDAPointcut do: aSymbol on: anObject
 
 	^ self new
 		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #before;
+		metaObject: anObject;
+		selector: aSymbol;
 		yourself.! !
 
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:32'!
-before: aDAPointcut do: advSymbol with: aCollection
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #before;
-		arguments: aCollection;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:20'!
-beforeAndAfter: aDAPointcut do: advSymbol
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #beforeafter;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:33'!
-beforeAndAfter: aDAPointcut do: advSymbol with: aCollection
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #beforeafter;
-		arguments: aCollection;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:21'!
-instead: aDAPointcut do: advSymbol
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #instead;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/17/2008 15:33'!
-instead: aDAPointcut do: advSymbol with: aCollection
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: #instead;
-		arguments: aCollection;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/16/2008 17:27'!
-pointcut: aDAPointcut advice: advSymbol control: ctrlSymbol
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: ctrlSymbol;
-		yourself.! !
-
-!DAConnector class methodsFor: 'instance creation' stamp: 'as 4/16/2008 17:27'!
-pointcut: aDAPointcut advice: advSymbol control: ctrlSymbol arguments: argCollection
-
-	^ self new
-		pointcut: aDAPointcut;
-		advice: advSymbol;
-		control: ctrlSymbol;
-		arguments: argCollection;
-		yourself.! !
-
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/11/2008 10:44'!
-advice
-
-	^ advice.! !
-
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/11/2008 10:46'!
-advice: aSymbol
-
-	advice _ aSymbol.! !
-
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/14/2008 09:47'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/14/2008 16:05'!
 arguments
 
 	^ arguments ifNil: [ arguments _ #(). ].! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/11/2008 10:46'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:40'!
 arguments: aCollection
 
-	arguments _ aCollection.! !
+	arguments _ aCollection.
+	links do: [ :link | link arguments: aCollection. ].! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/11/2008 10:44'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/16/2008 14:21'!
+aspect
+
+	^ aspect.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/16/2008 14:21'!
+aspect: aDAAspect
+
+	aspect _ aDAAspect.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
 control
 
 	^ control.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/11/2008 10:46'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:41'!
 control: aSymbol
 
-	^ control _ aSymbol.! !
+	control _ aSymbol.
+	links do: [ :link | link control: aSymbol. ].! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/16/2008 17:28'!
+!DAConnector methodsFor: 'defaults' stamp: 'as 4/14/2008 16:17'!
+defaultControl
+
+	^ #before.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:28'!
+hookScope
+
+	self scope: #hook.! !
+
+!DAConnector methodsFor: 'initialize-release' stamp: 'as 4/21/2008 15:02'!
+initialize
+
+	links _ Set new.
+	control _ self defaultControl.
+	installed _ false.! !
+
+!DAConnector methodsFor: 'installing' stamp: 'as 4/18/2008 15:43'!
+install
+
+	self isInstalled ifFalse: [
+		pointcut joinPoints do: [
+			:jp |
+			| link |
+			link _ self newLink: jp.
+			link hookOnJoinPoint: jp.
+			links add: link.
+		].
+		installed _ true.
+	].
+		! !
+
+!DAConnector methodsFor: 'testing' stamp: 'as 4/18/2008 15:43'!
+isInstalled
+
+	^ installed.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 3/25/2008 09:20'!
+links
+
+	^ links.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+metaObject
+
+	^ mo.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:39'!
+metaObject: anObject
+
+	mo _ anObject.
+	moCreator _ nil.
+	links do: [ :link | self setMetaObject: link. ].! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/14/2008 16:05'!
+metaObjectCreator
+
+	^ moCreator.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:43'!
+metaObjectCreator: aBlock
+
+	moCreator _ aBlock.
+	mo isDictionary ifFalse: [ mo _ Dictionary new. ].
+	links do: [ :link | self setMetaObject: link. ].! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:44'!
+metaObjectCreator: aBlock dict: aDictionary
+
+	"A bit a hack, but useful if the meta object dictionary is shared with the outside."
+	
+	moCreator _ aBlock.
+	mo _ aDictionary.
+	links do: [ :link | self setMetaObject: link. ].! !
+
+!DAConnector methodsFor: 'private' stamp: 'as 4/21/2008 15:58'!
+newLink: aDAJoinPoint
+
+	| link |
+
+	link _ GPLink new
+		selector: selector;
+		control: control;
+		connector: self;
+		yourself.
+	arguments ifNotNil: [ link arguments: arguments. ].
+	aDAJoinPoint condition ifNotNil: [ link conditionObject: aDAJoinPoint condition. ].
+	aDAJoinPoint context ifNotNil: [ link addOnActiveContext: aDAJoinPoint context. ].
+	self setMetaObject: link.
+	scope ifNotNil: [ link moScope: scope. ].
+	
+	^ link.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
 pointcut
 
-	^ pointcut ifNil: [ pointcut _ #(). ].! !
+	^ pointcut.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/16/2008 17:28'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:46'!
 pointcut: aDAPointcut
 
-	pointcut _ aDAPointcut.! !
+	pointcut _ aDAPointcut.
+	self update.! !
+
+!DAConnector methodsFor: 'installing' stamp: 'as 4/7/2008 13:51'!
+reinstall
+
+	self uninstall; install.! !
+
+!DAConnector methodsFor: 'installing' stamp: 'as 4/7/2008 14:19'!
+reset
+
+	self initializeMoDict.
+	pointcut reset.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
+scope
+
+	^ scope.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 15:16'!
+scope: aSymbol
+
+	aSymbol = #hook ifTrue: [
+		scope _ nil.
+		links do: [ :link | link noScope. ].
+	] ifFalse: [
+		scope = aSymbol.
+		links do: [ :link | link moScope: aSymbol. ].
+	].! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
+selector
+
+	^ selector.! !
+
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:47'!
+selector: aSymbol
+
+	selector _ aSymbol.
+	links do: [ :link | link selector: aSymbol. ].! !
+
+!DAConnector methodsFor: 'private' stamp: 'as 4/21/2008 14:54'!
+setMetaObject: aGPLink
+
+	"The link's dictionary of meta objects is hosted by the hook
+	 and is the same for all links."
+
+	scope ifNotNil: [
+		aGPLink metaObjectCreator: moCreator.
+	].
+	aGPLink metaObject: mo.! !
+
+!DAConnector methodsFor: 'installing' stamp: 'as 4/18/2008 15:43'!
+uninstall
+
+	self isInstalled ifTrue: [
+		links do: [
+			:link |
+			link uninstall.
+			links remove: link.
+		].
+		installed _ false.
+	].! !
+
+!DAConnector methodsFor: 'installing' stamp: 'as 4/7/2008 14:10'!
+update
+
+	self isInstalled ifTrue: [ self reinstall. ].! !
 
 Object subclass: #DAContext
 	instanceVariableNames: 'parent'
@@ -1092,6 +1530,9 @@ DAContext subclass: #DAControlFlowContext
 	poolDictionaries: ''
 	category: 'DA-Contexts'!
 
+!DAControlFlowContext commentStamp: 'as 4/22/2008 14:26' prior: 0!
+A context that is active if execution has entered a certain method and is at a certain nesting level of that method. Instances can only be created for specific methods.!
+
 !DAControlFlowContext class methodsFor: 'instance creation' stamp: 'as 4/18/2008 14:57'!
 in: aMethod
 
@@ -1235,223 +1676,6 @@ matches: anObject
 not
 
 	negated _ negated not.! !
-
-Object subclass: #DAHook
-	instanceVariableNames: 'pointcut scope control links mo moCreator selector arguments aspect'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Kernel'!
-
-!DAHook commentStamp: 'as 3/19/2008 17:38' prior: 0!
-Connects pointcuts with advices.!
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:34'!
-on: aDAPointcut create: aBlock per: scopeSymbol do: selectorSymbol
-
-	^ self new
-		pointcut: aDAPointcut;
-		metaObjectCreator: aBlock;
-		selector: selectorSymbol;
-		scope: scopeSymbol;
-		yourself.! !
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:35'!
-on: aDAPointcut do: aBlock
-
-	^ self new
-		pointcut: aDAPointcut;
-		metaObject: aBlock;
-		selector: aBlock valueSelector;
-		yourself.! !
-
-!DAHook class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:35'!
-on: aDAPointcut do: aSymbol on: anObject
-
-	^ self new
-		pointcut: aDAPointcut;
-		metaObject: anObject;
-		selector: aSymbol;
-		yourself.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/14/2008 16:05'!
-arguments
-
-	^ arguments ifNil: [ arguments _ #(). ].! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
-arguments: anArray
-
-	arguments _ anArray.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/16/2008 14:21'!
-aspect
-
-	^ aspect.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/16/2008 14:21'!
-aspect: aDAAspect
-
-	aspect _ aDAAspect.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-control
-
-	^ control.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-control: aSymbol
-
-	control _ aSymbol.! !
-
-!DAHook methodsFor: 'defaults' stamp: 'as 4/14/2008 16:17'!
-defaultControl
-
-	^ #before.! !
-
-!DAHook methodsFor: 'initialize-release' stamp: 'as 4/14/2008 16:17'!
-initialize
-
-	links _ Set new.
-	control _ self defaultControl.! !
-
-!DAHook methodsFor: 'installing' stamp: 'as 4/7/2008 14:17'!
-install
-
-	self isInstalled ifFalse: [
-		pointcut joinPoints do: [
-			:jp |
-			| link |
-			link _ self newLink: jp.
-			link hookOnJoinPoint: jp.
-			links add: link.
-		].
-	].
-		! !
-
-!DAHook methodsFor: 'testing' stamp: 'as 3/23/2008 16:56'!
-isInstalled
-
-	^ links notEmpty.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/25/2008 09:20'!
-links
-
-	^ links.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
-metaObject
-
-	^ mo.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/14/2008 16:15'!
-metaObject: anObject
-
-	mo _ anObject.
-	moCreator _ nil.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/14/2008 16:05'!
-metaObjectCreator
-
-	^ moCreator.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/14/2008 16:15'!
-metaObjectCreator: aBlock
-
-	moCreator _ aBlock.
-	mo _ Dictionary new.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/14/2008 17:04'!
-metaObjectDict: aDictionary
-
-	"A bit a hack, but helpful if the meta object dictionary must be shared with other objects."
-	
-	mo _ aDictionary.! !
-
-!DAHook methodsFor: 'private' stamp: 'as 4/8/2008 17:32'!
-newLink: aDAJoinPoint
-
-	| link |
-
-	link _ GPLink new
-		selector: selector;
-		control: control;
-		hook: self;
-		yourself.
-	arguments ifNotNil: [ link arguments: arguments. ].
-	aDAJoinPoint condition ifNotNil: [ link conditionObject: aDAJoinPoint condition. ].
-	aDAJoinPoint context ifNotNil: [ link addOnActiveContext: aDAJoinPoint context. ].
-	self setMetaObject: link.
-	
-	^ link.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-pointcut
-
-	^ pointcut.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
-pointcut: aDAPointcut
-
-	pointcut _ aDAPointcut.! !
-
-!DAHook methodsFor: 'installing' stamp: 'as 4/7/2008 13:51'!
-reinstall
-
-	self uninstall; install.! !
-
-!DAHook methodsFor: 'installing' stamp: 'as 4/7/2008 14:19'!
-reset
-
-	self initializeMoDict.
-	pointcut reset.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
-scope
-
-	^ scope.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
-scope: aSymbol
-
-	scope _ aSymbol.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
-selector
-
-	^ selector.! !
-
-!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
-selector: aSymbol
-
-	selector _ aSymbol.! !
-
-!DAHook methodsFor: 'private' stamp: 'as 4/17/2008 11:09'!
-setMetaObject: aGPLink
-
-	aGPLink metaObject: mo.
-	scope ifNotNil: [
-		"The link's dictionary of meta objects is hosted by the hook
-		 and is the same for all links."
-		aGPLink
-			moScope: scope;
-			metaObjectCreator: moCreator.
-	].! !
-
-!DAHook methodsFor: 'installing' stamp: 'as 4/14/2008 17:38'!
-uninstall
-
-	self isInstalled ifTrue: [
-		links do: [
-			:link |
-			link uninstall.
-			links remove: link.
-		].
-	].! !
-
-!DAHook methodsFor: 'installing' stamp: 'as 4/7/2008 14:10'!
-update
-
-	self isInstalled ifTrue: [ self reinstall. ].! !
 
 Object subclass: #DAJoinPoint
 	instanceVariableNames: 'condition context filters cache'
@@ -2443,371 +2667,10 @@ visitOr: pc
 	pc right acceptVisitor: self.
 	joinPoints addAll: self pop.! !
 
-TestCase subclass: #DACodingTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-!DACodingTest commentStamp: 'as 8/14/2007 10:17' prior: 0!
-Test coding guidelines.!
-
-!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:18'!
-packageName
-
-	^ 'DynamicAspects'.! !
-
-!DACodingTest methodsFor: 'testing' stamp: 'as 8/14/2007 10:17'!
-testClassComment
-
-	"Each class should have a comment."
-
-	(PackageInfo named: self packageName) classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
-
-TestCase subclass: #DAConditionTest
-	instanceVariableNames: 'trueBool falseBool trueBlock falseBlock altTrueBlock'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAConditionTest commentStamp: 'as 1/27/2008 17:41' prior: 0!
-Testing DACondition.!
-
-!DAConditionTest class methodsFor: 'testing' stamp: 'as 2/18/2008 10:31'!
-isAbstract
-
-	^ false.! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-altBlockArgs
-
-	^ #(class).! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-blockArgs
-
-	^ #(object).! !
-
-!DAConditionTest methodsFor: 'running' stamp: 'as 3/25/2008 13:36'!
-setUp
-
-	trueBool _ DACondition with: true.
-	falseBool _ DACondition with: false.
-	trueBlock _ DACondition with: [ :arg | true. ] arguments: self blockArgs.
-	falseBlock _ DACondition with: [ :arg | false. ] arguments: self blockArgs.
-	altTrueBlock _ DACondition with: [ :arg | true. ] arguments: self altBlockArgs.
-	! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:46'!
-testArgsBlock
-
-	self assert: trueBlock arguments = self blockArgs.
-	self assert: falseBlock arguments = self blockArgs.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 14:28'!
-testCombiningArgs
-
-	| cond |
-	
-	cond _ trueBlock and: falseBlock.
-	self assert: cond arguments = self blockArgs.
-	cond _ trueBlock and: altTrueBlock.
-	self assert: cond arguments = (self blockArgs, self altBlockArgs).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:31'!
-testCombiningBlocks
-
-	| cond |
-	
-	cond _ trueBlock and: falseBlock.
-	self deny: (cond value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:42'!
-testCombiningBooleanWithBlock
-
-	| cond |
-	
-	cond _ trueBool and: trueBlock.
-	self assert: (cond value: nil).
-	self assert: (cond arguments = self blockArgs).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testCombiningBooleans
-
-	| cond |
-	cond _ trueBool and: falseBool.
-	self deny: cond value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:34'!
-testCommutativeBlocks
-
-	| val1 val2 |
-
-	val1 _ (trueBlock and: falseBool) value: nil.
-	val2 _ (falseBool and: trueBool) value: nil.
-	self assert: val1 = val2.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testCommutativeBooleans
-
-	self assert: (trueBool and: falseBool) value = (falseBool and: trueBool) value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:22'!
-testEmptyArgs
-
-	self assert: trueBool arguments isEmpty.
-	self assert: falseBool arguments isEmpty.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:43'!
-testFalseBlock
-
-	self deny: (falseBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testFalseBoolean
-
-	self deny: falseBool value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:30'!
-testNegatingBlock
-
-	trueBlock not.
-	self deny: (trueBlock value: nil).
-	falseBlock not.
-	self assert: (falseBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:29'!
-testNegatingBoolean
-
-	trueBool not.
-	self deny: trueBool value.
-	falseBool not.
-	self assert: falseBool value.! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:27'!
-testTrueBlock
-
-	self assert: (trueBlock value: nil).! !
-
-!DAConditionTest methodsFor: 'testing' stamp: 'as 3/25/2008 13:26'!
-testTrueBoolean
-
-	self assert: trueBool value.! !
-
-TestCase subclass: #DAFilterTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
-Testing DARegexFilter.!
-
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/7/2008 15:40'!
-testNegation
-
-	| filter |
-
-	filter _ DAFilter string: 'abc'.
-	self assert: (filter matches: 'abc').
-	filter not.
-	self deny: (filter matches: 'abc').! !
-
-TestCase subclass: #DAJoinPointTest
-	instanceVariableNames: 'jp'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAJoinPointTest commentStamp: 'as 1/31/2008 14:14' prior: 0!
-Testing DALink.!
-
-!DAJoinPointTest methodsFor: 'running' stamp: 'as 3/25/2008 17:42'!
-setUp
-
-	jp _ DAJoinPoint new.! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:39'!
-testAnding
-
-	| jp1 jp2 |
-
-	jp1 _ DAJoinPoint new class: (DAFilter class: 'Object').
-	self assert: (jp1 classes includes: Object).
-	
-	jp2 _ DAJoinPoint new method: (DAFilter method: '=').
-	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
-	
-	jp _ jp1 and: jp2.
-	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
-	self assert: jp methods size = 1.! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:39'!
-testMultipleCategories
-
-	jp category: (DAFilter category: 'Kernel-*').
-	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 11:59'!
-testMultipleClasses
-
-	jp class: (DAFilter class: '*Object').
-	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 12:15'!
-testMultipleMethods
-
-	jp
-		class: (DAFilter class: 'ProtoObject');
-		method: (DAFilter method: '*').
-	self assert: (jp methods includesAllOf: {
-		(ProtoObject >> #==) reflectiveMethod.
-		(ProtoObject >> #become:) reflectiveMethod.
-	}).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 13:05'!
-testMultipleNodes
-
-	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: 'class');
-		node: (DAFilter node: [ :node | true. ]).
-	self assert: (jp nodes includesAllOf:
-		(Object >> #class) reflectiveMethod methodNode allChildren).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/25/2008 18:22'!
-testSingleCategory
-
-	jp category: (DAFilter category: 'Kernel-Objects').
-	self assert: (jp categories includes: #'Kernel-Objects').! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:13'!
-testSingleClass
-
-	jp class: (DAFilter class: 'Object').
-	self assert: (jp classes includes: Object).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:14'!
-testSingleMethod
-
-	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: '=').
-	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
-
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:38'!
-testSingleNode
-
-	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: 'class');
-		node: (DAFilter node: [ :node | node isMethod. ]).
-	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
-
-TestCase subclass: #DAPointcutTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAPointcutTest commentStamp: 'as 3/31/2008 11:46' prior: 0!
-Testing pointcuts.!
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
-testAnd
-
-	| m pc |
-
-	m _ Object >>> #=.
-	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
-	self assert: (pc nodes includesExactly: { m methodNode. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
-testOr
-
-	| m1 m2 pc |
-	
-	m1 _ Object >>> #=.
-	m2 _ Object >>> #->.
-	pc _ (DAPointcut method: m1) or: (DAPointcut method: m2).
-	self assert: (pc nodes includesExactly: { m1 methodNode. m2 methodNode. }).! !
-
-!DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:59'!
-testParent
-
-	| pc |
-	
-	pc _ DACompositePointcut child: DAPointcut new child: DAPointcut new.
-
-	pc children do: [
-		:child |
-		self assert: child parent == pc.
-	].! !
-
-TestCase subclass: #DATestWithLinks
-	instanceVariableNames: 'links'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DATestWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
-A test that uses Geppetto links.
-
-This provides link cleanup at start/finish for any subclassed test.!
-
-DATestWithLinks subclass: #DAHookTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAHookTest commentStamp: 'as 4/1/2008 15:47' prior: 0!
-Testing hooks.!
-
-!DAHookTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
-isAbstract
-
-	^ false.! !
-
-!DAHookTest methodsFor: 'testing' stamp: 'as 4/15/2008 16:36'!
-testSimple
-
-	| mo pc hook count |
-
-	mo _ GPCounter new.
-	pc _ DAPointcut class: DAExamples class method: #noop.
-	hook _ DAHook on: pc do: #inc on: mo.	
-	hook install.
-	self cleanup: hook.
-
-	count _ mo count.
-	DAExamples noop.
-	self assert: (count + 1) = mo count.! !
-
-!DATestWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
-isAbstract
-
-	^ true.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
-cleanup: aGPLink
-
-	"Register aGPLink for cleanup in #tearDown"
-	
-	links add: aGPLink.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
-setUp
-
-	links _ Set new.! !
-
-!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
-tearDown
-
-	links do: [ :link | link uninstall. ].! !
+	^ self method parent.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -2832,6 +2695,11 @@ hookOnJoinPoint: aDAJoinPoint
 		:node |
 		self hookOn: node.
 	].! !
+
+!GPLink methodsFor: '*DA' stamp: 'as 4/21/2008 15:19'!
+noScope
+
+	self properties removeKey: #moScope ifAbsent: [ self. ].! !
 
 !Process methodsFor: '*DA' stamp: 'as 4/18/2008 13:30'!
 cflowCount: aMethodDescription
