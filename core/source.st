@@ -43,6 +43,46 @@ tearDown
 	DATestAspect instance uninstall.
 	self removeAllLinksOn: DAExamples.! !
 
+Object subclass: #DAClassMethodDescription
+	instanceVariableNames: 'className methodName'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Utilities'!
+
+!DAClassMethodDescription commentStamp: 'as 2/28/2008 16:02' prior: 0!
+I store a description of a method and it's class or just of a method, instead of the objects itself. Each time I'm asked for the method/class I will re-evaluate and return the proper object. This protects against method/class recompilations.!
+
+!DAClassMethodDescription class methodsFor: 'instance creation' stamp: 'as 2/28/2008 16:03'!
+class: aClass
+
+	^ self new class: aClass; yourself.! !
+
+!DAClassMethodDescription class methodsFor: 'instance creation' stamp: 'as 2/28/2008 16:05'!
+method: aMethod
+
+	^ self new method: aMethod; yourself.! !
+
+!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 2/28/2008 16:05'!
+class
+
+	^ Smalltalk at: className.! !
+
+!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 2/28/2008 16:05'!
+class: aClass
+
+	className _ aClass name asSymbol.! !
+
+!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 2/28/2008 16:05'!
+method
+
+	^ self class >> methodName.! !
+
+!DAClassMethodDescription methodsFor: 'accessing' stamp: 'as 2/28/2008 16:05'!
+method: aMethod
+
+	self class: aMethod methodClass.
+	methodName _ aMethod selector.! !
+
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -780,19 +820,16 @@ visitName
 
 	^ 'node'.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 16:30'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:54'!
 call: aMethod
 
-	| className |
+	| methodDescr |
 	
-	"Store the class name, so the following will also work
-	 if the class is changed or gets removed and readded."
-	className _ aMethod methodClass name.
-	
+	methodDescr _ DAClassMethodDescription method: aMethod.
 	^ (self method: aMethod) and: (
 		self if: [
 			:args |
-			(args at: #class) name = className.
+			(args at: #class) name = methodDescr method.
 		] arguments: #(class)
 	).! !
 
@@ -826,19 +863,16 @@ className: regexString
 
 	^ DAClassPointcut filter: (DAFilter class: regexString).! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 16:27'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:55'!
 classWithBehavior: aClass
 
-	| classKey |
+	| classDescr |
 	
-	"Store the class name, so the following will also work
-	 if the class is changed or gets removed and readded."
-	classKey _ aClass name asSymbol.
-
+	classDescr _ DAClassMethodDescription class: aClass.
 	^ DAClassPointcut filter: (
 		DAFilter block: [
 			:class |
-			class includesBehavior: (Smalltalk at: classKey).
+			class includesBehavior: classDescr class.
 		]
 	).! !
 
@@ -870,6 +904,14 @@ fieldWrite: aString
 		].
 	].! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 12:00'!
+globalVariable
+
+	^ self node: [
+		:node |
+		node isVariable and: [ node isGlobal. ].
+	].! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 11:23'!
 if: aBlockOrBoolean
 
@@ -879,6 +921,14 @@ if: aBlockOrBoolean
 if: aBlockOrBoolean arguments: aCollection
 
 	^ DAConditionPointcut condition: aBlockOrBoolean arguments: aCollection.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:59'!
+instanceVariable
+
+	^ self node: [
+		:node |
+		node isVariable and: [ node isInstance. ].
+	].! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 15:48'!
 message: regexString
@@ -899,6 +949,14 @@ methodName: regexString
 node: aBlock
 
 	^ DANodePointcut filter: (DAFilter node: aBlock).! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:59'!
+tempVariable
+
+	^ self node: [
+		:node |
+		node isVariable and: [ node isTemp. ].
+	].! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/1/2008 13:30'!
 within: aMethod
