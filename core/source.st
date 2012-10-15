@@ -1136,10 +1136,10 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 8/7/2008 16:49'!
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 8/7/2008 23:21'!
 isAdvice
 
-	DAAdvice isAdvice: self.! !
+	^ DAAdvice isAdvice: self.! !
 
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 8/7/2008 17:50'!
 isPointcut
@@ -1267,10 +1267,10 @@ hash
 
 	^ selector hash bitXor: options hash.! !
 
-!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 23:19'!
 isDisabled
 
-	^ self disabled ifNil: [ self defaultDisable. ].! !
+	^ self disabled ifNil: [ self defaultDisabled. ].! !
 
 !DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
 isEnabled
@@ -3748,10 +3748,10 @@ instanceVariable
 		node isVariable and: [ node isInstance. ].
 	].! !
 
-!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 17:52'!
+!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 23:21'!
 isPointcut: aMethod
 
-	aMethod pragmas asSet anySatisfy: [
+	^ aMethod pragmas asSet anySatisfy: [
 		:p |
 		self isPointcutPragma: p.
 	].! !
@@ -4146,6 +4146,11 @@ createConnectors
 	].
 	^ cons.! !
 
+!DAAspect class methodsFor: 'options' stamp: 'as 8/7/2008 23:19'!
+defaultDisabled
+
+	^ true.! !
+
 !DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
 disable
 
@@ -4156,11 +4161,6 @@ disable
 disable: aBoolean
 
 	aBoolean ifTrue: [ self disable. ] ifFalse: [ self enable. ].! !
-
-!DAAspect class methodsFor: 'options' stamp: 'as 8/7/2008 08:37'!
-disableInitially
-
-	^ true.! !
 
 !DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
 doneCompiling
@@ -4227,10 +4227,10 @@ installSilently
 
 	[ self install. ] on: Exception do: [].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 8/6/2008 20:05'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/7/2008 23:19'!
 isDisabled
 
-	^ disabled ifNil: [ self disableInitially. ].! !
+	^ disabled ifNil: [ self defaultDisabled. ].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/19/2008 11:29'!
 isEnabled
@@ -4298,10 +4298,22 @@ notifyUsersOfChangedSelectors: aCollection meta: aBoolean
 		].
 	]) ifTrue: [ self reinstallSilently. ]."! !
 
-!DAAspect class methodsFor: 'pointcuts' stamp: 'as 8/7/2008 18:09'!
+!DAAspect class methodsFor: 'pointcuts' stamp: 'as 8/7/2008 23:20'!
 pointcut: aSymbol
 
-	^ self perform: aSymbol.! !
+	| method pointcut |
+
+	method _ self class methodDict at: aSymbol ifAbsent: [
+		self error: 'no pointcut at #', aSymbol, ' found'.
+	].
+	method isPointcut ifFalse: [
+		self error: '#', aSymbol, ' is not marked as pointcut'.
+	].
+	pointcut _ self perform: aSymbol.
+	(pointcut isKindOf: DAPointcut) ifFalse: [
+		self error: self name, '>>', aSymbol, ' does not return a pointcut structure'.
+	].
+	^ pointcut.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:21'!
 reinstall
