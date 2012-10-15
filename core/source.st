@@ -240,6 +240,11 @@ with: aBlockOrBoolean arguments: args
 
 	self error: 'condition must either be a block or a boolean value'.! !
 
+!DACondition methodsFor: 'composing' stamp: 'as 4/9/2008 15:12'!
+& aDACondition
+
+	^ self and: aDACondition.! !
+
 !DACondition methodsFor: 'composing' stamp: 'as 3/7/2008 10:00'!
 and: aDACondition
 
@@ -357,6 +362,11 @@ DAContext subclass: #DAActiveContext
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DAActiveContext class methodsFor: 'instance creation' stamp: 'as 4/9/2008 15:23'!
+current
+
+	^ Processor activeProcess ctxtEnvironmentAt: self ifAbsentPut: [ self new. ].! !
+
 !DAActiveContext methodsFor: 'activating' stamp: 'as 4/8/2008 16:54'!
 activate
 
@@ -462,6 +472,11 @@ isActive
 
 	^ children inject: false into: [ :active :child | active | child isActive. ].! !
 
+!DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 15:12'!
+& aDAContext
+
+	^ self and: aDAContext.! !
+
 !DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
 and: aDAContext
 
@@ -496,6 +511,11 @@ parent
 parent: aDAContext
 
 	parent _ aDAContext.! !
+
+!DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 15:13'!
+| aDAContext
+
+	^ self or: aDAContext.! !
 
 Object subclass: #DAExamples
 	instanceVariableNames: ''
@@ -1580,6 +1600,11 @@ within: aMethod
 
 	^ DAControlFlowPointcut method: aMethod level: 1.! !
 
+!DAPointcut methodsFor: 'composing' stamp: 'as 4/9/2008 15:11'!
+& aDAPointcut
+
+	^ self and: aDAPointcut.! !
+
 !DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:19'!
 acceptVisitor: aDAPointcutEvaluator
 
@@ -1640,6 +1665,11 @@ reset
 visitName
 
 	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 4/9/2008 15:11'!
+| aDAPointcut
+
+	^ self or: aDAPointcut.! !
 
 Object subclass: #DAPointcutEvaluator
 	instanceVariableNames: 'joinPoints stack'
