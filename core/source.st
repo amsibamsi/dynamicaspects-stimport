@@ -293,6 +293,9 @@ DAAspect subclass: #DAExampleAspect
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
 
+!DAExampleAspect commentStamp: 'as 8/16/2007 15:44' prior: 0!
+An example aspect.!
+
 !DAExampleAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:24'!
 a1
 
@@ -393,55 +396,77 @@ Object subclass: #DAExamples
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
 
-!DAExamples methodsFor: 'examples' stamp: 'as 7/4/2007 17:48'!
-example
+!DAExamples commentStamp: 'as 8/16/2007 15:44' prior: 0!
+Examples for testing.!
+
+!DAExamples methodsFor: 'examples' stamp: 'as 8/16/2007 15:40'!
+method1
 
 	^ self.! !
 
 Object subclass: #DAJoinpoint
-	instanceVariableNames: ''
+	instanceVariableNames: 'method'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
-!DAJoinpoint commentStamp: 'as 8/14/2007 10:13' prior: 0!
-Join points are concrete locations in the object representation of a program where aspects can access and modify the existing code.!
+!DAJoinpoint commentStamp: 'as 8/16/2007 14:48' prior: 0!
+Join points are concrete locations in the object representation of a program where aspects can access and modify the existing code.
 
-!DAJoinpoint methodsFor: 'evaluation' stamp: 'as 8/14/2007 12:15'!
-nodes
+Currently there is only on type of join points, which describe one or multiple nodes of a reflective method.!
 
-	self subclassResponsibility.! !
-
-DAJoinpoint subclass: #DAMethodExecutionJoinpoint
-	instanceVariableNames: 'method'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Joinpoints'!
-
-!DAMethodExecutionJoinpoint commentStamp: 'as 8/14/2007 12:13' prior: 0!
-A specific method that is being executed.!
-
-!DAMethodExecutionJoinpoint class methodsFor: 'instance creation' stamp: 'as 8/14/2007 12:12'!
+!DAJoinpoint class methodsFor: 'instance creation' stamp: 'as 8/16/2007 14:17'!
 method: aCompiledMethod
 
 	^ self new
 		method: aCompiledMethod;
 		yourself.! !
 
-!DAMethodExecutionJoinpoint methodsFor: 'accessing' stamp: 'as 8/14/2007 12:12'!
+!DAJoinpoint methodsFor: 'comparing' stamp: 'as 8/16/2007 16:23'!
+= anObject
+
+	"self shouldBeImplemented."
+	^ super = anObject.! !
+
+!DAJoinpoint methodsFor: 'comparing' stamp: 'as 8/16/2007 16:23'!
+hash
+
+	"self shouldBeImplemented."
+	^ super hash.! !
+
+!DAJoinpoint methodsFor: 'accessing' stamp: 'as 8/16/2007 14:47'!
 method: aCompiledMethod
 
 	method _ aCompiledMethod.! !
 
-!DAMethodExecutionJoinpoint methodsFor: 'evaluation' stamp: 'as 8/14/2007 12:22'!
+!DAJoinpoint methodsFor: 'evaluation' stamp: 'as 8/16/2007 14:51'!
+newNodesCollection
+
+	^ Set new.! !
+
+!DAJoinpoint methodsFor: 'evaluation' stamp: 'as 8/14/2007 12:15'!
 nodes
 
-	^ IdentitySet new
+	self subclassResponsibility.! !
+
+DAJoinpoint subclass: #DAMethodJoinpoint
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Joinpoints'!
+
+!DAMethodJoinpoint commentStamp: 'as 8/16/2007 14:59' prior: 0!
+Select the whole method as join point.!
+
+!DAMethodJoinpoint methodsFor: 'evaluation' stamp: 'as 8/16/2007 14:51'!
+nodes
+
+	^ self newNodesCollection
 		add: method methodNode;
 		yourself.! !
 
 Object subclass: #DAPointcut
-	instanceVariableNames: ''
+	instanceVariableNames: 'joinpoints'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -450,58 +475,122 @@ Object subclass: #DAPointcut
 Pointcuts are used to describe a set of join points.!
 
 DAPointcut subclass: #DACompositePointcut
-	instanceVariableNames: 'children'
+	instanceVariableNames: 'leftChild rightChild'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-DAPointcut subclass: #DAMethodExecutionPointcut
-	instanceVariableNames: 'method'
+!DACompositePointcut commentStamp: 'as 8/16/2007 13:28' prior: 0!
+A composition of two other pointcuts, which can be compositions as well.!
+
+DACompositePointcut subclass: #DAAndCompositePointcut
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 6/27/2007 17:58'!
-on: aCompiledMethod
+!DAAndCompositePointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
+Logical And of 2 pointcuts.!
+
+!DAAndCompositePointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 11:49'!
+joinpoints
+
+	| candidates |
+	candidates _ leftChild joinpoints.
+	^ rightChild joinpoints select: [
+		:jp |
+		candidates includes: jp.
+	].! !
+
+!DACompositePointcut class methodsFor: 'instance creation' stamp: 'as 8/16/2007 11:41'!
+with: firstDAPointcut with: secondDAPointcut
 
 	^ self new
-		method: aCompiledMethod;
+		leftChild: firstDAPointcut;
+		rightChild: secondDAPointcut;
 		yourself.! !
 
-!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 6/27/2007 18:00'!
-onClass: aClass method: aSymbol
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 11:08'!
+joinpoints
 
-	^ self on: aClass >> aSymbol.! !
+	self subclassResponsibility.! !
 
-!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 6/27/2007 18:00'!
-method: aCompiledMethod
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 11:42'!
+leftChild: aDAPointcut
 
-	method _ aCompiledMethod.! !
+	leftChild _ aDAPointcut.! !
 
-!DAMethodExecutionPointcut methodsFor: 'evaluation' stamp: 'as 6/27/2007 18:34'!
-nodes
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 11:42'!
+rightChild: aDAPointcut
 
-	^ Set new
-		add: method methodNode;
+	rightChild _ aDAPointcut.! !
+
+DACompositePointcut subclass: #DAOrCompositePointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAOrCompositePointcut commentStamp: 'as 8/16/2007 15:01' prior: 0!
+Logical Or of 2 poincuts.!
+
+!DAOrCompositePointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 11:47'!
+joinpoints
+
+	^ leftChild joinpoints addAll: rightChild joinpoints.! !
+
+DAPointcut subclass: #DAMethodExecutionPointcut
+	instanceVariableNames: 'methods'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DAMethodExecutionPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
+A method that is being executed.!
+
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 8/16/2007 15:53'!
+onMethods: aCollection
+
+	^ self new
+		joinpoints: 
+			(aCollection collect: [
+				:method |
+				DAMethodJoinpoint method: method.
+			]);
 		yourself.! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:54'!
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 8/16/2007 15:54'!
+onMethodsMatching: aString
+
+	^ self onMethods: (self methodsMatching: aString).! !
+
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 8/16/2007 15:54'!
+onMethodsMatching: methodString inClassesMatching: classString
+
+	^ self onMethods: (self methodsMatching: methodString inClassesMatching: classString).! !
+
+!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 13:44'!
+methods: aCollection
+
+	methods _ aCollection.! !
+
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:03'!
 categoriesMatching: aString
 
 	^ SystemOrganization categoriesMatching: aString.! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:08'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:04'!
 classesInCategory: aSymbol
 
 	^ (SystemOrganization listAtCategoryNamed: aSymbol)
-		collect: [ :name | Smalltalk at: name. ].! !
+		collect: [ :class | Smalltalk at: class. ].! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:30'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:04'!
 classesMatching: aString
 
 	^ self classesMatching: aString in: Smalltalk allClasses.! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 09:42'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:04'!
 classesMatching: aString in: aCollection
 
 	^ aCollection select: [
@@ -509,18 +598,18 @@ classesMatching: aString in: aCollection
 		class name asString match: aString.
 	].! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:12'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:05'!
 classesMatching: classString inCategoriesMatching: categoryString
 
 	| candidates |
 	candidates _ Set new.
 	(self categoriesMatching: categoryString) do: [
-		:category |
-		Set addAll: (self classesInCategory: category).
+		:cat |
+		Set addAll: (self classesInCategory: cat).
 	].
 	^ self classesMatching: classString in: candidates.! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:39'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:05'!
 methodsMatching: methodString
 
 	| candidates |
@@ -531,7 +620,7 @@ methodsMatching: methodString
 	].
 	^ candidates select: [ :method | method selector asString match: methodString. ].! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:38'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:05'!
 methodsMatching: methodString inClassesMatching: classString
 
 	| candidates |
@@ -542,7 +631,7 @@ methodsMatching: methodString inClassesMatching: classString
 	].
 	^ candidates select: [ :method | method selector asString match: methodString. ].! !
 
-!DAPointcut methodsFor: 'searching' stamp: 'as 8/16/2007 10:35'!
+!DAPointcut class methodsFor: 'searching' stamp: 'as 8/16/2007 11:05'!
 methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: categoryString
 
 	| candidates |
@@ -553,10 +642,41 @@ methodsMatching: methodString inClassesMatching: classString inCategoriesMatchin
 	].
 	^ candidates select: [ :method | method selector asString match: methodString. ].! !
 
-!DAPointcut methodsFor: 'evaluation' stamp: 'as 6/27/2007 15:55'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 8/16/2007 13:27'!
+and: aDAPointcut
+
+	^ DAAndCompositePointcut with: self with: aDAPointcut.! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 10:52'!
+joinpoints
+
+	^ joinpoints.! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 8/16/2007 15:09'!
+joinpoints: aCollection
+
+	joinpoints _ aCollection.! !
+
+!DAPointcut methodsFor: 'evaluating' stamp: 'as 8/16/2007 16:25'!
+newNodesCollection
+
+	^ Set new.! !
+
+!DAPointcut methodsFor: 'evaluating' stamp: 'as 8/16/2007 16:25'!
 nodes
 
-	self subclassResponsibility.! !
+	| nodes |
+	nodes _ self newNodesCollection.
+	joinpoints do: [
+		:jp |
+		nodes addAll: jp nodes.
+	].
+	^ nodes.! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 8/16/2007 13:27'!
+or: aDAPointcut
+
+	^ DAOrCompositePointcut with: self with: aDAPointcut.! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
@@ -579,36 +699,36 @@ removeAllLinksOn: aClass
 		].
 	].! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:34'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 8/16/2007 15:52'!
 setUp
 
-	super initialize.
+	"super initialize.
 	example _ DAExamples new.
 	aspect _ DAExampleAspect instance.
-	self removeAllLinksOn: DAExamples.! !
+	self removeAllLinksOn: DAExamples."! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 7/18/2007 10:34'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 8/16/2007 15:52'!
 tearDown
 
-	self removeAllLinksOn: DAExamples.! !
+	"self removeAllLinksOn: DAExamples."! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/4/2007 17:50'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 8/16/2007 15:52'!
 testAspect
 
-	| count |
+	"| count |
 	count _ aspect count.
 	self shouldnt: [ aspect install. ] raise: Exception.
 	example example.
 	self assert: (count + 1 = aspect count).
-	self shouldnt: [ aspect uninstall. ] raise: Exception.! !
+	self shouldnt: [ aspect uninstall. ] raise: Exception."! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 7/4/2007 17:49'!
+!DAAspectTest methodsFor: 'testing' stamp: 'as 8/16/2007 15:52'!
 testNormal
 
-	| count |
+	"| count |
 	count _ aspect count.
 	example example.
-	self assert: count = aspect count.! !
+	self assert: count = aspect count."! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -633,3 +753,19 @@ testClassComment
 		:each |
 		self assert: each hasComment.
 	].! !
+
+TestCase subclass: #DAMethodExecutionPointCutTest
+	instanceVariableNames: 'example aspect'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAMethodExecutionPointCutTest commentStamp: 'as 8/16/2007 15:44' prior: 0!
+Testing DAMethodExecutionPointcut.!
+
+!DAMethodExecutionPointCutTest methodsFor: 'testing' stamp: 'as 8/16/2007 15:55'!
+testSingleMethodCreation
+
+	| pc |
+	pc _ DAMethodExecutionPointcut onMethodsMatching: 'method1' inClassesMatching: 'DAExamples'.
+	pc nodes == ((DAExamples >> #method1) methodNode).! !
