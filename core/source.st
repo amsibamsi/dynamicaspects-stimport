@@ -28,28 +28,6 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
-keywordArgumentPairs
-
-	| pairs |
-	
-	pairs _ Dictionary new.
-	self keywords withIndexDo: [
-		:key :index |
-		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
-	].
-	^ pairs.! !
-
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
-keywords
-
-	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
 !Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
 includesExactly: aCollection
 
@@ -61,6 +39,31 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 8/7/2008 16:49'!
+isAdvice
+
+	^ self reflectiveMethod isAdvice.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 8/7/2008 17:51'!
+isPointcut
+
+	^ self reflectiveMethod isPointcut.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DAAdviceTest
 	instanceVariableNames: 'advice'
@@ -91,21 +94,28 @@ disabledAndArguments
 
 	<advice: #p control: #c disabled: true arguments: #(a b c)>! !
 
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 16:21'!
+duplicates
+
+	<advice: #p control: #c>
+	<advice: #p control: #c>! !
+
 !DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:21'!
 empty! !
 
-!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:04'!
-insufficient
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 16:20'!
+equal
 
-	<advice: #p>! !
+	<advice: #p control: #c arguments: #(a b c) disabled: true>! !
 
-!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:21'!
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:50'!
 invalidKeys
 
 	<advices: #p>
 	<advice>
 	<advice: #p arguments: #(a b c)>
-	<control: #c>! !
+	<control: #c>
+	<advice: #p control: #c xyz: #foobar>! !
 
 !DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:18'!
 minimal
@@ -117,7 +127,7 @@ setUp
 
 	advice _ nil.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:19'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:19'!
 testArguments
 
 	advice _ (DAAdvice method: self class >> #arguments) anyOne.
@@ -125,9 +135,10 @@ testArguments
 	self assert: advice pointcut = #p.
 	self assert: advice control = #c.
 	self assert: advice arguments = #(a b c).
+	self assert: advice selector = #arguments.
 	! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:27'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:19'!
 testArgumentsAndDisabled
 
 	advice _ (DAAdvice method: self class >> #argumentsAndDisabled) anyOne.
@@ -136,9 +147,9 @@ testArgumentsAndDisabled
 	self assert: advice control = #c.
 	self assert: advice arguments = #(a b c).
 	self assert: advice isDisabled.
-	! !
+	self assert: advice selector = #argumentsAndDisabled.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:26'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:19'!
 testDisabled
 
 	advice _ (DAAdvice method: self class >> #disabled) anyOne.
@@ -146,9 +157,9 @@ testDisabled
 	self assert: advice pointcut = #p.
 	self assert: advice control = #c.
 	self assert: advice isDisabled.
-	! !
+	self assert: advice selector = #disabled.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:27'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:19'!
 testDisabledAndArguments
 
 	advice _ (DAAdvice method: self class >> #disabledAndArguments) anyOne.
@@ -157,39 +168,71 @@ testDisabledAndArguments
 	self assert: advice control = #c.
 	self assert: advice arguments = #(a b c).
 	self assert: advice isDisabled.
-	! !
+	self assert: advice selector = #disabledAndArguments.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:22'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:22'!
+testDuplicates
+
+	advice _ DAAdvice method: self class >> #duplicates.
+	self assert: advice size = 1.
+	advice _ advice anyOne.
+	
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	self assert: advice selector = #duplicates.! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:39'!
 testEmpty
 
 	advice _ DAAdvice method: self class >> #empty.
 
-	self assert: advice isEmpty.
-	! !
-
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:17'!
-testInsufficient
-
-	advice _ DAAdvice method: self class >> #insufficient.
-
 	self assert: advice isEmpty.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:20'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:20'!
+testEqual
+
+	| advice1 advice2 |
+
+	advice1 _ (DAAdvice method: self class >> #equal) anyOne.
+	advice2 _ (DAAdvice method: self class >> #equal) anyOne.
+	self assert: advice1 = advice2.
+	self assert: advice1 hash = advice2 hash.
+	self assert: advice1 ~~ advice2.! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:39'!
 testInvalidKeys
 
 	advice _ DAAdvice method: self class >> #invalidKeys.
 
-	self assert: advice isEmpty.
-	! !
+	self assert: advice isEmpty.! !
 
-!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:18'!
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:19'!
 testMinimal
 
 	advice _ (DAAdvice method: self class >> #minimal) anyOne.
 	
 	self assert: advice pointcut = #p.
 	self assert: advice control = #c.
+	self assert: advice selector = #minimal.! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 16:16'!
+testUnequal
+
+	| advices advice1 advice2 |
+
+	advices _ (DAAdvice method: self class >> #unequal) asArray.
+	advice1 _ advices at: 1.
+	advice2 _ advices at: 2.
+	self assert: advice1 ~= advice2.
+	self assert: advice1 hash ~= advice2 hash.
+	
 	! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 16:17'!
+unequal
+
+	<advice: #p control: #c arguments: #(a b c) disabled: true>
+	<advice: #p control: #c arguments: #(a b d) disabled: true>! !
 
 TestCase subclass: #DAAspectContextTest
 	instanceVariableNames: 'aspect'
@@ -384,133 +427,6 @@ testObjectScope
 	
 	self assert:
 		(DAAspectScopeExample metaObjectDict keys includesExactly: { o1. o2. }).! !
-
-TestCase subclass: #DAAspectSelectorTest
-	instanceVariableNames: 'example example2'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectSelectorTest commentStamp: 'as 6/1/2008 21:58' prior: 0!
-Test the advice selectors on DAAspect.!
-
-!DAAspectSelectorTest methodsFor: 'initialize-release' stamp: 'as 6/2/2008 16:51'!
-initialize
-
-	example _ DAAspectSelectorExample.
-	example2 _ DAAspectSelectorExample2.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testBeforeafter
-
-	"This could easily be interpreted as control #before with 'after' counting to the pointcut
-	 name, but it should not."
-
-	| split |
-
-	split _ example splitAdvice: #beforeafterPointcut.
-	self assert: split first = #beforeafter.
-	self assert: split second = 'pointcut'.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testInvalidArgument
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcutWithInvalidReification:.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(nil)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:40'!
-testIsAdvice
-
-	self assert: (example isAdvice: #afterPointcutClass:object:).
-	self deny: (example isAdvice: #afterPointcutclass:object:).
-	self deny: (example isAdvice: #invalidAdvice).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
-testIsAdviceMethod
-
-	self assert: (example isAdvice: example >> #afterPointcutClass:object:).
-	self deny: (example isAdvice: example class >> #noop).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:43'!
-testIsAdviceSymbol
-
-	self assert: (example isAdvice: #afterPointcutClass:object:).
-	self deny: (example isAdvice: #afterPointcutclass:object:).
-	self deny: (example isAdvice: #invalidAdvice).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:42'!
-testIsPointcutMethod
-
-	self assert: (example isPointcut: example class >> #pointcut).
-	self deny: (example isPointcut: example class >> #noop).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:41'!
-testIsPointcutSymbol
-
-	self assert: (example isPointcut: #pointcut).
-	self deny: (example isPointcut: #Pointcut).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testLowercase
-
-	| split |
-
-	split _ example splitAdvice: #insteadpointcutclass:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testMixedCase
-
-	| split |
-
-	split _ example splitAdvice: #iNSteaDpOintcutCLASS:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:17'!
-testNoArguments
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcut.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: split third isEmpty.! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 16:53'!
-testPointcutNames
-
-	self assert: (example pointcutNames includesExactly: #('pointcut')).
-	self assert: (example allPointcutNames includesExactly: #('pointcut')).
-	self assert: (example2 pointcutNames includesExactly: #('pointcut2')).
-	self assert: (example2 allPointcutNames includesExactly: #('pointcut' 'pointcut2')).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
-testStandardAdviceSelector
-
-	| split |
-
-	split _ example splitAdvice: #beforePointcutWithObject:andClass:.
-	self assert: split first = #before.
-	self assert: split second = 'pointcut'.
-	self assert: split third asArray = #(object class).! !
-
-!DAAspectSelectorTest methodsFor: 'testing' stamp: 'as 6/2/2008 15:27'!
-testUppercase
-
-	| split |
-
-	split _ example splitAdvice: #InsteadPointcutClass:.
-	self assert: split first = #instead.
-	self assert: split second = 'pointcut'.
-	self assert: (split third includesExactly: #(class)).! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'aspect'
@@ -1220,18 +1136,18 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 8/7/2008 16:49'!
+isAdvice
 
-	^ DAMethodDescription methodObject: self.! !
+	DAAdvice isAdvice: self.! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 8/7/2008 17:50'!
+isPointcut
 
-	^ DAPointcut method: self.! !
+	^ DAPointcut isPointcut: self.! !
 
 Object subclass: #DAAdvice
-	instanceVariableNames: 'aspect selector options'
+	instanceVariableNames: 'selector options'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -1253,15 +1169,23 @@ checkOption: aSymbol
 		self error: 'pragma argument ''', aSymbol, ''' is not a valid option'.
 	].! !
 
-!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 13:38'!
-isAdvice: aSymbol
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 16:49'!
+isAdvice: aMethod
 
-	^ self pragmaKeywords anySatisfy: [ :k | k match: aSymbol. ].! !
+	aMethod pragmas asSet anySatisfy: [
+		:p |
+		self isAdvicePragma: p.
+	].! !
 
-!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 13:42'!
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 16:47'!
 isAdvicePragma: aPragma
 
-	^ self isAdvice: aPragma keyword.! !
+	^ self isAdviceSymbol: aPragma keyword.! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 16:46'!
+isAdviceSymbol: aSymbol
+
+	^ self pragmaKeywords anySatisfy: [ :k | k match: aSymbol. ].! !
 
 !DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 11:45'!
 isOption: aSymbol
@@ -1280,16 +1204,17 @@ method: aMethod
 	].
 			! !
 
-!DAAdvice class methodsFor: 'instance creation' stamp: 'as 8/7/2008 13:40'!
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 8/7/2008 15:32'!
 pragma: aPragma
 
 	| advice |
 	
 	self checkAdvicePragma: aPragma.
 	advice _ self new.
-	advice setOptions: aPragma.
-	advice aspect: aPragma methodClass; selector: aPragma selector.
-	^ advice.! !
+	^ advice
+		setOptions: aPragma;
+		selector: aPragma selector;
+		yourself.! !
 
 !DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 11:45'!
 pragmaKeywords
@@ -1307,20 +1232,15 @@ validOptions
 
 	^ #(advice control arguments disabled).! !
 
+!DAAdvice methodsFor: 'comparing' stamp: 'as 8/7/2008 15:56'!
+= aDAAdvice
+
+	^ selector = aDAAdvice selector and: [ options = aDAAdvice options. ].! !
+
 !DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 11:16'!
 arguments
 
 	^ self optionAt: #arguments.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:31'!
-aspect
-
-	^ Smalltalk at: aspect.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:31'!
-aspect: aDAAspectClass
-
-	aspect _ aDAAspectClass name asSymbol.! !
 
 !DAAdvice methodsFor: 'checking' stamp: 'as 8/7/2008 10:40'!
 checkOption: aSymbol
@@ -1341,6 +1261,11 @@ defaultDisabled
 disabled
 
 	^ self optionAt: #disabled.! !
+
+!DAAdvice methodsFor: 'comparing' stamp: 'as 8/7/2008 16:01'!
+hash
+
+	^ selector hash bitXor: options hash.! !
 
 !DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
 isDisabled
@@ -3823,6 +3748,24 @@ instanceVariable
 		node isVariable and: [ node isInstance. ].
 	].! !
 
+!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 17:52'!
+isPointcut: aMethod
+
+	aMethod pragmas asSet anySatisfy: [
+		:p |
+		self isPointcutPragma: p.
+	].! !
+
+!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 17:53'!
+isPointcutPragma: aPragma
+
+	^ self isPointcutSymbol: aPragma keyword.! !
+
+!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 17:53'!
+isPointcutSymbol: aSymbol
+
+	^ self pragmaKeywords anySatisfy: [ :k | k match: aSymbol. ].! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/25/2008 15:48'!
 message: regexString
 
@@ -3847,6 +3790,11 @@ methodName: regexString
 node: aBlock
 
 	^ DANodePointcut block: aBlock.! !
+
+!DAPointcut class methodsFor: 'testing' stamp: 'as 8/7/2008 17:53'!
+pragmaKeywords
+
+	^ #(pointcut).! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 11:59'!
 tempVariable
@@ -4112,8 +4060,8 @@ Object subclass: #DAProtoAspect
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAProtoAspect commentStamp: 'as 7/14/2008 13:42' prior: 0!
-Needed as a fixpoint for certain methods acting recursively over all superclasses.!
+!DAProtoAspect commentStamp: 'as 8/7/2008 15:48' prior: 0!
+Needed as a fixpoint for certain methods acting recursively over all subclasses.!
 
 DAProtoAspect subclass: #DAAspect
 	instanceVariableNames: ''
@@ -4130,48 +4078,42 @@ Combines several pointcuts and advices by hosting multiple connectors.!
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
 
-!DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
-adviceControls
-
-	^ #(before after beforeafter instead).! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 6/2/2008 14:27'!
-adviceNames
-
-	^ self advices collect: [ :adv | adv selector. ].! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 7/21/2008 17:20'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:52'!
 advices
 
-	| possibilities advices |
-	possibilities _ self possibleAdviceNames.
-	advices _ self methods select: [
-		:method |
-		possibilities anySatisfy: [
-			:pos |
-			method selector asLowercase startsWith: pos.
-		].
+	^ super advices copy
+		addAll: self collectAdvices;
+		yourself.! !
+
+!DAAspect class methodsFor: 'options' stamp: 'as 8/7/2008 17:04'!
+cleanMetaobject
+
+	^ true.! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:55'!
+collectAdvices
+
+	| advices |
+
+	advices _ Set new.
+	self methods do: [
+		:m |
+		advices addAll: (DAAdvice method: m).
 	].
-	^ advices select: [ :a | (self disabledAdvices includes: a selector) not. ].! !
+	^ advices.! !
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:33'!
-allPointcutNames
+!DAAspect class methodsFor: 'private' stamp: 'as 8/7/2008 16:58'!
+connectorForAdvice: aDAAdvice
 
-	^ self superclass allPointcutNames copy; addAll: self pointcutNames; yourself.! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 7/21/2008 11:44'!
-connectorForAdvice: aMethod
-
-	| connector split |
+	| connector |
 	
-	split _ self splitAdvice: aMethod.
 	connector _ DAConnector new.
 	connector
 		aspect: self;
-		control: split first;
-		pointcut: (self pointcut: split second);
-		arguments: split third;
-		selector: aMethod selector.
+		control: aDAAdvice control;
+		pointcut: (self pointcut: aDAAdvice pointcut);
+		arguments: aDAAdvice arguments;
+		selector: aDAAdvice selector.
 		
 	self scope ifNil: [
 		connector metaObject: self metaObject.
@@ -4190,7 +4132,7 @@ connectors
 
 	^ connectors.! !
 
-!DAAspect class methodsFor: 'private' stamp: 'as 5/13/2008 15:10'!
+!DAAspect class methodsFor: 'private' stamp: 'as 8/7/2008 17:00'!
 createConnectors
 
 	| cons |
@@ -4198,7 +4140,9 @@ createConnectors
 	cons _ Set new.
 	self advices do: [
 		:adv |
-		cons add: (self connectorForAdvice: adv).
+		adv isEnabled ifTrue: [
+			cons add: (self connectorForAdvice: adv).
+		].
 	].
 	^ cons.! !
 
@@ -4218,15 +4162,10 @@ disableInitially
 
 	^ true.! !
 
-!DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 17:06'!
-disabledAdvices
-
-	^ #().! !
-
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:55'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
 doneCompiling
 
-	self isEnabled ifTrue: [ self reinstallSilently. ].! !
+	"self isEnabled ifTrue: [ self reinstallSilently. ]."! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
 enable
@@ -4288,25 +4227,6 @@ installSilently
 
 	[ self install. ] on: Exception do: [].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 6/2/2008 16:08'!
-isAdvice: aMethodOrSymbol
-
-	| selector |
-	
-	selector _ self selector: aMethodOrSymbol.
-	^ self adviceNames includes: selector.! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:51'!
-isAdvice: aMethodOrSymbol meta: aBoolean
-
-	^ aBoolean not and: [ self isAdvice: aMethodOrSymbol. ].! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:49'!
-isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean
-
-	^ (self isAdvice: aMethodOrSymbol meta: aBoolean)
-		or: [ self isPointcut: aMethodOrSymbol meta: aBoolean. ].! !
-
 !DAAspect class methodsFor: 'testing' stamp: 'as 8/6/2008 20:05'!
 isDisabled
 
@@ -4321,29 +4241,6 @@ isEnabled
 isInstalled
 
 	^ connectors notNil & self installFailed not.! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 6/2/2008 16:08'!
-isPointcut: aMethodOrSymbol
-
-	| selector |
-	
-	selector _ self selector: aMethodOrSymbol.
-	^ self allPointcutNames includes: selector.! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:51'!
-isPointcut: aMethodOrSymbol meta: aBoolean
-
-	^ aBoolean and: [ self isPointcut: aMethodOrSymbol. ].! !
-
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/21/2008 17:23'!
-isSpecialMethod: aMethodOrSymbol meta: aBoolean
-
-	| selector |
-	
-	selector _ self selector: aMethodOrSymbol.
-
-	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
-		or: [ aBoolean and: [ self specialClassMethods includes: selector. ]. ].! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 11:39'!
 level
@@ -4385,53 +4282,26 @@ notInstalled
 
 	^ connectors isNil.! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:56'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
 noteCompilationOf: aSelector meta: aBoolean
 
-	(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
+	"(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
 		self reinstallSilently.
-	].! !
+	]."! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/6/2008 19:56'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean
 
-	(self isEnabled and: [
+	"(self isEnabled and: [
 		aCollection anySatisfy: [
 			:sel | self isSpecialMethod: sel meta: aBoolean.
 		].
-	]) ifTrue: [ self reinstallSilently. ].! !
+	]) ifTrue: [ self reinstallSilently. ]."! !
 
-!DAAspect class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 14:57'!
-pointcut: aMethodOrSymbol
+!DAAspect class methodsFor: 'pointcuts' stamp: 'as 8/7/2008 18:09'!
+pointcut: aSymbol
 
-	| selector |
-	
-	selector _ self selector: aMethodOrSymbol.
-	^ self perform: selector.! !
-
-!DAAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 11:44'!
-pointcutNames
-
-	^ #().! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 7/21/2008 17:16'!
-possibleAdviceNames
-
-	| names |
-	names _ Set new.
-	self allPointcutNames do: [
-		:pcn |
-		self adviceControls do: [
-			:ctrl |
-			names add: (ctrl, pcn) asLowercase.
-		].
-	].
-	^ names.! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 5/30/2008 13:42'!
-possibleReifications
-
-	^ GPParameter allKeys.! !
+	^ self perform: aSymbol.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:21'!
 reinstall
@@ -4448,56 +4318,12 @@ scope
 
 	^ nil.! !
 
-!DAAspect class methodsFor: 'private' stamp: 'as 5/29/2008 18:10'!
-selector: aMethodOrSymbol
-
-	^ aMethodOrSymbol isSymbol
-		ifTrue: [ aMethodOrSymbol. ] ifFalse: [ aMethodOrSymbol selector. ].! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 7/21/2008 17:21'!
-specialClassMethods
-
-	^ #(scope level disabledAdvices).! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 7/14/2008 10:56'!
-splitAdvice: aMethodOrSymbol
-
-	| selector control pointcut arguments |
-
-	selector _ (self selector: aMethodOrSymbol) asLowercase.
-
-	control _ (self adviceControls select: [
-		:ctrl |
-		selector beginsWith: ctrl asLowercase.
-	]) detectMax: [ :ctrl | ctrl size. ].
-	control ifNil: [ self error: 'no control found for ', selector. ].
-	selector _ selector copyFrom: control size + 1 to: selector size.
-	
-	pointcut _ (self allPointcutNames select: [
-		:pc |
-		selector beginsWith: pc asLowercase.
-	]) detectMax: [ :pc | pc size. ].
-	pointcut ifNil: [ self error: 'no pointcut found for ', selector. ].
-	pointcut _ pointcut asSymbol.
-	selector _ selector copyFrom: pointcut size + 1 to: selector size.
-
-	arguments _ OrderedCollection new.
-	(selector subStrings: ':') do: [
-		:part |
-		arguments add: ((self possibleReifications select: [
-			:ref |
-			part endsWith: ref asLowercase.
-		]) detectMax: [ :ref | ref size. ]).
-	].
-
-	^ { control. pointcut. arguments. }.! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 7/15/2008 08:19'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 8/7/2008 17:04'!
 uninstall
 
 	self uninstallConnectors.
 	connectors _ nil.
-	mo _ moDict _ nil.! !
+	self cleanMetaobject ifTrue: [ mo _ moDict _ nil. ].! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 11:42'!
 uninstallConnectors
@@ -5052,53 +4878,27 @@ noop
 
 	^ self.! !
 
-DAAspect subclass: #DAAspectSelectorExample
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
+!DAProtoAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:48'!
+advices
 
-!DAAspectSelectorExample commentStamp: 'as 6/2/2008 10:53' prior: 0!
-Empty example aspect to test advice selectors.!
-
-!DAAspectSelectorExample class methodsFor: 'stub' stamp: 'as 6/2/2008 15:48'!
-noop! !
-
-!DAAspectSelectorExample class methodsFor: 'pointcuts' stamp: 'as 6/5/2008 13:29'!
-pointcut
-
-	^ (self class >> #noop) asPointcut.! !
-
-!DAAspectSelectorExample class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:09'!
-pointcutNames
-
-	^ #(pointcut).! !
-
-!DAAspectSelectorExample methodsFor: 'advices' stamp: 'as 6/2/2008 16:09'!
-afterPointcutClass: c object: o! !
-
-!DAAspectSelectorExample methodsFor: 'advices' stamp: 'as 6/5/2008 13:36'!
-afterPointcutWithClass: c object: o! !
-
-DAAspectSelectorExample subclass: #DAAspectSelectorExample2
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DAAspectSelectorExample2 commentStamp: 'as 6/2/2008 16:50' prior: 0!
-Test pointcut inheritance.!
-
-!DAAspectSelectorExample2 class methodsFor: 'pointcuts' stamp: 'as 7/14/2008 12:12'!
-pointcutNames
-
-	^ #(pointcut2).! !
-
-!DAProtoAspect class methodsFor: 'accessing' stamp: 'as 7/14/2008 16:35'!
-allPointcutNames
-
-	"This should be a set, eliminating equal duplicates."
 	^ Set new.! !
+
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
+keywordArgumentPairs
+
+	| pairs |
+	
+	pairs _ Dictionary new.
+	self keywords withIndexDo: [
+		:key :index |
+		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
+	].
+	^ pairs.! !
+
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
+keywords
+
+	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -5138,11 +4938,6 @@ asDescription
 asDescription
 
 	^ DAClassDescription classObject: self.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
@@ -5331,12 +5126,12 @@ enableAspect
 	self aspect enable.
 	self updateAspect.! !
 
-!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:52'!
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 8/7/2008 17:38'!
 isEditingAdvice
 
 	^ self isEditingAspect
 		and: [ self selectedMessageName notNil. ]
-		and: [ self aspect isAdvice: self selectedMessageName meta: self isEditingMeta. ].! !
+		and: [ self selectedMethod isAdvice. ].! !
 
 !DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 15:06'!
 isEditingAdviceOrPointcut
@@ -5356,12 +5151,12 @@ isEditingMeta
 	class _ self selectedClassOrMetaClass.
 	^ class notNil and: [ class isMeta. ].! !
 
-!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:55'!
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 8/7/2008 17:46'!
 isEditingPointcut
 
 	^ self isEditingAspect
 		and: [ self selectedMessageName notNil. ]
-		and: [ self aspect isPointcut: self selectedMessageName meta: self isEditingMeta. ].! !
+		and: [ self selectedMethod isPointcut. ].! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 14:08'!
 openAspectMenu
@@ -5400,6 +5195,11 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
