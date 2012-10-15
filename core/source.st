@@ -2,81 +2,35 @@ SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
-!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
-defineClass: defString notifying: aController  
-	"The receiver's textual content is a request to define a new class. The
-	source code is defString. If any errors occur in compilation, notify
-	aController."
-	| oldClass class newClassName defTokens keywdIx envt |
-	oldClass _ self selectedClassOrMetaClass.
-	defTokens _ defString findTokens: Character separators.
-	
-	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
-		or: [defTokens second = 'classTrait'])
-		ifTrue: [^self defineTrait: defString notifying: aController].
-		
-	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
-	envt _ Smalltalk.
-	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
-	
-	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
-	 but 'subaspect' instead."
-	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
-	
-	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
-	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
-		and: [envt includesKey: newClassName asSymbol]) ifTrue:
-			["Attempting to define new class over existing one when
-				not looking at the original one in this browser..."
-			(self confirm: ((newClassName , ' is an existing class in this system.
-Redefining it might cause serious problems.
-Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
-				ifFalse: [^ false]].
-	"ar 8/29/1999: Use oldClass superclass for defining oldClass
-	since oldClass superclass knows the definerClass of oldClass."
-	oldClass ifNotNil:[oldClass _ oldClass superclass].
-	class _ oldClass subclassDefinerClass
-				evaluate: defString
-				notifying: aController
-				logged: true.
-	(class isKindOf: Behavior)
-		ifTrue: [self changed: #systemCategoryList.
-				self changed: #classList.
-				self clearUserEditFlag.
-				self setClass: class selector: nil.
-				"self clearUserEditFlag; editClass."
-				^ true]
-		ifFalse: [^ false]! !
-
 Object subclass: #DAAdviceWrapper
 	instanceVariableNames: 'metaObject selector reifications context'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
 
-!DAAdviceWrapper class methodsFor: 'instance creation' stamp: 'as 10/2/2007 13:19'!
+!DAAdviceWrapper class methodsFor: 'instance creation' stamp: 'as 10/5/2007 15:32'!
 metaObject: anObject selector: aSymbol reifications: aCollection
 
-	self new
-		metaObject: anObject;
-		selector: aSymbol;
+	^ self new
+		metaObject: anObject
+		selector: aSymbol
 		reifications: aCollection;
 		yourself.! !
 
-!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 14:48'!
+!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 15:35'!
 advice: aMessage
 
 	aMessage arguments withIndexDo: [
 		:arg :index |
 		context at: (reifications at: index) put: arg.
 	].
-	metaObject perform: selector with: context.! !
+	^ metaObject perform: selector with: context.! !
 
-!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 16:08'!
+!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/5/2007 15:34'!
 doesNotUnderstand: aMessage
 
 	aMessage selector = self selector ifTrue: [
-		self advice: aMessage
+		^ self advice: aMessage
 	] ifFalse: [
 		^ super doesNotUnderstand: aMessage.
 	].! !
@@ -86,21 +40,26 @@ initialize
 
 	context _ Dictionary new.! !
 
-!DAAdviceWrapper methodsFor: 'accessing' stamp: 'as 10/2/2007 14:47'!
+!DAAdviceWrapper methodsFor: 'accessing' stamp: 'as 10/5/2007 15:34'!
 metaObject: anObject selector: aSymbol reifications: aCollection
 
 	metaObject _ anObject.
 	selector _ aSymbol.
 	reifications _ aCollection.! !
 
-!DAAdviceWrapper methodsFor: 'system primitives' stamp: 'as 10/2/2007 16:08'!
+!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 15:38'!
 selector
 
 	| name sel |
-	name _ 'with:'.
-	sel _ name.
-	context keys size timesRepeat: [ sel _ sel, name. ].
+	name _ self selectorKeyword, ':'.
+	sel _ ''.
+	reifications size timesRepeat: [ sel _ sel, name. ].
 	^ sel asSymbol.! !
+
+!DAAdviceWrapper methodsFor: 'wrapping' stamp: 'as 10/5/2007 10:38'!
+selectorKeyword
+
+	^ 'with'.! !
 
 Object subclass: #DAAspectClass
 	instanceVariableNames: 'links'
@@ -710,6 +669,76 @@ visitMethodExecution: pointcut
 visit: aDAPointcut
 
 	aDAPointcut acceptVisitor: self.! !
+
+!Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"The next line is a fix for DynamicAspects, which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
+
+TestCase subclass: #DAAdviceWrapperTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAAdviceWrapperTest methodsFor: 'testing' stamp: 'as 10/5/2007 15:36'!
+testSelector
+
+	| wrapper key |
+	wrapper _ DAAdviceWrapper metaObject: nil selector: nil reifications: #(a b).
+	key _ wrapper selectorKeyword.
+	self assert: wrapper selector asString = (key, ':', key, ':').! !
+
+!DAAdviceWrapperTest methodsFor: 'testing' stamp: 'as 10/5/2007 10:49'!
+testWrapping
+
+	| wrapper mo result |
+	mo _ [ :c | c. ].
+	wrapper _ DAAdviceWrapper metaObject: mo selector: #value: reifications: #(arg1 arg2).
+	result _ wrapper perform: wrapper selector with: 1 with: 2.
+	self assert: (result at: #arg1) = 1.
+	self assert: (result at: #arg2) = 2.! !
 
 TestCase subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
