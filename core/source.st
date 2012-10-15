@@ -39,7 +39,7 @@ tearDown
 	self removeAllLinksOn: DAExamples.! !
 
 Object subclass: #DAAdvice
-	instanceVariableNames: 'arguments selector creator'
+	instanceVariableNames: 'arguments selector metaObject'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -47,43 +47,38 @@ Object subclass: #DAAdvice
 !DAAdvice commentStamp: 'as 3/19/2008 17:38' prior: 0!
 Specifies additional behaviour that should be installed into the system.!
 
-!DAAdvice class methodsFor: 'instance creation' stamp: 'as 3/20/2008 17:11'!
-creator: aBlock selector: aSymbol arguments: anArray
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 4/3/2008 09:34'!
+object: anObject selector: aSymbol
 
 	^ self new
-		creator: aBlock;
+		metaObject: anObject;
 		selector: aSymbol;
-		arguments: anArray;
 		yourself.! !
 
-!DAAdvice class methodsFor: 'instance creation' stamp: 'as 3/20/2008 17:12'!
-object: anObject selector: aSymbol arguments: anArray
-
-	^ self new
-		creator: [ anObject. ];
-		selector: aSymbol;
-		arguments: anArray;
-		yourself.! !
-
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 17:08'!
+!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 10:24'!
 arguments
 
-	^ arguments.! !
+	^ arguments ifNil: [ #(). ].! !
 
 !DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 17:08'!
 arguments: anArray
 
 	arguments _ anArray.! !
 
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:35'!
-creator
+!DAAdvice methodsFor: 'testing' stamp: 'as 4/3/2008 09:35'!
+isCreator
 
-	^ creator.! !
+	^ metaObject isBlock.! !
 
-!DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:39'!
-creator: aBlock
+!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 09:33'!
+metaObject
 
-	creator _ aBlock.! !
+	^ metaObject.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 4/3/2008 09:32'!
+metaObject: anObject
+
+	metaObject _ anObject.! !
 
 !DAAdvice methodsFor: 'accessing' stamp: 'as 3/20/2008 15:35'!
 selector
@@ -768,6 +763,9 @@ initializeCounter
 
 	counter _ 0.! !
 
+!DAExamples class methodsFor: 'examples' stamp: 'as 4/1/2008 15:46'!
+noop! !
+
 Object subclass: #DAFilter
 	instanceVariableNames: 'block negated'
 	classVariableNames: ''
@@ -859,7 +857,7 @@ negate
 	negated _ negated not.! !
 
 Object subclass: #DAHook
-	instanceVariableNames: 'pointcut advice scope control links'
+	instanceVariableNames: 'pointcut advice scope control links metaObjects'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -890,10 +888,10 @@ defaultControl
 
 	^ #before.! !
 
-!DAHook class methodsFor: 'defaults' stamp: 'as 3/20/2008 16:12'!
+!DAHook class methodsFor: 'defaults' stamp: 'as 4/3/2008 09:22'!
 defaultScope
 
-	^ #link.! !
+	^ #hook.! !
 
 !DAHook class methodsFor: 'instance creation' stamp: 'as 3/20/2008 16:07'!
 instead: aDAPointcut do: aDAAdvice
@@ -940,13 +938,22 @@ initialize
 
 	links _ Set new.! !
 
-!DAHook methodsFor: 'installation' stamp: 'as 3/23/2008 16:55'!
+!DAHook methodsFor: 'initialize-release' stamp: 'as 4/3/2008 09:21'!
+initializeMetaObjects
+
+	metaObjects _ Dictionary new.! !
+
+!DAHook methodsFor: 'installation' stamp: 'as 4/3/2008 09:21'!
 install
 
 	self isInstalled ifFalse: [
+		self initializeMetaObjects.
 		pointcut joinPoints do: [
 			:jp |
-			links add: (self newLink: jp).
+			| link |
+			link _ self newLink: jp.
+			link hookOnJoinPoint: jp.
+			links add: link.
 		].
 	].
 		! !
@@ -961,18 +968,21 @@ links
 
 	^ links.! !
 
-!DAHook methodsFor: 'private' stamp: 'as 3/25/2008 15:14'!
+!DAHook methodsFor: 'private' stamp: 'as 4/3/2008 09:49'!
 newLink: aDAJoinPoint
 
-	^ GPLink new
-		metaObjectCreator: advice creator;
+	| link |
+
+	link _ GPLink new
 		selector: advice selector;
 		arguments: advice arguments;
 		control: control;
-		moScope: scope;
 		conditionObject: aDAJoinPoint condition;
 		hook: self;
-		yourself.! !
+		yourself.
+	self setMetaObject: link.
+	
+	^ link.! !
 
 !DAHook methodsFor: 'accessing' stamp: 'as 3/20/2008 16:03'!
 pointcut
@@ -993,6 +1003,21 @@ scope
 scope: aSymbol
 
 	scope _ aSymbol.! !
+
+!DAHook methodsFor: 'private' stamp: 'as 4/3/2008 09:54'!
+setMetaObject: aGPLink
+
+	scope = #hook ifTrue: [
+		"Only one meta object."
+		aGPLink metaObject: advice metaObject.
+	] ifFalse: [
+		"The link's dictionary of meta objects is hosted by the hook
+		 and is the same for all links."
+		aGPLink
+			scope: advice scope;
+			metaObjectCreator: advice metaObject;
+			metaObject: metaObjects.
+	].! !
 
 !DAHook methodsFor: 'installation' stamp: 'as 3/23/2008 17:04'!
 uninstall
@@ -1610,6 +1635,11 @@ class: aClass
 
 	^ self className: aClass name.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/1/2008 15:50'!
+class: aClass method: aSymbol
+
+	^ self method: aClass >> aSymbol.! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/25/2008 17:56'!
 className: regexString
 
@@ -1822,9 +1852,10 @@ reset
 
 	self initialize.! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:23'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/2/2008 16:41'!
 visit: aDAPointcut
 
+	self reset.
 	self initializeJoinPoints.
 	aDAPointcut acceptVisitor: self.! !
 
@@ -1905,12 +1936,6 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
 !BlockContext methodsFor: '*DA' stamp: 'as 3/3/2008 16:17'!
 and: aBlock
 
@@ -1927,6 +1952,12 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -2232,18 +2263,18 @@ testParent
 		self assert: child parent == pc.
 	].! !
 
-TestCase subclass: #DATestingWithLinks
+TestCase subclass: #DATestWithLinks
 	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Tests'!
 
-!DATestingWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
+!DATestWithLinks commentStamp: 'as 2/1/2008 13:57' prior: 0!
 A test that uses Geppetto links.
 
 This provides link cleanup at start/finish for any subclassed test.!
 
-DATestingWithLinks subclass: #DAAspectTest
+DATestWithLinks subclass: #DAAspectTest
 	instanceVariableNames: 'example aspect'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2315,24 +2346,54 @@ testParameters
 	self assert: (pars at: #object) == DAExamples.
 	self assert: (pars at: #control) == #instead.! !
 
-!DATestingWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
+DATestWithLinks subclass: #DAHookTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DAHookTest commentStamp: 'as 4/1/2008 15:47' prior: 0!
+Testing hooks.!
+
+!DAHookTest class methodsFor: 'testing' stamp: 'as 4/3/2008 10:05'!
+isAbstract
+
+	^ false.! !
+
+!DAHookTest methodsFor: 'testing' stamp: 'as 4/3/2008 10:25'!
+testSimple
+
+	| mo pc advice hook count |
+
+	mo _ GPCounter new.
+	pc _ DAPointcut class: DAExamples class method: #noop.
+	advice _ DAAdvice object: mo selector: #inc.
+	hook _ DAHook on: pc do: advice.	
+	hook install.
+	self cleanup: hook.
+
+	count _ mo count.
+	DAExamples noop.
+	self assert: (count + 1) = mo count.! !
+
+!DATestWithLinks class methodsFor: 'testing' stamp: 'as 2/18/2008 10:30'!
 isAbstract
 
 	^ true.! !
 
-!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
 cleanup: aGPLink
 
 	"Register aGPLink for cleanup in #tearDown"
 	
 	links add: aGPLink.! !
 
-!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
 setUp
 
 	links _ Set new.! !
 
-!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+!DATestWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
 tearDown
 
 	links do: [ :link | link uninstall. ].! !
