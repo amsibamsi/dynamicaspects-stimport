@@ -1,4 +1,4 @@
-SystemOrganization addCategory: #'DynamicAspects-Aspects'!
+SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Geppetto'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
@@ -14,7 +14,7 @@ An aspect is in AOP (Aspect-Oriented Progamming) what and object is in OOP (Obje
 An aspect usually covers a cross-cutting concern in OOP that can be implemented much easier with AOP.!
 
 DAAspect subclass: #DAAnonymousAspect
-	instanceVariableNames: 'pointcut advice control condition link'
+	instanceVariableNames: 'pointcuts advices controls links'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -22,95 +22,79 @@ DAAspect subclass: #DAAnonymousAspect
 !DAAnonymousAspect commentStamp: 'as 11/19/2007 12:49' prior: 0!
 An aspect that doesn't need to be defined in the browser.!
 
-!DAAnonymousAspect class methodsFor: 'instance creation' stamp: 'as 11/19/2007 08:39'!
-pointcut: aDAPointcut advice: adviceBlock control: controlBlock
+!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 1/14/2008 16:55'!
+addAdvice: aBlock
 
-	self new
-		pointcut: aDAPointcut;
-		advice: adviceBlock;
-		control: controlBlock;
-		yourself.! !
+	advices add: aBlock.! !
 
-!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 11/19/2007 08:15'!
-advice: aBlock
+!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 1/17/2008 11:28'!
+addAdvice: adviceBlock control: aSymbol pointcut: aDAPointcut
 
-	advice _ aBlock.! !
+	self
+		addAdvice: adviceBlock;
+		addControl: aSymbol;
+		addPointcut: aDAPointcut.! !
 
-!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 11/19/2007 08:39'!
-condition: aBlock
+!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 1/14/2008 16:55'!
+addControl: aSymbol
 
-	condition _ aBlock.! !
+	controls add: aSymbol.! !
 
-!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 11/19/2007 08:39'!
-control: aSymbol
+!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 1/14/2008 16:56'!
+addPointcut: aDAPointcut
 
-	control _ aSymbol.! !
+	pointcuts add: aDAPointcut.! !
 
-!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 12/12/2007 17:38'!
+!DAAnonymousAspect methodsFor: 'initialize-release' stamp: 'as 1/17/2008 10:43'!
+initialize
+
+	advices _ OrderedCollection new.
+	pointcuts _ OrderedCollection new.
+	controls _ OrderedCollection new.
+	links _ OrderedCollection new.! !
+
+!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 1/17/2008 15:42'!
 install
 
-	| gplink |
+	| link |
 	self isInstalled ifFalse: [
-		pointcut dependencies do: [ :aspect | aspect install. ].
-		gplink _ GPLink metaObject: advice.
-		gplink aspect: self.
-		condition ifNotNil: [ gplink condition: condition. ].
-		[
-			pointcut nodes do: [ :node | node link: gplink. ].
-			link _ gplink
-		] on: Exception do: [
-			gplink uninstall.
-			self error: 'could not install link'.
+		1 to: pointcuts size do: [
+			:i |
+			| pointcut |
+			pointcut _ pointcuts at: i.
+			link _ GPLink metaObject: (advices at: i).
+			link aspect: self.
+			pointcut condition ifNotNil: [
+				pointcut conditionArguments ifNil: [
+					link condition: pointcut condition.
+				] ifNotNil: [
+					link argumentListCondition: pointcut condition
+						arguments: pointcut conditionArguments.
+				].
+			].
+			[
+				(pointcuts at: i) nodes do: [ :node | node link: link. ].
+				links add: link.
+			] on: Exception do: [
+				link uninstall.
+				self uninstall.
+				self error: 'could not install link'.
+			].
 		].
 	].! !
 
-!DAAnonymousAspect methodsFor: 'testing' stamp: 'as 11/19/2007 08:28'!
+!DAAnonymousAspect methodsFor: 'testing' stamp: 'as 1/14/2008 16:56'!
 isInstalled
 
-	^ link isNil not.! !
+	^ links isEmpty not.! !
 
-!DAAnonymousAspect methodsFor: 'accessing' stamp: 'as 11/19/2007 08:15'!
-pointcut: aDAPointcut
-
-	pointcut _ aDAPointcut.! !
-
-!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 11/19/2007 09:06'!
+!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 1/14/2008 16:55'!
 uninstall
 
-	self isInstalled ifTrue: [ link uninstall. link _ nil. ].! !
-
-DAAnonymousAspect subclass: #DAControlFlow
-	instanceVariableNames: 'active'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Aspects'!
-
-!DAControlFlow commentStamp: 'as 11/28/2007 13:28' prior: 0!
-States whether the control flow is under a specified method or not.!
-
-!DAControlFlow class methodsFor: 'instance creation' stamp: 'as 11/28/2007 10:30'!
-method: aMethod
-
-	^ self new
-		method: aMethod;
-		yourself.! !
-
-!DAControlFlow methodsFor: 'initialize-release' stamp: 'as 11/28/2007 11:14'!
-initialize
-
-	active _ false.
-	self advice: [ active _ active not. ].
-	self control: #beforeafter.! !
-
-!DAControlFlow methodsFor: 'testing' stamp: 'as 11/28/2007 11:14'!
-isActive
-
-	^ active.! !
-
-!DAControlFlow methodsFor: 'pointcut' stamp: 'as 11/28/2007 10:46'!
-method: aMethod
-
-	self pointcut: (DAPointcut method: aMethod).! !
+	self isInstalled ifTrue: [
+		links do: [ :link | link uninstall. ].
+		links removeAll: links.
+	].! !
 
 !DAAspect methodsFor: 'advices' stamp: 'as 11/19/2007 08:29'!
 adviceControls
@@ -302,7 +286,7 @@ initializeLinks
 
 	links _ IdentitySet new.! !
 
-!DACodedAspect methodsFor: 'installing' stamp: 'as 12/12/2007 17:12'!
+!DACodedAspect methodsFor: 'installing' stamp: 'as 1/17/2008 15:42'!
 install
 
 	self isInstalled ifFalse: [
@@ -310,12 +294,11 @@ install
 			:adv |
 			| pointcut |
 			pointcut _ self pointcutForAdvice: adv.
-			pointcut dependencies do: [ :aspect | aspect install. ].
 			self installAdvice: adv pointcut: pointcut.
 		].
 	].! !
 
-!DACodedAspect methodsFor: 'private' stamp: 'as 12/12/2007 17:19'!
+!DACodedAspect methodsFor: 'private' stamp: 'as 1/17/2008 10:40'!
 installAdvice: advice pointcut: pointcut
 
 	| link |
@@ -326,12 +309,20 @@ installAdvice: advice pointcut: pointcut
 		control: (self controlForAdvice: advice);
 		aspect: self;
 		yourself.
-	pointcut condition ifNotNil: [ link condition: pointcut condition. ].
+	pointcut condition ifNotNil: [
+		pointcut conditionArguments ifNil: [
+			link condition: pointcut condition.
+		] ifNotNil: [
+			link argumentListCondition: pointcut condition
+				arguments: pointcut conditionArguments.
+		].
+	].
 	[
 		pointcut nodes do: [ :node | node link: link. ].
 		links add: link.
 	] on: Exception do: [
 		link uninstall.
+		self uninstall.
 		self error: 'could not install link'.
 	].! !
 
@@ -424,6 +415,45 @@ outerInner
 		method: 'inner';
 		yourself.! !
 
+Object subclass: #DACompositePointcut
+	instanceVariableNames: 'leftChild rightChild'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DACompositePointcut commentStamp: 'as 1/17/2008 11:30' prior: 0!
+A composition of one or two pointcuts.!
+
+DACompositePointcut subclass: #DAAndPointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 17:57'!
+leftChild: aDAPointcut
+
+	leftChild _ aDAPointcut.
+	leftChild parent: self.! !
+
+!DACompositePointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 17:57'!
+rightChild: aDAPointcut
+
+	rightChild _ aDAPointcut.
+	rightChild parent: self.! !
+
+DACompositePointcut subclass: #DANotPointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+DACompositePointcut subclass: #DAOrPointcut
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -485,43 +515,52 @@ Dummy class to test Geppetto links on.!
 example1! !
 
 Object subclass: #DAPointcut
-	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter categories classes methods nodes condition dependencies'
+	instanceVariableNames: 'categories classes methods nodes parent properties'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
+	category: 'DynamicAspects-Pointcuts'!
 
-!DAPointcut commentStamp: 'as 11/19/2007 12:52' prior: 0!
+!DAPointcut commentStamp: 'as 1/17/2008 14:11' prior: 0!
 Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/28/2007 13:34'!
+DAPointcut subclass: #DADesignatePointcut
+	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter condition condArgs'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
+
+!DADesignatePointcut commentStamp: 'as 11/19/2007 12:52' prior: 0!
+Pointcuts describe a set of join points. So far, the only type of join points are nodes in reflective methods.!
+
+!DADesignatePointcut class methodsFor: 'instance creation' stamp: 'as 11/28/2007 13:34'!
 condition: aBlock
 
 	^ self new
 		condition: aBlock;
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:10'!
+!DADesignatePointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:10'!
 fieldAccess: fieldRegex
 
 	^ self new
 		node: [ :node | self node: node isVariable: fieldRegex. ];
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
+!DADesignatePointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
 fieldRead: fieldRegex
 
 	^ self new
 		node: [ :node | (self node: node isVariable: fieldRegex) and: [ node isRead. ]. ];
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
+!DADesignatePointcut class methodsFor: 'instance creation' stamp: 'as 11/26/2007 11:12'!
 fieldWrite: fieldRegex
 
 	^ self new
 		node: [ :node | (self node: node isVariable: fieldRegex) and: [ node isWrite. ]. ];
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/14/2007 18:19'!
+!DADesignatePointcut class methodsFor: 'instance creation' stamp: 'as 11/14/2007 18:19'!
 method: aMethod
 
 	^ self new
@@ -530,143 +569,248 @@ method: aMethod
 		node: [ :node | node isMethod. ];
 		yourself.! !
 
-!DAPointcut class methodsFor: 'testing' stamp: 'as 11/26/2007 11:10'!
+!DADesignatePointcut class methodsFor: 'testing' stamp: 'as 11/26/2007 11:10'!
 node: aPEProgramNode isVariable: fieldRegex
 
 	^ aPEProgramNode isVariable and: [ aPEProgramNode name matchesRegex: fieldRegex. ].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 12/12/2007 16:29'!
-withinMethod: aMethod
-
-	| cflow |
-	cflow _ DAControlFlow method: aMethod.
-	^ (self condition: [ cflow isActive. ])
-		dependsOn: cflow;
-		yourself.! !
-
-!DAPointcut methodsFor: 'composing' stamp: 'as 11/14/2007 16:58'!
-and: aDAPointcut
-
-	self shouldBeImplemented.! !
-
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:32'!
-categories
-
-	^ categories ifNil: [
-		categories _ SystemOrganization categories select: [
-			:each | each matchesRegex: categoryFilter.
-		].
-	].! !
-
-!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 16:45'!
 category: regexString
 
-	categoryFilter _ regexString.! !
+	categoryFilter _ regexString.
+	self reset.! !
 
-!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 16:45'!
 class: regexString
 
-	classFilter _ regexString.! !
+	classFilter _ regexString.
+	self reset.! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:47'!
+!DADesignatePointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:47'!
 classMatches: aClass
 
 	^ (aClass name matchesRegex: classFilter) and: [
 		self categories includes: aClass instanceSide category.
 	].! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 15:45'!
-classes
+!DADesignatePointcut methodsFor: 'accessing' stamp: 'as 11/14/2007 16:57'!
+condition
 
-	^ classes ifNil: [
+	^ condition.! !
+
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 17:11'!
+condition: aBlock
+
+	self condition: aBlock arguments: nil.! !
+
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 17:52'!
+condition: aBlock arguments: aCollection
+
+	self hasSingleArgCondition ifTrue: [ self validateCondition: aBlock singleArgs: aCollection. ].
+	condition _ aBlock.
+	condArgs _ aCollection.! !
+
+!DADesignatePointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 17:49'!
+conditionArguments
+
+	^ condArgs.! !
+
+!DADesignatePointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:38'!
+filterCategories
+
+	categoryFilter ifNil: [
+		categories _ Set new.
+	] ifNotNil: [
+		categories _ SystemOrganization categories select: [
+			:each | each matchesRegex: categoryFilter.
+		].
+	].! !
+
+!DADesignatePointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:39'!
+filterClasses
+
+	classFilter ifNil: [
+		classes _ Set new.
+	] ifNotNil: [
 		classes _ Smalltalk allClasses select: [
 			:each |
 			(self classMatches: each instanceSide) or: [ self classMatches: each classSide. ].
 		].
 	].! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 16:57'!
-condition
-
-	^ condition.! !
-
-!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 16:56'!
-condition: aBlock
-
-	condition _ aBlock.! !
-
-!DAPointcut methodsFor: 'accessing' stamp: 'as 12/12/2007 16:30'!
-dependencies
-
-	^ dependencies.! !
-
-!DAPointcut methodsFor: 'accessing' stamp: 'as 12/12/2007 16:29'!
-dependsOn: aDAAspect
-
-	dependencies add: aDAAspect.! !
-
-!DAPointcut methodsFor: 'initialize-release' stamp: 'as 12/12/2007 16:31'!
-initialize
-
-	categoryFilter _ classFilter _ methodFilter _ '.*'.
-	nodeFilter _ [:node | true].
-	dependencies _ Set new.! !
-
-!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
-method: regexString
-
-	methodFilter _ regexString.! !
-
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 16:08'!
-methods
-
-	^ methods ifNil: [
-		| matches |
-		matches _ Set new.
+!DADesignatePointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:41'!
+filterMethods
+	
+	methods _ Set new.
+	methodFilter ifNotNil: [
 		self classes do: [
 			:each |
 			each methods do: [
 				:method |
 				(method selector matchesRegex: methodFilter) ifTrue: [
-					matches add: method reflectiveMethod.
+					methods add: method reflectiveMethod.
 				].
 			].
 		].
-		methods _ matches.
 	].! !
 
-!DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:33'!
+!DADesignatePointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:42'!
+filterNodes
+
+	nodes _ Set new.
+	nodeFilter ifNotNil: [
+		self methods do: [
+			:each |
+			nodes addAll: (each nodes select: nodeFilter).
+		].
+	].! !
+
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 16:45'!
+method: regexString
+
+	methodFilter _ regexString.
+	self reset.! !
+
+!DADesignatePointcut methodsFor: 'designating' stamp: 'as 1/17/2008 16:45'!
 node: aBlock
 
-	nodeFilter _ aBlock.! !
+	nodeFilter _ aBlock.
+	self reset.! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 17:22'!
+!DADesignatePointcut methodsFor: 'caching' stamp: 'as 1/17/2008 16:59'!
+reset
+
+	categories _ classes _ methods _ nodes _ nil.
+	super reset.! !
+
+!DADesignatePointcut methodsFor: 'properties' stamp: 'as 1/17/2008 17:48'!
+singleArgCondition
+
+	self hasCondition ifTrue: [ self validateCondition: condition singleArgs: condArgs ].
+	self properties at: #singleArgCondition put: true.! !
+
+!DADesignatePointcut methodsFor: 'private' stamp: 'as 1/17/2008 17:46'!
+validateCondition: aBlock singleArgs: aCollection
+
+	(aBlock notNil
+	 & aBlock isBlock
+	 & (aBlock numArgs = 1)
+	 & aCollection notNil
+	 & aCollection isCollection
+	 & aCollection notEmpty) ifFalse: [ self error: 'a single argument condition is a block with exactly 1 block argument and 1 or more condition arguments'. ].! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 1/17/2008 17:32'!
+& aDAPointcut
+
+	^ self and: aDAPointcut.! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 1/17/2008 17:56'!
+and: aDAPointcut
+
+	^ DAAndPointcut new leftChild: self; rightChild: aDAPointcut; yourself.! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:36'!
+categories
+
+	^ categories ifNil: [
+		categories _ self filterCategories.
+	].! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:26'!
+classes
+
+	^ classes ifNil: [
+		classes _ self filterClasses.
+	].! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:15'!
+condition
+
+	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:27'!
+filterCategories
+
+	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:27'!
+filterClasses
+
+	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:27'!
+filterMethods
+
+	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'filtering' stamp: 'as 1/17/2008 16:27'!
+filterNodes
+
+	self subclassResponsibility.! !
+
+!DAPointcut methodsFor: 'testing' stamp: 'as 1/17/2008 17:29'!
+hasCondition
+
+	self condition notNil.! !
+
+!DAPointcut methodsFor: 'testing' stamp: 'as 1/17/2008 17:29'!
+hasConditionArguments
+
+	self conditionArguments notNil.! !
+
+!DAPointcut methodsFor: 'testing' stamp: 'as 1/17/2008 17:51'!
+hasSingleArgCondition
+
+	^ self properties at: #singleArgCondition ifAbsent: [ false. ].! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:26'!
+methods
+
+	^ methods ifNil: [
+		methods _ self filterMethods.
+	].! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:26'!
 nodes
 
 	^ nodes ifNil: [
-		| matches |
-		matches _ Set new.
-		self methods do: [
-			:each |
-			matches addAll: (each nodes select: nodeFilter).
-		].
-		nodes _ matches.
+		nodes _ self filterNodes.
 	].! !
 
-!DAPointcut methodsFor: 'filtering' stamp: 'as 11/14/2007 16:58'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 1/17/2008 17:55'!
 not
 
-	self shouldBeImplemented.! !
+	DANotPointcut new leftChild: self.! !
 
-!DAPointcut methodsFor: 'composing' stamp: 'as 11/14/2007 16:58'!
+!DAPointcut methodsFor: 'composing' stamp: 'as 1/17/2008 17:55'!
 or: aDAPointcut
 
-	self shouldBeImplemented.! !
+	^ DAOrPointcut new leftChild: self; rightChild: aDAPointcut; yourself.! !
 
-!DAPointcut methodsFor: 'caching' stamp: 'as 11/14/2007 16:54'!
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:56'!
+parent
+
+	^ parent.! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 1/17/2008 16:56'!
+parent: aDACompositePointcut
+
+	parent _ aDACompositePointcut.! !
+
+!DAPointcut methodsFor: 'properties' stamp: 'as 1/17/2008 17:29'!
+properties
+
+	^ properties ifNil: [ properties _ Dictionary new. ].! !
+
+!DAPointcut methodsFor: 'caching' stamp: 'as 1/17/2008 16:59'!
 reset
 
-	categories _ classes _ methods _ nodes _ nil.! !
+	parent ifNotNil: [ parent reset. ].! !
+
+!DAPointcut methodsFor: 'composing' stamp: 'as 1/17/2008 17:32'!
+| aDAPointcut
+
+	^ self or: aDAPointcut.! !
 
 GPCondition subclass: #DAArgumentListGPCondition
 	instanceVariableNames: ''
