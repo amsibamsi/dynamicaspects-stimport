@@ -26,6 +26,11 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -36,10 +41,41 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+TestCase subclass: #DAAspectTest
+	instanceVariableNames: 'examples aspect'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ self method parent.! !
+!DAAspectTest commentStamp: 'as 5/21/2008 16:08' prior: 0!
+Testing example aspects.!
+
+!DAAspectTest methodsFor: 'initialize-release' stamp: 'as 5/22/2008 15:02'!
+initialize
+
+	examples _ DAExamples.! !
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 5/22/2008 15:02'!
+setUp
+
+	aspect _ DAExampleAspect mo.
+	aspect reset.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 5/22/2008 15:46'!
+testAspectIsInstalled
+
+	"If the examples aspect is not installed, all tests here will fail."
+	
+	self assert: aspect class isInstalled.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 5/22/2008 15:44'!
+testBefore
+
+	| count |
+
+	count _ aspect count.
+	examples noopBefore.
+	self assert: count + 1 = aspect count.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -609,8 +645,8 @@ isAbstract
 
 	^ false.! !
 
-!DAConnectorTest methodsFor: 'testing' stamp: 'as 4/23/2008 13:38'!
-testSimple
+!DAConnectorTest methodsFor: 'testing' stamp: 'as 5/21/2008 15:22'!
+testDeploy
 
 	| mo pc con count |
 
@@ -1819,6 +1855,17 @@ inner! !
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 4/4/2008 15:04'!
 noop! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 15:14'!
+noopAfter! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 15:14'!
+noopBefore! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 5/22/2008 15:15'!
+noopInstead
+
+	self counter inc; inc.! !
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 5/6/2008 16:14'!
 outer
@@ -3575,6 +3622,21 @@ metaObjectDict
 
 	^ moDict ifNil: [ moDict _ Dictionary new. ].! !
 
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/21/2008 16:12'!
+mo
+
+	^ mo.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/21/2008 16:13'!
+moCreator
+
+	^ moCreator.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/21/2008 16:12'!
+moDict
+
+	^ moDict.! !
+
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 18:04'!
 notInstalled
 
@@ -3678,7 +3740,7 @@ uninstallQuietly
 	[ self uninstall. ] on: Exception do: [].! !
 
 DAAspect subclass: #DAExampleAspect
-	instanceVariableNames: ''
+	instanceVariableNames: 'counter'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Tests'!
@@ -3686,15 +3748,40 @@ DAAspect subclass: #DAExampleAspect
 !DAExampleAspect commentStamp: 'as 5/13/2008 11:21' prior: 0!
 Examples aspect for tests.!
 
-!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/20/2008 14:16'!
-noop: p
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/22/2008 15:21'!
+noopAfter: p
 
-	^ p class: DAExamples class method: #noop.! !
+	^ p method: DAExamples class >> #noopAfter.! !
 
-!DAExampleAspect methodsFor: 'advices' stamp: 'as 5/13/2008 11:23'!
-beforeNoop
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/22/2008 15:23'!
+noopBefore: p
 
-	Transcript show: 'test'; cr.! !
+	^ p method: DAExamples class >> #noopBefore.! !
+
+!DAExampleAspect class methodsFor: 'pointcuts' stamp: 'as 5/22/2008 15:22'!
+noopInstead: p
+
+	^ p method: DAExamples class >> #noopInstead.! !
+
+!DAExampleAspect methodsFor: 'advices' stamp: 'as 5/22/2008 15:27'!
+beforeNoopBefore
+
+	self counter inc.! !
+
+!DAExampleAspect methodsFor: 'counting' stamp: 'as 5/22/2008 15:03'!
+count
+
+	^ self counter count.! !
+
+!DAExampleAspect methodsFor: 'accessing' stamp: 'as 5/21/2008 16:10'!
+counter
+
+	^ counter ifNil: [ counter _ GPCounter new. ].! !
+
+!DAExampleAspect methodsFor: 'counting' stamp: 'as 5/21/2008 16:13'!
+reset
+
+	self counter initialize.! !
 
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
 pointcutNames
