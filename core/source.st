@@ -8,27 +8,6 @@ SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
-!Behavior methodsFor: '*DA' stamp: 'as 5/27/2008 16:01'!
-notifyUsersOfChangedSelectors: aCollection
-
-	"Make it possible that a class is also notified of selector changes on the class side.
-	 Class methods are actually in the method dictionary of the meta class and
-	 managed there.
-	
-	 Remember that Behavior is a superclass for normal classes (like Object) and
-	 meta classes (like Object class)."
-	
-	self theNonMetaClass notifyUsersOfChangedSelectors: aCollection meta: self isMeta.! !
-
-!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
-notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
-
 !GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 14:43'!
 return2
 
@@ -52,6 +31,27 @@ testMethodInsteadSelector
 	GPCounter reset.
 	self assert: (GPExamples new exampleDA = 2).! !
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
+!Behavior methodsFor: '*DA' stamp: 'as 5/27/2008 16:01'!
+notifyUsersOfChangedSelectors: aCollection
+
+	"Make it possible that a class is also notified of selector changes on the class side.
+	 Class methods are actually in the method dictionary of the meta class and
+	 managed there.
+	
+	 Remember that Behavior is a superclass for normal classes (like Object) and
+	 meta classes (like Object class)."
+	
+	self theNonMetaClass notifyUsersOfChangedSelectors: aCollection meta: self isMeta.! !
+
+!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
+notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -61,6 +61,11 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
+
+!GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
+exampleDA
+
+	^ 1.! !
 
 !RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
 reflectiveMethod
@@ -843,31 +848,6 @@ setUp
 tearDown
 
 	links do: [ :link | link uninstall. ].! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
-startsWithAny: aCollection
-
-	aCollection do: [
-		:string |
-		(self startsWith: string) ifTrue: [ ^ true. ]
-	].
-	^ false.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
-
-	^ DAMethodDescription methodObject: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
-asPointcut
-
-	^ DAPointcut method: self.! !
 
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
@@ -4113,7 +4093,7 @@ fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 16:40'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 17:14'!
 noEnd
 
 	^ (self class >> #fibNoEnd:) asPointcut.! !
@@ -4188,11 +4168,6 @@ initialize
 	"Install the pointcut shortcut"
 	Smalltalk at: #PC put: DAPointcut.! !
 
-!GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
-exampleDA
-
-	^ 1.! !
-
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
 
@@ -4232,10 +4207,31 @@ asDescription
 
 	^ DAClassDescription classObject: self.! !
 
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flow
 
-	count _ aNumber.! !
+	^ flow ifNil: [ flow _ Dictionary new. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowAt: aDAPointcut
+
+	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowInto: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
+	self flow at: aDAPointcut put: count + 1.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
+flowOutOf: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut.
+	self flow at: aDAPointcut put: count - 1.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -4449,31 +4445,10 @@ updateAspect
 
 	self adaptAspectButtonColor.! !
 
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
-flow
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
 
-	^ flow ifNil: [ flow _ Dictionary new. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowAt: aDAPointcut
-
-	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowInto: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
-	self flow at: aDAPointcut put: count + 1.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
-flowOutOf: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut.
-	self flow at: aDAPointcut put: count - 1.! !
+	count _ aNumber.! !
 
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
@@ -4486,6 +4461,39 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
+
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 5/29/2008 16:03'!
+startsWithAny: aCollection
+
+	aCollection do: [
+		:string |
+		(self startsWith: string) ifTrue: [ ^ true. ]
+	].
+	^ false.! !
+
+!PEReflectiveMethodNode methodsFor: '*DA' stamp: 'as 7/11/2008 17:14'!
+gpreplaceWith: aNode
+
+	"Always return the value of the link execution."
+
+	self body: (RBReturnNode value: aNode copy asSequenceNode).
+	primitiveNode := nil.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
+asPointcut
+
+	^ DAPointcut method: self.! !
 DAFlowContext initialize!
 DAAspect initialize!
 DATranscriptExample initialize!
