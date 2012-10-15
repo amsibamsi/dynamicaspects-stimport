@@ -1015,7 +1015,7 @@ Object subclass: #DAJoinPoint
 !DAJoinPoint commentStamp: 'as 3/25/2008 15:06' prior: 0!
 Describes and caches the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
 
-!DAJoinPoint methodsFor: 'composing' stamp: 'as 3/25/2008 18:04'!
+!DAJoinPoint methodsFor: 'composing' stamp: 'as 3/31/2008 11:37'!
 and: aDAJoinPoint
 
 	| jp |
@@ -1024,7 +1024,7 @@ and: aDAJoinPoint
 	jp condition: (self combineCondition: jp).
 	self keys do: [
 		:key |
-		jp filtersAt: key put: (self filtersAt: key), (jp filtersAt: key).
+		jp filtersAt: key put: (self filtersAt: key), (aDAJoinPoint filtersAt: key).
 	].		
 	^ jp.! !
 
@@ -1141,12 +1141,12 @@ filterClass
 	].
 	^ classes.! !
 
-!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/22/2008 11:46'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 3/28/2008 12:56'!
 filterMethod
 	
 	| methods classMethods |
 	
-	methods _ Set new.
+	methods _ IdentitySet new.
 	(self cacheAt: #class) do: [
 		:each |
 		classMethods _ each methods.
@@ -1161,12 +1161,12 @@ filterMethod
 	].
 	^ methods collect: [ :each | each reflectiveMethod. ].! !
 
-!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/21/2008 16:11'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 3/28/2008 12:58'!
 filterNode
 
 	| nodes methodNodes |
 
-	nodes _ Set new.
+	nodes _ IdentitySet new.
 	(self cacheAt: #method) do: [
 		:each |
 		methodNodes _ each nodes.
@@ -1227,7 +1227,7 @@ method: aDAFilter
 
 	self filterAt: #method put: aDAFilter.! !
 
-!DAJoinPoint methodsFor: 'aliases' stamp: 'as 2/4/2008 17:48'!
+!DAJoinPoint methodsFor: 'aliases' stamp: 'as 3/28/2008 12:35'!
 methods
 
 	^ self cacheAt: #method.! !
@@ -2146,11 +2146,53 @@ setUp
 
 	jp _ DAJoinPoint new.! !
 
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:39'!
+testAnding
+
+	| jp1 jp2 |
+
+	jp1 _ DAJoinPoint new class: (DAFilter class: 'Object').
+	self assert: (jp1 classes includes: Object).
+	
+	jp2 _ DAJoinPoint new method: (DAFilter method: '=').
+	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
+	
+	jp _ jp1 and: jp2.
+	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
+	self assert: jp methods size = 1.! !
+
 !DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:39'!
 testMultipleCategories
 
 	jp category: (DAFilter category: 'Kernel-*').
 	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 11:59'!
+testMultipleClasses
+
+	jp class: (DAFilter class: '*Object').
+	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 12:15'!
+testMultipleMethods
+
+	jp
+		class: (DAFilter class: 'ProtoObject');
+		method: (DAFilter method: '*').
+	self assert: (jp methods includesAllOf: {
+		(ProtoObject >> #==) reflectiveMethod.
+		(ProtoObject >> #become:) reflectiveMethod.
+	}).! !
+
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 13:05'!
+testMultipleNodes
+
+	jp
+		class: (DAFilter class: 'Object');
+		method: (DAFilter method: 'class');
+		node: (DAFilter node: [ :node | true. ]).
+	self assert: (jp nodes includesAllOf:
+		(Object >> #class) reflectiveMethod methodNode allChildren).! !
 
 !DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/25/2008 18:22'!
 testSingleCategory
