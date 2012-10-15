@@ -7,38 +7,45 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
+keywordArgumentPairs
+
+	| pairs |
+	
+	pairs _ Dictionary new.
+	self keywords withIndexDo: [
+		:key :index |
+		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
+	].
+	^ pairs.! !
+
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
+keywords
+
+	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
+
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
 	^ (self >> selector) reflectiveMethod.
 ! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 5/27/2008 16:01'!
-notifyUsersOfChangedSelectors: aCollection
+!Behavior methodsFor: '*DA' stamp: 'as 8/18/2008 13:37'!
+aboutToRemoveSelector: aSymbol meta: aBoolean! !
 
-	"Make it possible that a class is also notified of selector changes on the class side.
-	 Class methods are actually in the method dictionary of the meta class and
-	 managed there.
-	
-	 Remember that Behavior is a superclass for normal classes (like Object) and
-	 meta classes (like Object class)."
-	
-	self theNonMetaClass notifyUsersOfChangedSelectors: aCollection meta: self isMeta.! !
+!Behavior methodsFor: '*DA' stamp: 'as 8/18/2008 14:14'!
+deregisterLocalSelector: aSymbol
 
-!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
-notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
+	"as 08/18/2008: Allow a class to react before a selector is removed."
+	self theNonMetaClass aboutToRemoveSelector: aSymbol meta: self isMeta.
 
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
+	self basicLocalSelectors notNil ifTrue: [
+		self basicLocalSelectors remove: aSymbol ifAbsent: []]! !
 
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+	^ self method parent.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -59,11 +66,6 @@ isAdvice
 isPointcut
 
 	^ self reflectiveMethod isPointcut.! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
 
 TestCase subclass: #DAAdviceTest
 	instanceVariableNames: 'advice'
@@ -1169,10 +1171,10 @@ checkOption: aSymbol
 		self error: 'pragma argument ''', aSymbol, ''' is not a valid option'.
 	].! !
 
-!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 16:49'!
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/18/2008 14:55'!
 isAdvice: aMethod
 
-	aMethod pragmas asSet anySatisfy: [
+	^ aMethod pragmas asSet anySatisfy: [
 		:p |
 		self isAdvicePragma: p.
 	].! !
@@ -4078,6 +4080,13 @@ Combines several pointcuts and advices by hosting multiple connectors.!
 DAAspect class
 	instanceVariableNames: 'mo moCreator moDict connectors disabled failure'!
 
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/18/2008 14:17'!
+aboutToRemoveSelector: aSymbol meta: aBoolean
+
+	(self isEnabled and: [ self isSpecialMethod: aSymbol meta: aBoolean. ]) ifTrue: [
+		self reinstallSilently.
+	].! !
+
 !DAAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:52'!
 advices
 
@@ -4162,10 +4171,10 @@ disable: aBoolean
 
 	aBoolean ifTrue: [ self disable. ] ifFalse: [ self enable. ].! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/18/2008 13:58'!
 doneCompiling
 
-	"self isEnabled ifTrue: [ self reinstallSilently. ]."! !
+	self isEnabled ifTrue: [ self reinstallSilently. ].! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 8/6/2008 19:55'!
 enable
@@ -4227,6 +4236,21 @@ installSilently
 
 	[ self install. ] on: Exception do: [].! !
 
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 13:27'!
+isAdvice: aSelector meta: aBoolean
+
+	^ aBoolean ifFalse: [
+		| method |
+		method _ methodDict at: aSelector ifAbsent: [ nil. ].
+		method ifNotNil: [
+			method isAdvice.
+		] ifNil: [
+			false.
+		].
+	] ifTrue: [
+		false.
+	].! !
+
 !DAAspect class methodsFor: 'testing' stamp: 'as 8/7/2008 23:19'!
 isDisabled
 
@@ -4241,6 +4265,37 @@ isEnabled
 isInstalled
 
 	^ connectors notNil & self installFailed not.! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 13:27'!
+isPointcut: aSelector meta: aBoolean
+
+	^ aBoolean ifTrue: [
+		| method |
+		method _ self class methodDict at: aSelector ifAbsent: [ nil. ].
+		method ifNotNil: [
+			method isPointcut.
+		] ifNil: [
+			false.
+		].
+	] ifFalse: [
+		false.
+	].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 14:11'!
+isSpecialMethod: aSymbol meta: aBoolean
+
+	^ (self isPointcut: aSymbol meta: aBoolean) or:
+		[ self isAdvice: aSymbol meta: aBoolean. ] or:
+		[ self isSpecialSelector: aSymbol meta: aBoolean. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 14:11'!
+isSpecialSelector: aSelector meta: aBoolean
+
+	^ aBoolean ifTrue: [
+		^ #(level scope).
+	] ifFalse: [
+		^ #().
+	].! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 11:39'!
 level
@@ -4282,21 +4337,12 @@ notInstalled
 
 	^ connectors isNil.! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 8/18/2008 14:17'!
 noteCompilationOf: aSelector meta: aBoolean
 
-	"(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
+	(self isEnabled and: [ self isSpecialMethod: aSelector meta: aBoolean. ]) ifTrue: [
 		self reinstallSilently.
-	]."! !
-
-!DAAspect class methodsFor: 'compiling' stamp: 'as 8/7/2008 17:32'!
-notifyUsersOfChangedSelectors: aCollection meta: aBoolean
-
-	"(self isEnabled and: [
-		aCollection anySatisfy: [
-			:sel | self isSpecialMethod: sel meta: aBoolean.
-		].
-	]) ifTrue: [ self reinstallSilently. ]."! !
+	].! !
 
 !DAAspect class methodsFor: 'pointcuts' stamp: 'as 8/7/2008 23:20'!
 pointcut: aSymbol
@@ -4890,27 +4936,38 @@ noop
 
 	^ self.! !
 
+DAAspect subclass: #DATestAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
+
+!DATestAspect commentStamp: 'as 8/14/2008 16:55' prior: 0!
+Test.!
+
+!DATestAspect class methodsFor: 'as yet unclassified' stamp: 'as 8/18/2008 14:27'!
+cr
+
+	<pointcut>
+	
+	^ PC class: TranscriptStream method: #cr.! !
+
 !DAProtoAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:48'!
 advices
 
 	^ Set new.! !
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
-keywordArgumentPairs
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
 
-	| pairs |
+	"Answer whether both collections include exactly the same elements."
 	
-	pairs _ Dictionary new.
-	self keywords withIndexDo: [
-		:key :index |
-		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
-	].
-	^ pairs.! !
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
-keywords
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
 
-	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -4976,6 +5033,11 @@ flowOutOf: aDAPointcut
 
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -5198,6 +5260,15 @@ reinstallAspect
 
 	[ self aspect reinstall. ] ensure: [ self updateAspect. ].! !
 
+!DAAspectBrowser methodsFor: 'accessing' stamp: 'as 8/18/2008 14:42'!
+selectedMethod
+
+	| class selector |
+	
+	class _ self selectedClassOrMetaClass.
+	selector _ self selectedMessageName.
+	^ class notNil & selector notNil ifTrue: [ class >> selector. ] ifFalse: [ nil. ].! !
+
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/29/2008 15:01'!
 uninstallAspect
 
@@ -5207,11 +5278,6 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
