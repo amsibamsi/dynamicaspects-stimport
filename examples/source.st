@@ -73,35 +73,52 @@ end: n operation: operation
 
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
 
-DAAspect subclass: #DAMethodAccessExample
+DAAspect subclass: #DAPrivateMethodExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DAExamples'!
 
-!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 14:43'!
-innerMethod
+!DAPrivateMethodExample commentStamp: 'as 9/21/2008 00:57' prior: 0!
+Guard a private method from being called from outside the class.!
 
-	^ PC class: OrderedCollection method: #add:.! !
+!DAPrivateMethodExample class methodsFor: 'private' stamp: 'as 9/21/2008 00:55'!
+private
 
-!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 15:16'!
-outerMethods
+	"Should only be sent within the class."
+	
+	Transcript show: 'private'; cr.! !
 
-	^ (PC class: OrderedCollection) & (PC methodName: #add:) not.! !
+!DAPrivateMethodExample class methodsFor: 'pointcuts' stamp: 'as 9/21/2008 00:24'!
+privateMethod
 
-!DAMethodAccessExample class methodsFor: 'pointcuts' stamp: 'as 9/19/2008 15:03'!
-pointcut
+	^ PC class: self class method: #private.! !
+
+!DAPrivateMethodExample class methodsFor: 'public' stamp: 'as 9/21/2008 00:23'!
+public
+
+	"Can be called from anywhere."
+	
+	^ self private.! !
+
+!DAPrivateMethodExample class methodsFor: 'pointcuts' stamp: 'as 9/21/2008 00:24'!
+publicMethod
+
+	^ PC class: self class method: #public.! !
+
+!DAPrivateMethodExample class methodsFor: 'pointcuts' stamp: 'as 9/21/2008 00:54'!
+violatingPrivate
 
 	<pointcut>
 	
-	^ self innerMethod in: self outerMethods.! !
+	^ self privateMethod & (PC flow: self publicMethod min: 1) not.! !
 
-!DAMethodAccessExample methodsFor: 'advices' stamp: 'as 9/19/2008 15:06'!
-log
+!DAPrivateMethodExample methodsFor: 'advices' stamp: 'as 9/21/2008 00:58'!
+guardPrivate
 
-	<advice: #pointcut control: #before>
+	<advice: #violatingPrivate control: #before>
 	
-	Transcript show: 'debug'; cr.! !
+	self error: 'calling private method from outside'.! !
 
 DAAspect subclass: #DAStoreClosedExample
 	instanceVariableNames: ''
