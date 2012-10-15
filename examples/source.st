@@ -1,16 +1,16 @@
 SystemOrganization addCategory: #'DAExamples-Simple'!
 SystemOrganization addCategory: #'DAExamples-Store'!
 
-DAActiveContext subclass: #DAStoreClosed
+DAActiveContext subclass: #DAStoreClosedContext
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DAExamples-Store'!
 
-!DAStoreClosed commentStamp: 'as 7/30/2008 20:56' prior: 0!
+!DAStoreClosedContext commentStamp: 'as 7/30/2008 20:56' prior: 0!
 Active when the store is closed.!
 
-!DAStoreClosed methodsFor: 'testing' stamp: 'as 7/30/2008 20:57'!
+!DAStoreClosedContext methodsFor: 'testing' stamp: 'as 7/30/2008 20:57'!
 isActive
 
 	^ Time now seconds even.! !
@@ -75,143 +75,121 @@ insteadNoEndWithArg1: n operation: operation
 
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
 
-DAAspect subclass: #DAStoreExample
-	instanceVariableNames: 'orders fields'
+DAAspect subclass: #DAStoreClosedExample
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DAExamples-Store'!
 
-!DAStoreExample commentStamp: 'as 7/21/2008 16:46' prior: 0!
-The famous sushi store example.!
+!DAStoreClosedExample commentStamp: 'as 8/2/2008 18:04' prior: 0!
+The store is closed in certain contexts.!
 
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/30/2008 20:58'!
-closed
+!DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
+entrance
 
-	^ (PC class: WAStoreTask method: #go) & (PC context: DAStoreClosed).! !
+	^ (PC class: WAStoreTask method: #go) & (PC context: DAStoreClosedContext).! !
 
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/29/2008 17:47'!
-confirmation
-
-	^ PC class: WAStoreTask method: #shipTo:billTo:payWith:.! !
-
-!DAStoreExample classSide methodsFor: 'options' stamp: 'as 8/2/2008 16:57'!
-disabledAdvices
-
-	^ #(
-		insteadTitle
-		insteadTitle2
-		insteadTitleWithOperation:
-		insteadSubtitleWithOperation:
-		afterConfirmation
-		beforeRenderingWithArg1:object:
-		insteadClosedWithObject:
-	).! !
-
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 16:59'!
+!DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:06'!
 pointcutNames
 
-	^ #(title title2 subtitle confirmation rendering closed seaside).! !
+	^ #(entrance).! !
 
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/30/2008 15:33'!
+!DAStoreClosedExample methodsFor: 'advices' stamp: 'as 8/2/2008 18:08'!
+insteadEntranceWithObject: task
+
+	task call: DAStoreClosedMessage new.! !
+
+DAAspect subclass: #DAStoreHalosExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreHalosExample commentStamp: 'as 8/2/2008 18:10' prior: 0!
+Render a halo around each component.!
+
+!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
+pointcutNames
+
+	^ #(rendering).! !
+
+!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
 rendering
 
 	^ (PC className: 'WAStore*' methodName: #renderContentOn:).! !
 
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:02'!
-seaside
-
-	^ (PC className: 'WAStoreCartView' methodName: 'cart*') & (PC behavior: WAComponent).! !
-
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/29/2008 17:26'!
-subtitle
-
-	^ PC class: WAStore method: #subtitle.! !
-
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:49'!
-title
-
-	^ PC class: WAStore method: #title.! !
-
-!DAStoreExample classSide methodsFor: 'pointcuts' stamp: 'as 7/21/2008 16:51'!
-title2
-
-	^ PC class: self method: #insteadTitle.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:02'!
-afterConfirmation
-
-	self ordered: 1.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:24'!
+!DAStoreHalosExample methodsFor: 'advices' stamp: 'as 8/2/2008 18:11'!
 beforeRenderingWithArg1: html object: component
 
 	html paragraph: [ html small: [ html text: component asString. ]. ].! !
 
-!DAStoreExample methodsFor: 'advices' stamp: 'as 8/2/2008 17:04'!
-beforeSeasideWithNode: node
+DAAspect subclass: #DAStoreTitleExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
 
-	Transcript show: 'before ', node asString.
-	Transcript cr.! !
+!DAStoreTitleExample commentStamp: 'as 8/2/2008 18:16' prior: 0!
+Modify the title.!
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
-fieldAt: anObject
+!DAStoreTitleExample class methodsFor: 'options' stamp: 'as 8/2/2008 18:11'!
+disabledAdvices
 
-	^ self fields at: anObject ifAbsent: [ 0. ].! !
+	^ #(
+		insteadTitle
+		insteadTitleAdvice
+		"insteadTitleWithOperation:"
+	).! !
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:56'!
-fieldAt: aObject put: aNumber
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:22'!
+pointcutNames
 
-	self fields at: aObject put: aNumber.! !
+	^ #(title titleAdvice).! !
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/31/2008 13:53'!
-fields
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
+title
 
-	^ fields ifNil: [ fields _ Dictionary new. ].! !
+	^ PC class: WAStore method: #title.! !
 
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 21:04'!
-insteadClosedWithObject: task
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 17:20'!
+titleAdvice
 
-	task call: DAStoreClosedMessage new.! !
+	^ PC class: self method: #insteadTitle.! !
 
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/30/2008 15:02'!
-insteadSubtitleWithOperation: o
-
-	^ o value, ' (', self orders asString, ' orders)'.! !
-
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/25/2008 10:55'!
+!DAStoreTitleExample methodsFor: 'advices' stamp: 'as 8/2/2008 17:56'!
 insteadTitle
 
 	^ 'sushiNet Pro'.! !
 
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/25/2008 10:55'!
-insteadTitle2
+!DAStoreTitleExample methodsFor: 'advices' stamp: 'as 8/2/2008 17:58'!
+insteadTitleAdvice
 
 	^ 'sushiNet Pro 2.0'.! !
 
-!DAStoreExample methodsFor: 'advices' stamp: 'as 7/28/2008 13:53'!
+!DAStoreTitleExample methodsFor: 'advices' stamp: 'as 8/2/2008 17:57'!
 insteadTitleWithOperation: x
 
 	^ x value, ' Pro'.! !
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-ordered
+DAAspect subclass: #DAStoreTraceExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
 
-	self orders: self orders + 1.! !
+!DAStoreTraceExample commentStamp: 'as 8/2/2008 18:14' prior: 0!
+Trace the flow through the seaside methods.!
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-ordered: aNumber
+!DAStoreTraceExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:15'!
+pointcutNames
 
-	self orders: self orders + aNumber.! !
+	^ #().! !
 
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-orders
+!DAStoreTraceExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:16'!
+seaside
 
-	^ orders ifNil: [ orders _ 0. ].! !
-
-!DAStoreExample methodsFor: 'accessing' stamp: 'as 7/30/2008 14:36'!
-orders: aNumber
-
-	orders _ aNumber.! !
+	^ (PC className: 'WAStoreCartView' methodName: 'cart*') &
+		(PC behavior: WAComponent).! !
 
 DAAspect subclass: #DATranscriptExample
 	instanceVariableNames: ''
