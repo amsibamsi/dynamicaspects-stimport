@@ -78,14 +78,14 @@ testClassComment
 		self assert: each hasComment.
 	].! !
 
-!DACodingTest methodsFor: 'testing' stamp: 'as 4/23/2008 14:57'!
+!DACodingTest methodsFor: 'testing' stamp: 'as 5/21/2008 13:43'!
 testMethodLength
 
 	"No long methods."
 
 	self methods do: [
 		:each |
-		self assert: each statements size < 15.
+		self assert: each statements size < 35.
 	].! !
 
 TestCase subclass: #DAConditionTest
@@ -409,81 +409,81 @@ setUp
 
 	jp _ DAJoinPoint new.! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/31/2008 11:39'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:24'!
 testAnding
 
 	| jp1 jp2 |
 
-	jp1 _ DAJoinPoint new class: (DAFilter class: 'Object').
+	jp1 _ DAJoinPoint new class: (DAValueFilter className: 'Object').
 	self assert: (jp1 classes includes: Object).
 	
-	jp2 _ DAJoinPoint new method: (DAFilter method: '=').
+	jp2 _ DAJoinPoint new method: (DAValueFilter methodName: '=').
 	self assert: (jp2 methods includes: (Integer >> #=) reflectiveMethod).
 	
 	jp _ jp1 and: jp2.
 	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).
 	self assert: jp methods size = 1.! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:39'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
 testMultipleCategories
 
-	jp category: (DAFilter category: 'Kernel-*').
+	jp category: (DAValueFilter categoryName: 'Kernel-*').
 	self assert: (jp categories includesAllOf: #(#'Kernel-Objects' #'Kernel-Processes')).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 11:59'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
 testMultipleClasses
 
-	jp class: (DAFilter class: '*Object').
+	jp class: (DAValueFilter className: '*Object').
 	self assert: (jp classes includesAllOf: { Object. ProtoObject. }).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 12:15'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:23'!
 testMultipleMethods
 
 	jp
-		class: (DAFilter class: 'ProtoObject');
-		method: (DAFilter method: '*').
+		class: (DAValueFilter className: 'ProtoObject');
+		method: (DAValueFilter methodName: '*').
 	self assert: (jp methods includesAllOf: {
 		(ProtoObject >> #==) reflectiveMethod.
 		(ProtoObject >> #become:) reflectiveMethod.
 	}).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/28/2008 13:05'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:22'!
 testMultipleNodes
 
 	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: 'class');
-		node: (DAFilter node: [ :node | true. ]).
+		class: (DAValueFilter className: 'Object');
+		method: (DAValueFilter methodName: 'class');
+		node: (DABlockFilter block: [ :node | true. ]).
 	self assert: (jp nodes includesAllOf:
 		(Object >> #class) reflectiveMethod methodNode allChildren).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/25/2008 18:22'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
 testSingleCategory
 
-	jp category: (DAFilter category: 'Kernel-Objects').
+	jp category: (DAValueFilter categoryName: 'Kernel-Objects').
 	self assert: (jp categories includes: #'Kernel-Objects').! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:13'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
 testSingleClass
 
-	jp class: (DAFilter class: 'Object').
+	jp class: (DAValueFilter className: 'Object').
 	self assert: (jp classes includes: Object).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:14'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
 testSingleMethod
 
 	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: '=').
+		class: (DAValueFilter className: 'Object');
+		method: (DAValueFilter methodName: '=').
 	self assert: (jp methods includes: (Object >> #=) reflectiveMethod).! !
 
-!DAJoinPointTest methodsFor: 'testing' stamp: 'as 3/27/2008 16:38'!
+!DAJoinPointTest methodsFor: 'testing' stamp: 'as 5/21/2008 14:21'!
 testSingleNode
 
 	jp
-		class: (DAFilter class: 'Object');
-		method: (DAFilter method: 'class');
-		node: (DAFilter node: [ :node | node isMethod. ]).
+		class: (DAValueFilter className: 'Object');
+		method: (DAValueFilter methodName: 'class');
+		node: (DABlockFilter block: [ :node | node isMethod. ]).
 	self assert: (jp nodes includes: (Object >> #class) reflectiveMethod methodNode).! !
 
 TestCase subclass: #DAPointcutTest
@@ -2675,10 +2675,10 @@ categoryName
 
 	^ categoryName.! !
 
-!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 4/30/2008 15:47'!
+!DACategoryPointcut methodsFor: 'accessing' stamp: 'as 5/21/2008 11:31'!
 categoryName: regexString
 
-	category _ regexString.! !
+	categoryName _ regexString.! !
 
 !DACategoryPointcut methodsFor: 'visiting' stamp: 'as 1/28/2008 08:29'!
 visitName
