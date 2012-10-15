@@ -1,4 +1,33 @@
 SystemOrganization addCategory: #DAExamples!
+SystemOrganization addCategory: #'DAExamples-Store'!
+
+DAActiveContext subclass: #DAStoreClosedContext
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreClosedContext commentStamp: 'as 7/30/2008 20:56' prior: 0!
+Active when the store is closed.!
+
+!DAStoreClosedContext methodsFor: 'testing' stamp: 'as 9/1/2008 15:28'!
+isActive
+
+	^ Time now seconds even.! !
+
+WAComponent subclass: #DAStoreClosedMessage
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreClosedMessage commentStamp: 'as 7/30/2008 21:01' prior: 0!
+Render a closed message.!
+
+!DAStoreClosedMessage methodsFor: 'rendering' stamp: 'as 9/1/2008 15:33'!
+renderContentOn: html
+
+	html paragraph: [ html emphasis: [ html text: 'Sorry, the store is closed every even second (', Time now asString, ').' ]. ].! !
 
 DAAspect subclass: #DAFibonacciExample
 	instanceVariableNames: ''
@@ -44,6 +73,157 @@ end: n operation: operation
 	<advice: #noEnd control: #instead arguments: #(arg1 operation)>
 
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
+
+DAAspect subclass: #DAStoreClosedExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreClosedExample commentStamp: 'as 8/2/2008 18:04' prior: 0!
+The store is closed in certain contexts.!
+
+!DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:45'!
+entrance
+
+	<pointcut>
+
+	^ (PC class: WAStoreTask method: #go) & (PC context: DAStoreClosedContext).! !
+
+!DAStoreClosedExample methodsFor: 'advices' stamp: 'as 9/1/2008 15:37'!
+closedEntrance: task
+
+	<advice: #entrance control: #instead arguments: #(object)>
+
+	task call: DAStoreClosedMessage new.! !
+
+DAAspect subclass: #DAStoreFieldWriteExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreFieldWriteExample commentStamp: 'as 9/1/2008 15:51' prior: 0!
+Trace the flow through the seaside components.!
+
+!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:52'!
+fieldWrites
+
+	<pointcut>
+
+	^ (PC className: 'WAStore*') & (PC fieldWrite).! !
+
+!DAStoreFieldWriteExample methodsFor: 'advices' stamp: 'as 9/1/2008 15:52'!
+logFieldWrites: node
+
+	<advice: #fieldWrites control: #before arguments: #(node)>
+
+	| method |
+
+	method _ node reflectiveMethod.
+	Transcript show:
+		'Writing field ''',
+		node variable name,
+		''' in ',
+		method methodClass name,
+		'>>',
+		method selector.
+	Transcript cr.! !
+
+DAAspect subclass: #DAStoreRenderExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreRenderExample commentStamp: 'as 9/1/2008 15:56' prior: 0!
+Render a halo around each component.!
+
+!DAStoreRenderExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 16:02'!
+css
+
+	<pointcut>
+
+	^ (PC class: WAStore method: #style).! !
+
+!DAStoreRenderExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 16:02'!
+rendering
+
+	<pointcut>
+
+	^ (PC className: 'WAStore*' methodName: #renderContentOn:).! !
+
+!DAStoreRenderExample methodsFor: 'advices' stamp: 'as 9/1/2008 16:01'!
+css: operation
+
+	<advice: #css control: #instead arguments: #(operation)>
+
+	^ operation value, '
+		#halo {
+			z-index: 20;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			padding: 2px;
+			color: #aa0000;
+			background-color: #ffa0a0;
+			border: 1px solid #ff0000;
+			font: 10pt Verdana, Arial, Helvetica, sans-serif;
+		}
+	'! !
+
+!DAStoreRenderExample methodsFor: 'advices' stamp: 'as 9/1/2008 16:02'!
+renderHalos: html object: component
+
+	<advice: #rendering control: #before arguments: #(arg1 object)>
+
+	html div id: 'halo'; with: [
+		html small: [ html text: component asString. ].
+	].! !
+
+DAAspect subclass: #DAStoreTitleExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples-Store'!
+
+!DAStoreTitleExample commentStamp: 'as 8/2/2008 18:16' prior: 0!
+Modify the title.!
+
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:19'!
+title
+
+	<pointcut>
+
+	^ PC class: WAStore method: #title.! !
+
+!DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:22'!
+titleAdvice
+
+	<pointcut>
+
+	^ PC class: self method: #title.! !
+
+!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 15:27'!
+title
+
+	<advice: #title control: #instead disabled: true>
+
+	^ 'sushiNet Pro'.! !
+
+!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 15:27'!
+title2
+
+	<advice: #titleAdvice control: #instead disabled: true>
+
+	^ 'sushiNet Pro 2.0'.! !
+
+!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 15:27'!
+title: operation
+
+	<advice: #title control: #instead arguments: #(operation) disabled: false>
+
+	^ operation value, ' Pro'.! !
 
 DAAspect subclass: #DATranscriptExample
 	instanceVariableNames: ''
