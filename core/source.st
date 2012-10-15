@@ -2,9 +2,9 @@ SystemOrganization addCategory: #'DA-Browser'!
 SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Context'!
+SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
-SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
@@ -3150,7 +3150,7 @@ selector: aMethodOrSymbol
 	^ aMethodOrSymbol isSymbol
 		ifTrue: [ aMethodOrSymbol. ] ifFalse: [ aMethodOrSymbol selector. ].! !
 
-!DAAspect class methodsFor: 'advices' stamp: 'as 6/2/2008 16:03'!
+!DAAspect class methodsFor: 'advices' stamp: 'as 7/14/2008 10:56'!
 splitAdvice: aMethodOrSymbol
 
 	| selector control pointcut arguments |
@@ -3161,12 +3161,14 @@ splitAdvice: aMethodOrSymbol
 		:ctrl |
 		selector beginsWith: ctrl asLowercase.
 	]) detectMax: [ :ctrl | ctrl size. ].
+	control ifNil: [ self error: 'no control found for ', selector. ].
 	selector _ selector copyFrom: control size + 1 to: selector size.
 	
 	pointcut _ (self allPointcutNames select: [
 		:pc |
 		selector beginsWith: pc asLowercase.
 	]) detectMax: [ :pc | pc size. ].
+	pointcut ifNil: [ self error: 'no pointcut found for ', selector. ].
 	pointcut _ pointcut asSymbol.
 	selector _ selector copyFrom: pointcut size + 1 to: selector size.
 
@@ -3419,10 +3421,10 @@ initialize
 
 	examples _ DAExamples.! !
 
-!DAAspectBehaviorTest methodsFor: 'running' stamp: 'as 6/2/2008 17:00'!
+!DAAspectBehaviorTest methodsFor: 'running' stamp: 'as 7/14/2008 10:37'!
 setUp
 
-	aspect _ DAAspectBehaviorExample mo.
+	aspect _ DAAspectBehaviorExample.
 	examples reset.! !
 
 !DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:48'!
@@ -3431,12 +3433,12 @@ testAfter
 	examples countA.
 	self assert: examples count = 2.! !
 
-!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 15:46'!
+!DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 7/14/2008 10:37'!
 testAspectIsInstalled
 
 	"If the examples aspect is not installed, all tests here will fail."
 	
-	self assert: aspect class isInstalled.! !
+	self assert: aspect isInstalled.! !
 
 !DAAspectBehaviorTest methodsFor: 'testing' stamp: 'as 5/22/2008 21:48'!
 testBefore
