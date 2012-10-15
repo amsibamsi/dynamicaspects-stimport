@@ -2892,6 +2892,15 @@ visitName
 
 	^ 'node'.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/8/2008 17:07'!
+call: aSymbol on: aClass
+
+	| desc |
+
+	desc _ aClass asDescription.
+	^ (self classOrSuper: aClass method: aSymbol) &
+		(self if: [ :receiver | receiver class = desc classObject. ] arguments: #(receiver)).! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/21/2008 17:29'!
 category: aSymbol
 
