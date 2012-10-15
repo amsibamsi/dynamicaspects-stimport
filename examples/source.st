@@ -44,3 +44,26 @@ end: n operation: operation
 	<advice: #noEnd control: #instead arguments: #(arg1 operation)>
 
 	^ n <= 1 ifTrue: [ ^ n. ] ifFalse: [ ^ operation value. ].! !
+
+DAAspect subclass: #DATranscriptExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DAExamples'!
+
+!DATranscriptExample commentStamp: 'as 9/1/2008 15:08' prior: 0!
+Put a carriage return after each #show: in the Transcript.!
+
+!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:09'!
+transcriptShow
+
+	<pointcut>
+
+	^ (TranscriptStream >> #show:) asPointcut.! !
+
+!DATranscriptExample methodsFor: 'advices' stamp: 'as 9/1/2008 15:11'!
+CrAfterShow: object
+
+	<advice: #transcriptShow control: #after arguments: #(object)>
+
+	object cr.! !
