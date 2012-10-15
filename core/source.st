@@ -1,3 +1,4 @@
+SystemOrganization addCategory: #'DA-Browser'!
 SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Connectors'!
 SystemOrganization addCategory: #'DA-Context'!
@@ -6,6 +7,12 @@ SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
+
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
 
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
@@ -19,17 +26,6 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -39,6 +35,11 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -3350,13 +3351,13 @@ DAProtoAspect subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors failed'!
+	instanceVariableNames: 'mo moCreator moDict connectors failed disabled'!
 
 !DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
 Combines several pointcuts and advices by hosting multiple connectors.!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors failed'!
+	instanceVariableNames: 'mo moCreator moDict connectors failed disabled'!
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
 adviceControls
@@ -3429,8 +3430,8 @@ createConnectors
 	].
 	^ cons.! !
 
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 4/30/2008 17:42'!
-definitionST80
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 5/14/2008 14:47'!
+definitionAspect
 
 	| aStream |
 	aStream _ WriteStream on: (String new: 300).
@@ -3457,6 +3458,21 @@ definitionST80
 		aStream space; nextPutAll: 'superclass: nil'. ].
 
 	^ aStream contents! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+disable
+
+	disabled _ true.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+disabled
+
+	disabled ifNil: [ disabled _ false. ].! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 5/16/2008 11:24'!
+enable
+
+	disabled _ false.! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/13/2008 17:29'!
 install
@@ -3491,6 +3507,11 @@ installConnectors
 installFailed
 
 	^ failed notNil and: [ failed. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
+isDisabled
+
+	^ self disabled.! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/13/2008 18:04'!
 isInstalled
@@ -3697,7 +3718,100 @@ flowOutOf: aDAPointcut
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
 
-!Browser methodsFor: '*DA' stamp: 'as 5/2/2008 10:25'!
+Browser subclass: #DAAspectBrowser
+	instanceVariableNames: 'aspectMenu'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Browser'!
+
+!DAAspectBrowser commentStamp: 'as 5/14/2008 14:25' prior: 0!
+Add aspect functionality.!
+
+!DAAspectBrowser class methodsFor: 'class initialization' stamp: 'as 5/14/2008 14:27'!
+initialize
+
+	"self initialize"
+	
+	TheWorldMenu registerOpenCommand: {'Aspect Browser'. {self. #openBrowser}}.
+	self registerInAppRegistry.! !
+
+!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/15/2008 16:41'!
+adaptAspectButtonColor: classNotMeta
+
+	| button color |
+
+	button _ self topView allMorphs detect: [
+		:morph |
+		(morph isKindOf: PluggableButtonMorph) and:
+			[ morph actionSelector = #openAspectMenu. ].
+	].
+
+	(classNotMeta includesBehavior: DAAspect) ifTrue: [
+		classNotMeta isInstalled ifTrue: [
+			color _ Color lightGreen.
+		] ifFalse: [
+			classNotMeta installFailed ifTrue: [
+				color _ Color lightRed.
+			] ifFalse: [
+				color _ Color lightBlue.
+			].
+		].
+	] ifFalse: [
+		color _ Color white.
+	].
+
+	button offColor: color.! !
+
+!DAAspectBrowser methodsFor: 'accessing' stamp: 'as 5/16/2008 12:54'!
+aspectMenu
+
+	^ aspectMenu ifNil: [ aspectMenu _ self buildAspectMenu. ].! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:28'!
+aspectMenuEnabled: aBoolean
+
+	self aspectMenu items do: [ :m | m isEnabled: aBoolean. ].! !
+
+!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/16/2008 13:12'!
+buildAspectMenu
+
+	| menu |
+	
+	menu _ MenuMorph new.
+	menu
+		addTitle: 'Aspect';
+		defaultTarget: self.
+	menu addList: #(
+		('1. Disable aspect' disableAspect)
+		('2. Enable aspect' enableAspect)
+	).
+	^ menu.! !
+
+!DAAspectBrowser methodsFor: 'class functions' stamp: 'as 5/14/2008 14:59'!
+classDefinitionText
+
+	| theClass |
+	
+	theClass _ self selectedClassOrMetaClass.
+	theClass ifNil: [ ^ ''. ].
+	(theClass includesBehavior: DAAspect) ifTrue: [
+		^ theClass definitionAspect.
+	] ifFalse: [		
+		^theClass definitionST80.
+	].! !
+
+!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/15/2008 16:35'!
+classListIndex: anInteger 
+
+	super classListIndex: anInteger.
+	self adaptAspectButtonColor: self selectedClass.! !
+
+!DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/15/2008 16:41'!
+defaultBrowserTitle
+
+	^ 'AB'.! !
+
+!DAAspectBrowser methodsFor: 'class functions' stamp: 'as 5/14/2008 14:35'!
 defineClass: defString notifying: aController  
 	"The receiver's textual content is a request to define a new class. The
 	source code is defString. If any errors occur in compilation, notify
@@ -3742,4 +3856,32 @@ Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName si
 				"self clearUserEditFlag; editClass."
 				^ true]
 		ifFalse: [^ false]! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:08'!
+disableAspect
+
+	self selectedClass disable.! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:12'!
+enableAspect
+
+	self selectedClass enable.! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/16/2008 13:18'!
+openAspectMenu
+
+	(self selectedClass isNil or: [ (self selectedClass includesBehavior: DAAspect) not. ])
+		ifTrue: [ self aspectMenuEnabled: false. ]
+		ifFalse: [ self aspectMenuEnabled: true. ].
+	self aspectMenu popUpInWorld.! !
+
+!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/15/2008 16:29'!
+optionalButtonPairs
+
+	^ super optionalButtonPairs,
+		#(('A' openAspectMenu 'manage aspects, the colors indicate:
+green: the aspect is installed
+blue: the aspect is not installed
+red: the aspect failed to install')).! !
 DAFlowContext initialize!
+DAAspectBrowser initialize!
