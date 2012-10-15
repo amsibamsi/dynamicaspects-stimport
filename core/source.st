@@ -28,6 +28,28 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
+keywordArgumentPairs
+
+	| pairs |
+	
+	pairs _ Dictionary new.
+	self keywords withIndexDo: [
+		:key :index |
+		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
+	].
+	^ pairs.! !
+
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
+keywords
+
+	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
+
 !Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
 includesExactly: aCollection
 
@@ -40,20 +62,134 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+TestCase subclass: #DAAdviceTest
+	instanceVariableNames: 'advice'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Tests'!
 
-	^ DAMethodDescription methodObject: self.! !
+!DAAdviceTest commentStamp: 'as 8/7/2008 11:19' prior: 0!
+Test advices.!
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:18'!
+arguments
 
-	^ DAPointcut method: self.! !
+	<advice: #p control: #c arguments: #(a b c)>! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:26'!
+argumentsAndDisabled
 
-	^ self method parent.! !
+	<advice: #p control: #c arguments: #(a b c) disabled: true>! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:22'!
+disabled
+
+	<advice: #p control: #c disabled: true>! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:27'!
+disabledAndArguments
+
+	<advice: #p control: #c disabled: true arguments: #(a b c)>! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:21'!
+empty! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:04'!
+insufficient
+
+	<advice: #p>! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:21'!
+invalidKeys
+
+	<advices: #p>
+	<advice>
+	<advice: #p arguments: #(a b c)>
+	<control: #c>! !
+
+!DAAdviceTest methodsFor: 'advices' stamp: 'as 8/7/2008 14:18'!
+minimal
+
+	<advice: #p control: #c>! !
+
+!DAAdviceTest methodsFor: 'running' stamp: 'as 8/7/2008 14:02'!
+setUp
+
+	advice _ nil.! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:19'!
+testArguments
+
+	advice _ (DAAdvice method: self class >> #arguments) anyOne.
+	
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	self assert: advice arguments = #(a b c).
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:27'!
+testArgumentsAndDisabled
+
+	advice _ (DAAdvice method: self class >> #argumentsAndDisabled) anyOne.
+
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	self assert: advice arguments = #(a b c).
+	self assert: advice isDisabled.
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:26'!
+testDisabled
+
+	advice _ (DAAdvice method: self class >> #disabled) anyOne.
+
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	self assert: advice isDisabled.
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:27'!
+testDisabledAndArguments
+
+	advice _ (DAAdvice method: self class >> #disabledAndArguments) anyOne.
+
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	self assert: advice arguments = #(a b c).
+	self assert: advice isDisabled.
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:22'!
+testEmpty
+
+	advice _ DAAdvice method: self class >> #empty.
+
+	self assert: advice isEmpty.
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:17'!
+testInsufficient
+
+	advice _ DAAdvice method: self class >> #insufficient.
+
+	self assert: advice isEmpty.! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:20'!
+testInvalidKeys
+
+	advice _ DAAdvice method: self class >> #invalidKeys.
+
+	self assert: advice isEmpty.
+	! !
+
+!DAAdviceTest methodsFor: 'testing' stamp: 'as 8/7/2008 14:18'!
+testMinimal
+
+	advice _ (DAAdvice method: self class >> #minimal) anyOne.
+	
+	self assert: advice pointcut = #p.
+	self assert: advice control = #c.
+	! !
 
 TestCase subclass: #DAAspectContextTest
 	instanceVariableNames: 'aspect'
@@ -1083,6 +1219,187 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
+Object subclass: #DAAdvice
+	instanceVariableNames: 'aspect selector options'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
+
+!DAAdvice commentStamp: 'as 8/7/2008 08:40' prior: 0!
+Advices specify added behavior by aspects.!
+
+!DAAdvice class methodsFor: 'checking' stamp: 'as 8/7/2008 13:41'!
+checkAdvicePragma: aPragma
+
+	(self isAdvicePragma: aPragma) ifFalse: [
+		self error: 'invalid pragma keyword'.
+	].! !
+
+!DAAdvice class methodsFor: 'checking' stamp: 'as 8/7/2008 10:30'!
+checkOption: aSymbol
+
+	(self isOption: aSymbol) ifFalse: [
+		self error: 'pragma argument ''', aSymbol, ''' is not a valid option'.
+	].! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 13:38'!
+isAdvice: aSymbol
+
+	^ self pragmaKeywords anySatisfy: [ :k | k match: aSymbol. ].! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 13:42'!
+isAdvicePragma: aPragma
+
+	^ self isAdvice: aPragma keyword.! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 11:45'!
+isOption: aSymbol
+
+	^ self validOptions includes: aSymbol.! !
+
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 8/7/2008 13:48'!
+method: aMethod
+
+	^ aMethod pragmas asSet select: [
+		:pragma |
+		self isAdvicePragma: pragma.
+	] thenCollect: [
+		:pragma |
+		self pragma: pragma.
+	].
+			! !
+
+!DAAdvice class methodsFor: 'instance creation' stamp: 'as 8/7/2008 13:40'!
+pragma: aPragma
+
+	| advice |
+	
+	self checkAdvicePragma: aPragma.
+	advice _ self new.
+	advice setOptions: aPragma.
+	advice aspect: aPragma methodClass; selector: aPragma selector.
+	^ advice.! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 11:45'!
+pragmaKeywords
+
+	^ #(
+		advice:control:
+		advice:control:arguments:
+		advice:control:disabled:
+		advice:control:arguments:disabled:
+		advice:control:disabled:arguments:
+	).! !
+
+!DAAdvice class methodsFor: 'testing' stamp: 'as 8/7/2008 10:42'!
+validOptions
+
+	^ #(advice control arguments disabled).! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 11:16'!
+arguments
+
+	^ self optionAt: #arguments.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:31'!
+aspect
+
+	^ Smalltalk at: aspect.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:31'!
+aspect: aDAAspectClass
+
+	aspect _ aDAAspectClass name asSymbol.! !
+
+!DAAdvice methodsFor: 'checking' stamp: 'as 8/7/2008 10:40'!
+checkOption: aSymbol
+
+	^ self class checkOption: aSymbol.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 11:14'!
+control
+
+	^ self optionAt: #control.! !
+
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
+defaultDisabled
+
+	^ false.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 11:15'!
+disabled
+
+	^ self optionAt: #disabled.! !
+
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
+isDisabled
+
+	^ self disabled ifNil: [ self defaultDisable. ].! !
+
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 14:24'!
+isEnabled
+
+	^ self isDisabled not.! !
+
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 10:39'!
+isOption: aSymbol
+
+	^ self class isOption: aSymbol.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 14:02'!
+optionAt: aSymbol
+
+	^ self options at: aSymbol ifAbsent: [ nil. ].! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:44'!
+optionAt: aSymbol put: anObject
+
+	self options at: aSymbol put: anObject.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:44'!
+options
+
+	^ options ifNil: [ options _ Dictionary new. ].! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 12:51'!
+pointcut
+
+	^ self optionAt: #advice.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:32'!
+selector
+
+	^ selector.! !
+
+!DAAdvice methodsFor: 'accessing' stamp: 'as 8/7/2008 09:32'!
+selector: aSymbol
+
+	selector _ aSymbol.! !
+
+!DAAdvice methodsFor: 'initialize-release' stamp: 'as 8/7/2008 10:41'!
+setOptions: aPragma
+
+	aPragma keywordArgumentPairs keysAndValuesDo: [
+		:key :value |
+		self checkOption: key.
+		self optionAt: key put: value.
+	].! !
+
+!DAAdvice methodsFor: 'testing' stamp: 'as 8/7/2008 10:42'!
+validOptions
+
+	^ self class validOptions.! !
 
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
@@ -3896,10 +4213,10 @@ disable: aBoolean
 
 	aBoolean ifTrue: [ self disable. ] ifFalse: [ self enable. ].! !
 
-!DAAspect class methodsFor: 'options' stamp: 'as 8/6/2008 19:57'!
+!DAAspect class methodsFor: 'options' stamp: 'as 8/7/2008 08:37'!
 disableInitially
 
-	^ false.! !
+	^ true.! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 17:06'!
 disabledAdvices
@@ -4822,6 +5139,11 @@ asDescription
 
 	^ DAClassDescription classObject: self.! !
 
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
+
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
 
@@ -5078,11 +5400,6 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
