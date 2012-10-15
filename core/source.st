@@ -3012,12 +3012,27 @@ isAdvice: aMethodOrSymbol
 	selector _ self selector: aMethodOrSymbol.
 	^ self adviceNames includes: selector.! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 12:05'!
-isAdviceOrPointcutOrPointcutNames: aSymbol meta: aBoolean
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:51'!
+isAdvice: aMethodOrSymbol meta: aBoolean
 
-	^ (aBoolean and: [ self isPointcut: aSymbol. ])
-		or: [ aBoolean not and: [ self isAdvice: aSymbol. ]. ]
-		or: [ aBoolean and: [ aSymbol = #pointcutNames. ]. ].! !
+	^ aBoolean not and: [ self isAdvice: aMethodOrSymbol. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:49'!
+isAdviceOrPointcut: aMethodOrSymbol
+
+	^ [ self isPointcut: aMethodOrSymbol. ] or: [ self isAdvice: aMethodOrSymbol. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:49'!
+isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean
+
+	^ (self isAdvice: aMethodOrSymbol meta: aBoolean)
+		or: [ self isPointcut: aMethodOrSymbol meta: aBoolean. ].! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:50'!
+isAdviceOrPointcutOrPointcutNames: aMethodOrSymbol meta: aBoolean
+
+	^ (self isAdviceOrPointcut: aMethodOrSymbol meta: aBoolean)
+		or: [ aBoolean and: [ (self selector: aMethodOrSymbol) = #pointcutNames. ]. ].! !
 
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
 isDisabled
@@ -3041,6 +3056,11 @@ isPointcut: aMethodOrSymbol
 	
 	selector _ self selector: aMethodOrSymbol.
 	^ self allPointcutNames includes: selector.! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 7/14/2008 14:51'!
+isPointcut: aMethodOrSymbol meta: aBoolean
+
+	^ aBoolean and: [ self isPointcut: aMethodOrSymbol. ].! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -4269,18 +4289,14 @@ initialize
 	TheWorldMenu registerOpenCommand: {'Aspect Browser'. {self. #openBrowser}}.
 	self registerInAppRegistry.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/21/2008 14:36'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:03'!
 adaptAspectButtonColor
 
 	| button color |
 
-	button _ self topView allMorphs detect: [
-		:morph |
-		(morph isKindOf: PluggableButtonMorph) and:
-			[ morph actionSelector = #openAspectMenu. ].
-	].
+	button _ self aspectButton.
 
-	self editingAspect ifTrue: [
+	self isEditingAspect ifTrue: [
 		self aspect isInstalled ifTrue: [
 			color _ Color lightGreen.
 		] ifFalse: [
@@ -4296,12 +4312,37 @@ adaptAspectButtonColor
 
 	button offColor: color.! !
 
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:07'!
+adaptAspectButtonText
+
+	| button |
+
+	button _ self aspectButton.
+	
+	self isEditingAdviceOrPointcut ifTrue: [
+		self isEditingAdvice ifTrue: [
+			button label: 'a'.
+		].
+		self isEditingPointcut ifTrue: [
+			button label: 'p'.
+		].
+	] ifFalse: [ button label: 'A'. ].! !
+
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:18'!
 aspect
 
 	(self selectedClass notNil and: [ self selectedClass includesBehavior: DAAspect. ])
 		ifTrue: [ ^ self selectedClass. ]
 		ifFalse: [ ^ nil. ].! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:02'!
+aspectButton
+
+	^ self topView allMorphs detect: [
+		:morph |
+		(morph isKindOf: PluggableButtonMorph) and:
+			[ morph actionSelector = #openAspectMenu. ].
+	].! !
 
 !DAAspectBrowser methodsFor: 'accessing' stamp: 'as 5/16/2008 12:54'!
 aspectMenu
@@ -4330,12 +4371,6 @@ buildAspectMenu
 	).
 	^ menu.! !
 
-!DAAspectBrowser methodsFor: 'class list' stamp: 'as 5/19/2008 11:54'!
-classListIndex: anInteger 
-
-	super classListIndex: anInteger.
-	self updateAspect.! !
-
 !DAAspectBrowser methodsFor: 'accessing' stamp: 'as 7/11/2008 16:40'!
 contents: input notifying: aController
 
@@ -4345,10 +4380,10 @@ contents: input notifying: aController
 	self updateAspect.
 	^ return.! !
 
-!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/29/2008 11:06'!
-decorateButtons
+!DAAspectBrowser methodsFor: 'contents' stamp: 'as 7/14/2008 15:24'!
+contentsChanged
 
-	super decorateButtons.
+	super contentsChanged.
 	self updateAspect.! !
 
 !DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/15/2008 16:41'!
@@ -4362,21 +4397,48 @@ disableAspect
 	self aspect disable.
 	self updateAspect.! !
 
-!DAAspectBrowser methodsFor: 'testing' stamp: 'as 5/19/2008 15:00'!
-editingAspect
-
-	^ self aspect notNil.! !
-
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 17:08'!
 enableAspect
 
 	self aspect enable.
 	self updateAspect.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:25'!
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:52'!
+isEditingAdvice
+
+	^ self isEditingAspect
+		and: [ self selectedMessageName notNil. ]
+		and: [ self aspect isAdvice: self selectedMessageName meta: self isEditingMeta. ].! !
+
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 15:06'!
+isEditingAdviceOrPointcut
+
+	^ self isEditingAdvice or: [ self isEditingPointcut. ].! !
+
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:09'!
+isEditingAspect
+
+	^ self aspect notNil.! !
+
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:42'!
+isEditingMeta
+
+	| class |
+	
+	class _ self selectedClassOrMetaClass.
+	^ class notNil and: [ class isMeta. ].! !
+
+!DAAspectBrowser methodsFor: 'testing' stamp: 'as 7/14/2008 14:55'!
+isEditingPointcut
+
+	^ self isEditingAspect
+		and: [ self selectedMessageName notNil. ]
+		and: [ self aspect isPointcut: self selectedMessageName meta: self isEditingMeta. ].! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 14:08'!
 openAspectMenu
 
-	self editingAspect
+	self isEditingAspect
 		ifTrue: [ self aspectMenuEnabled: true. ]
 		ifFalse: [ self aspectMenuEnabled: false. ].
 	self aspectMenu popUpInWorld.! !
@@ -4400,10 +4462,10 @@ uninstallAspect
 
 	[ self aspect uninstall. ] ensure: [ self updateAspect. ].! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:10'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:02'!
 updateAspect
 
-	self adaptAspectButtonColor.! !
+	self adaptAspectButtonColor; adaptAspectButtonText.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
