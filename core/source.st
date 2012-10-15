@@ -1,3 +1,4 @@
+SystemOrganization addCategory: #'DynamicAspects-Utilities'!
 SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
@@ -12,6 +13,34 @@ aspect
 aspect: aDAAspect
 
 	self properties at: #aspect put: aDAAspect.! !
+
+Object subclass: #BooleanBlockCombiner
+	instanceVariableNames: 'block1 block2'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Utilities'!
+
+!BooleanBlockCombiner commentStamp: 'as 12/12/2007 18:00' prior: 0!
+Concatenate two blocks that both return a boolean value.!
+
+!BooleanBlockCombiner class methodsFor: 'instance creation' stamp: 'as 12/12/2007 18:03'!
+block: firstBlock block: secondBlock
+
+	^ self new
+		block: firstBlock block: secondBlock;
+		yourself.! !
+
+!BooleanBlockCombiner methodsFor: 'accessing' stamp: 'as 12/12/2007 18:03'!
+block: firstBlock block: secondBlock
+
+	block1 _ firstBlock.
+	block2 _ secondBlock.! !
+
+!BooleanBlockCombiner methodsFor: 'testing' stamp: 'as 12/12/2007 18:12'!
+isBlock
+
+	"Pretend to be a real block. Is this a good idea?"
+	^ true.! !
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
@@ -665,6 +694,15 @@ or: aDAPointcut
 reset
 
 	categories _ classes _ methods _ nodes _ nil.! !
+
+Object subclass: #DATest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DATest methodsFor: 'as yet unclassified' stamp: 'as 12/17/2007 13:36'!
+test! !
 
 !Browser methodsFor: '*DynamicAspects' stamp: 'as 7/23/2007 17:33'!
 defineClass: defString notifying: aController  
