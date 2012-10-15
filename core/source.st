@@ -2223,7 +2223,7 @@ reset
 	self initializeCache.! !
 
 Object subclass: #DAPointcut
-	instanceVariableNames: 'parent evaluator joinPoints properties'
+	instanceVariableNames: 'parent properties'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -2951,10 +2951,10 @@ evaluate
 
 	self evaluator hasEvaluated ifFalse: [ self evaluator visit: self. ].! !
 
-!DAPointcut methodsFor: 'visiting' stamp: 'as 3/19/2008 15:19'!
+!DAPointcut methodsFor: 'visiting' stamp: 'as 5/6/2008 16:01'!
 evaluator
 
-	^ evaluator ifNil: [ evaluator _ DAPointcutEvaluator new. ].! !
+	^ self properties at: #evaluator ifAbsentPut: [ DAPointcutEvaluator new. ].! !
 
 !DAPointcut methodsFor: 'testing' stamp: 'as 2/4/2008 21:16'!
 hasParent
@@ -2991,6 +2991,11 @@ parent
 parent: aDACompositePointcut
 
 	parent _ aDACompositePointcut.! !
+
+!DAPointcut methodsFor: 'accessing' stamp: 'as 5/6/2008 15:29'!
+properties
+
+	^ properties ifNil: [ properties _ Dictionary new. ].! !
 
 !DAPointcut methodsFor: 'caching' stamp: 'as 4/29/2008 17:01'!
 reset
