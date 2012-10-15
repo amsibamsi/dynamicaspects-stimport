@@ -1,13 +1,12 @@
 SystemOrganization addCategory: #DAExamples!
-SystemOrganization addCategory: #'DAExamples-Store'!
 
 DAActiveContext subclass: #DAStoreClosedContext
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
-!DAStoreClosedContext commentStamp: 'as 7/30/2008 20:56' prior: 0!
+!DAStoreClosedContext commentStamp: 'as 9/1/2008 15:28' prior: 0!
 Active when the store is closed.!
 
 !DAStoreClosedContext methodsFor: 'testing' stamp: 'as 9/1/2008 15:28'!
@@ -19,9 +18,9 @@ WAComponent subclass: #DAStoreClosedMessage
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
-!DAStoreClosedMessage commentStamp: 'as 7/30/2008 21:01' prior: 0!
+!DAStoreClosedMessage commentStamp: 'as 9/1/2008 15:33' prior: 0!
 Render a closed message.!
 
 !DAStoreClosedMessage methodsFor: 'rendering' stamp: 'as 9/1/2008 15:33'!
@@ -78,9 +77,9 @@ DAAspect subclass: #DAStoreClosedExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
-!DAStoreClosedExample commentStamp: 'as 8/2/2008 18:04' prior: 0!
+!DAStoreClosedExample commentStamp: 'as 9/1/2008 15:33' prior: 0!
 The store is closed in certain contexts.!
 
 !DAStoreClosedExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:45'!
@@ -101,7 +100,7 @@ DAAspect subclass: #DAStoreFieldWriteExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
 !DAStoreFieldWriteExample commentStamp: 'as 9/1/2008 15:51' prior: 0!
 Trace the flow through the seaside components.!
@@ -134,7 +133,7 @@ DAAspect subclass: #DAStoreRenderExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
 !DAStoreRenderExample commentStamp: 'as 9/1/2008 15:56' prior: 0!
 Render a halo around each component.!
@@ -185,9 +184,9 @@ DAAspect subclass: #DAStoreTitleExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DAExamples-Store'!
+	category: 'DAExamples'!
 
-!DAStoreTitleExample commentStamp: 'as 8/2/2008 18:16' prior: 0!
+!DAStoreTitleExample commentStamp: 'as 9/1/2008 15:15' prior: 0!
 Modify the title.!
 
 !DAStoreTitleExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:19'!
