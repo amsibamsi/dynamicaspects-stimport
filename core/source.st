@@ -4,40 +4,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-TestResource subclass: #DATestAspectResource
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DATestAspectResource commentStamp: 'as 2/18/2008 10:35' prior: 0!
-The test aspect should be installed/uninstalled once for all tests that run on it.!
-
-!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:45'!
-removeAllLinksOn: aClass
-
-	aClass methodDict values, aClass class methodDict values do: [
-		:method |
-		method reflectiveMethod methodNode nodesDo: [
-			:node |
-			node hasAnyLink ifTrue: [ node removeAllLinks. ].
-			self assert: node hasAnyLink not.
-		].
-	].! !
-
-!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 17:09'!
-setUp
-
-	DATestAspect instance uninstall.
-	self removeAllLinksOn: DAExamples.
-	DATestAspect instance install.! !
-
-!DATestAspectResource methodsFor: 'running' stamp: 'as 2/18/2008 10:46'!
-tearDown
-
-	DATestAspect instance uninstall.
-	self removeAllLinksOn: DAExamples.! !
-
 Object subclass: #DAAdvice
 	instanceVariableNames: 'arguments selector metaObject'
 	classVariableNames: ''
@@ -1607,6 +1573,12 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -1618,12 +1590,6 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
 
 AnObsoleteDAAspect subclass: #DATestAspect
 	instanceVariableNames: ''
