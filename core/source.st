@@ -7,23 +7,6 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
-keywordArgumentPairs
-
-	| pairs |
-	
-	pairs _ Dictionary new.
-	self keywords withIndexDo: [
-		:key :index |
-		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
-	].
-	^ pairs.! !
-
-!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
-keywords
-
-	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
-
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -42,10 +25,17 @@ deregisterLocalSelector: aSymbol
 	self basicLocalSelectors notNil ifTrue: [
 		self basicLocalSelectors remove: aSymbol ifAbsent: []]! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
+includesExactly: aCollection
 
-	^ self method parent.! !
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -66,6 +56,11 @@ isAdvice
 isPointcut
 
 	^ self reflectiveMethod isPointcut.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DAAdviceTest
 	instanceVariableNames: 'advice'
@@ -4288,13 +4283,13 @@ isSpecialMethod: aSymbol meta: aBoolean
 		[ self isAdvice: aSymbol meta: aBoolean. ] or:
 		[ self isSpecialSelector: aSymbol meta: aBoolean. ].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 14:11'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 8/18/2008 15:33'!
 isSpecialSelector: aSelector meta: aBoolean
 
 	^ aBoolean ifTrue: [
-		^ #(level scope).
+		^ #(level scope) includes: aSelector.
 	] ifFalse: [
-		^ #().
+		^ false.
 	].! !
 
 !DAAspect class methodsFor: 'options' stamp: 'as 7/21/2008 11:39'!
@@ -4936,38 +4931,27 @@ noop
 
 	^ self.! !
 
-DAAspect subclass: #DATestAspect
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DATestAspect commentStamp: 'as 8/14/2008 16:55' prior: 0!
-Test.!
-
-!DATestAspect class methodsFor: 'as yet unclassified' stamp: 'as 8/18/2008 14:27'!
-cr
-
-	<pointcut>
-	
-	^ PC class: TranscriptStream method: #cr.! !
-
 !DAProtoAspect class methodsFor: 'advices' stamp: 'as 8/7/2008 15:48'!
 advices
 
 	^ Set new.! !
 
-!Collection methodsFor: '*DA' stamp: 'as 7/15/2008 09:05'!
-includesExactly: aCollection
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:23'!
+keywordArgumentPairs
 
-	"Answer whether both collections include exactly the same elements."
+	| pairs |
 	
-	^ (self size = aCollection size) & (self includesAllOf: aCollection).! !
+	pairs _ Dictionary new.
+	self keywords withIndexDo: [
+		:key :index |
+		pairs at: key put: (arguments at: index ifAbsent: [ nil. ]).
+	].
+	^ pairs.! !
 
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
+!Pragma methodsFor: '*DA' stamp: 'as 8/7/2008 09:16'!
+keywords
 
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
+	^ (self keyword subStrings: ':') collect: [ :s | s asSymbol. ].! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -5033,11 +5017,6 @@ flowOutOf: aDAPointcut
 
 	count _ self flow at: aDAPointcut.
 	self flow at: aDAPointcut put: count - 1.! !
-
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
-
-	count _ aNumber.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -5278,6 +5257,11 @@ uninstallAspect
 updateAspect
 
 	self adaptAspectButtonColor; adaptAspectButtonText.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 DAFlowContext initialize!
 DAPointcut initialize!
 DAAspect initialize!
