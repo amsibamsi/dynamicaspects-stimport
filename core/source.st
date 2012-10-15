@@ -2494,37 +2494,6 @@ visitName
 
 	^ 'context'.! !
 
-DAPointcut subclass: #DADependencyPointcut
-	instanceVariableNames: 'connectors'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Pointcuts'!
-
-!DADependencyPointcut commentStamp: 'as 5/5/2008 11:53' prior: 0!
-Add a install dependency to one or more connectors.!
-
-!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
-connector: aDAConnector
-
-	^ self connectors: { aDAConnector. }.! !
-
-!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
-connectors: aCollection
-
-	^ self new
-		connectors: aCollection;
-		yourself.! !
-
-!DADependencyPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 15:04'!
-connectors: aCollection
-
-	connectors _ aCollection.! !
-
-!DADependencyPointcut methodsFor: 'visiting' stamp: 'as 5/5/2008 11:54'!
-visitName
-
-	^ 'dependency'.! !
-
 DAPointcut subclass: #DAEmptyPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -2542,16 +2511,16 @@ visitName
 
 	^ 'empty'.! !
 
-DAPointcut subclass: #DAFilteringPointcut
+DAPointcut subclass: #DANegatingPointcut
 	instanceVariableNames: 'negated'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Pointcuts'!
 
-!DAFilteringPointcut commentStamp: 'as 5/6/2008 14:19' prior: 0!
-Specifies filtering options.!
+!DANegatingPointcut commentStamp: 'as 5/6/2008 14:49' prior: 0!
+Just stores the negation status.!
 
-DAFilteringPointcut subclass: #DACategoryPointcut
+DANegatingPointcut subclass: #DACategoryPointcut
 	instanceVariableNames: 'categoryName'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2589,7 +2558,7 @@ visitName
 
 	^ 'category'.! !
 
-DAFilteringPointcut subclass: #DAClassPointcut
+DANegatingPointcut subclass: #DAClassPointcut
 	instanceVariableNames: 'className'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2627,7 +2596,38 @@ visitName
 
 	^ 'class'.! !
 
-DAFilteringPointcut subclass: #DAFilterPointcut
+DANegatingPointcut subclass: #DADependencyPointcut
+	instanceVariableNames: 'connectors'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Pointcuts'!
+
+!DADependencyPointcut commentStamp: 'as 5/5/2008 11:53' prior: 0!
+Add a install dependency to one or more connectors.!
+
+!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
+connector: aDAConnector
+
+	^ self connectors: { aDAConnector. }.! !
+
+!DADependencyPointcut class methodsFor: 'instance creation' stamp: 'as 5/5/2008 15:04'!
+connectors: aCollection
+
+	^ self new
+		connectors: aCollection;
+		yourself.! !
+
+!DADependencyPointcut methodsFor: 'accessing' stamp: 'as 5/5/2008 15:04'!
+connectors: aCollection
+
+	connectors _ aCollection.! !
+
+!DADependencyPointcut methodsFor: 'visiting' stamp: 'as 5/5/2008 11:54'!
+visitName
+
+	^ 'dependency'.! !
+
+DANegatingPointcut subclass: #DAFilterPointcut
 	instanceVariableNames: 'filters'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2667,17 +2667,7 @@ visitName
 
 	^ 'filter'.! !
 
-!DAFilteringPointcut methodsFor: 'initialize-release' stamp: 'as 4/29/2008 17:39'!
-initialize
-
-	negated _ false.! !
-
-!DAFilteringPointcut methodsFor: 'negating' stamp: 'as 4/29/2008 17:38'!
-not
-
-	negated _ negated not.! !
-
-DAFilteringPointcut subclass: #DAMethodPointcut
+DANegatingPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: 'methodName'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -2715,7 +2705,22 @@ visitName
 
 	^ 'method'.! !
 
-DAFilteringPointcut subclass: #DANodePointcut
+!DANegatingPointcut methodsFor: 'initialize-release' stamp: 'as 4/29/2008 17:39'!
+initialize
+
+	negated _ false.! !
+
+!DANegatingPointcut methodsFor: 'testing' stamp: 'as 5/6/2008 14:57'!
+isNegated
+
+	^ negated.! !
+
+!DANegatingPointcut methodsFor: 'negating' stamp: 'as 4/29/2008 17:38'!
+not
+
+	negated _ negated not.! !
+
+DANegatingPointcut subclass: #DANodePointcut
 	instanceVariableNames: 'block'
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -3091,10 +3096,12 @@ visitContext: pc
 
 	joinPoints add: (DAJoinPoint new context: pc context).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/5/2008 17:08'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/6/2008 14:57'!
 visitDependency: pc
 
-	dependencies addAll: pc connectors.! !
+	pc isNegated ifFalse: [
+		dependencies addAll: pc connectors.
+	].! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/28/2008 14:22'!
 visitEmpty: pc
