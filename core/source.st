@@ -226,15 +226,118 @@ TestCase subclass: #DAFilterTest
 !DAFilterTest commentStamp: 'as 4/23/2008 13:45' prior: 0!
 Testing filtering.!
 
-!DAFilterTest methodsFor: 'testing' stamp: 'as 4/7/2008 15:40'!
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:30'!
+testCategory
+
+	| filter |
+
+	filter _ DAFilter category: 'DA-Tests'.
+	self assert: (filter matches: #'DA-Tests').
+	self deny: (filter matches: #'DA-Kernel').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:40'!
+testClass
+
+	| filter |
+
+	filter _ DAFilter class: 'Object'.
+	self assert: (filter matches: Object).
+	self deny: (filter matches: ProtoObject).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:32'!
+testMethod
+
+	| filter |
+
+	filter _ DAFilter method: 'new'.
+	self assert: (filter matches: Behavior >> #new).
+	self assert: (filter matches: OrderedCollection class >> #new).
+	self deny: (filter matches: Behavior >> #basicNew).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:29'!
+testMultipleCategories
+
+	| filter |
+
+	filter _ DAFilter category: 'DA-*'.
+	self assert: (filter matches: #'DA-Tests').
+	self assert: (filter matches: #'DA-Kernel').
+	self deny: (filter matches: #Kernel).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:40'!
+testMultipleClasses
+
+	| filter |
+
+	filter _ DAFilter class: '*Object'.
+	self assert: (filter matches: ProtoObject).
+	self assert: (filter matches: Object).
+	self deny: (filter matches: ObjectTest).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:48'!
+testMultipleMethods
+
+	| filter |
+
+	filter _ DAFilter method: '>>*'.
+	self assert: (filter matches: Behavior >> #>>).
+	self assert: (filter matches: Behavior >> #>>>).
+	self deny: (filter matches: Behavior >> #basicNew).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:49'!
+testMultipleNodes
+
+	| filter |
+
+	filter _ DAFilter node: [ :node | node isReturn. ].
+	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
+	self assert: (filter matches: (Object >>> #->) methodNode body statements first).
+	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:12'!
 testNegation
 
 	| filter |
 
 	filter _ DAFilter string: 'abc'.
-	self assert: (filter matches: 'abc').
 	filter not.
 	self deny: (filter matches: 'abc').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:36'!
+testNode
+
+	| filter |
+
+	filter _ DAFilter node: [ :node | node isReturn. ].
+	self assert: (filter matches: (Object >>> #=) methodNode body statements first).
+	self deny: (filter matches: (Object >>> #class) methodNode body statements first).! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:37'!
+testRegex
+
+	| filter |
+
+	filter _ DAFilter string: 'ab*'.
+	self assert: (filter matches: 'abcccc').
+	self deny: (filter matches: 'aabcccc').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:38'!
+testString
+
+	| filter |
+
+	filter _ DAFilter string: 'abc'.
+	self assert: (filter matches: 'abc').
+	self deny: (filter matches: 'bbc').! !
+
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/23/2008 15:38'!
+testSymbol
+
+	| filter |
+
+	filter _ DAFilter symbol: #asString matches: 'an Object'.
+	self assert: (filter matches: Object new).
+	self deny: (filter matches: #Object).! !
 
 TestCase subclass: #DAJoinPointTest
 	instanceVariableNames: 'jp'
