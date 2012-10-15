@@ -1,5 +1,34 @@
 SystemOrganization addCategory: #'DynamicAspects-Evaluation'!
 
+Object subclass: #DAAdviceEvaluationDummy
+	instanceVariableNames: 'values'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Evaluation'!
+
+!DAAdviceEvaluationDummy commentStamp: 'as 6/20/2007 13:13' prior: 0!
+Dummy to test advice evaluations on.!
+
+!DAAdviceEvaluationDummy methodsFor: 'dummy' stamp: 'as 6/20/2007 14:13'!
+dummy
+
+	self value: 1.! !
+
+!DAAdviceEvaluationDummy methodsFor: 'initialize-release' stamp: 'as 6/20/2007 14:28'!
+initialize
+
+	values _ OrderedCollection new.! !
+
+!DAAdviceEvaluationDummy methodsFor: 'value' stamp: 'as 6/20/2007 14:12'!
+value: aNumber
+
+	values add: aNumber.! !
+
+!DAAdviceEvaluationDummy methodsFor: 'value' stamp: 'as 6/20/2007 14:12'!
+values
+
+	^ values.! !
+
 Object subclass: #DAJoinPointEvaluationDummy
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -32,6 +61,45 @@ Dummy to test pointcut evaluations on.!
 
 !DAPointcutEvaluationDummy methodsFor: 'as yet unclassified' stamp: 'as 6/18/2007 17:37'!
 method! !
+
+TestCase subclass: #DAAdviceEvaluation
+	instanceVariableNames: 'link'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Evaluation'!
+
+!DAAdviceEvaluation commentStamp: 'as 6/20/2007 13:12' prior: 0!
+Evaluating advice possibilities.!
+
+!DAAdviceEvaluation methodsFor: 'running' stamp: 'as 6/20/2007 14:01'!
+setup
+
+	link _ nil.! !
+
+!DAAdviceEvaluation methodsFor: 'running' stamp: 'as 6/20/2007 14:02'!
+tearDown
+
+	link ifNotNil: [ link uninstall. ].! !
+
+!DAAdviceEvaluation methodsFor: 'testing' stamp: 'as 6/20/2007 14:33'!
+testAfter
+
+	| values |
+	link _ GPLink new metaObject: [ :object | object value: 2. ]; after.
+	(DAAdviceEvaluationDummy >> #dummy) methodNode link: link.
+	values _ DAAdviceEvaluationDummy new dummy; values.
+	self assert: (values at: 1) = 1.
+	self assert: (values at: 2) = 2.! !
+
+!DAAdviceEvaluation methodsFor: 'testing' stamp: 'as 6/20/2007 14:31'!
+testBefore
+
+	| values |
+	link _ GPLink new metaObject: [ :object | object value: 2. ]; before.
+	(DAAdviceEvaluationDummy >> #dummy) methodNode link: link.
+	values _ DAAdviceEvaluationDummy new dummy; values.
+	self assert: (values at: 1) = 2.
+	self assert: (values at: 2) = 1.! !
 
 TestCase subclass: #DAJoinPointEvaluation
 	instanceVariableNames: ''
