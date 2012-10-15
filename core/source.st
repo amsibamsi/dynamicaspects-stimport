@@ -40,7 +40,7 @@ allPointcutNames
 
 	^ self superclass pointcutNames addAll: self pointcutNames; yourself.! !
 
-!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 10:27'!
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 13:58'!
 definitionST80
 
 	| aStream |
@@ -53,8 +53,12 @@ definitionST80
 			nextPutAll: self traitCompositionString].
 	aStream cr; tab; nextPutAll: 'pointcutNames: ';
 			store: self pointcutsString.
-	aStream cr; tab; nextPutAll: 'variableNames: ';
+	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
 			store: self instanceVariablesString.
+	aStream cr; tab; nextPutAll: 'classVariableNames: ';
+			store: self classVariablesString.
+	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
+			store: self sharedPoolsString.
 	aStream cr; tab; nextPutAll: 'category: ';
 			store: (SystemOrganization categoryOfElement: self name) asString.
 
@@ -70,10 +74,10 @@ instance
 
 	^ instance ifNil: [ instance := self basicNew initialize. ].! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 8/14/2007 09:43'!
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 13:59'!
 new
 
-	self error: 'I''m singleton, use ', self class name, '>>instance'.! !
+	self error: 'I''m singleton, use ', self class name, ' >> instance'.! !
 
 !DAAspect class methodsFor: 'printing' stamp: 'as 10/22/2007 09:38'!
 pointcutsString
@@ -91,12 +95,14 @@ template: categorySymbol
 
 	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
 
-!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/22/2007 09:29'!
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:00'!
 templateForSubclassOf: aClass category: aSymbol
 
 	^ aClass asString, 'subaspect: #NameOfSubaspect
 	pointcutNames: ''''
-	variableNames: ''''
+	instanceVariableNames: ''''
+	classVariableNames: ''''
+	poolDictionaries: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
 !DAAspect methodsFor: 'advices' stamp: 'as 10/23/2007 14:03'!
@@ -104,14 +110,14 @@ adviceControls
 
 	^ #(before after instead).! !
 
-!DAAspect methodsFor: 'advices' stamp: 'as 10/23/2007 14:11'!
+!DAAspect methodsFor: 'advices' stamp: 'as 10/31/2007 14:21'!
 advices
 
 	| possibilities |
 	possibilities _ self possibleAdviceNames.
 	^ self class methods select: [
 		:method |
-		possibilities anySatisfy: [ :pos | pos match: method selector asString. ].
+		possibilities anySatisfy: [ :pos | pos match: method selector. ].
 	].! !
 
 !DAAspect methodsFor: 'accessing' stamp: 'as 10/22/2007 09:56'!
@@ -173,10 +179,10 @@ isInstalled
 
 	^ links isEmpty not.! !
 
-!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:28'!
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:20'!
 pointcut: aSymbol
 
-	^ self perform: (aSymbol, #':') asSymbol with: DAPointcutBuilder new.! !
+	^ self perform: aSymbol.! !
 
 !DAAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:35'!
 pointcutForAdvice: aMethod
@@ -229,10 +235,20 @@ afterExample1
 
 	DAExamples count.! !
 
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 10:29'!
-example1: builder
+!DATestAspect methodsFor: 'advices' stamp: 'as 10/31/2007 14:39'!
+beforeExample2
+
+	DAExamples count.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:32'!
+example1
 
 	^ pc method: DAExamples class >> #example1.! !
+
+!DATestAspect methodsFor: 'pointcuts' stamp: 'as 10/31/2007 14:41'!
+example2
+
+	^ pc method: DAExamples class >> #example2.! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
 pointcutNames
@@ -268,17 +284,6 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!DAAspectClass class methodsFor: 'subaspect creation' stamp: 'as 10/22/2007 09:26'!
-subaspect: class pointcutNames: pointcuts variableNames: variables category: cat
-
-	^ self
-		subaspect: class
-		pointcutNames: pointcuts
-		instanceVariableNames: variables
-		classVariableNames: ''
-		poolDictionaries: ''
-		category: cat.! !
-
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -306,6 +311,11 @@ counter
 
 !DAExamples class methodsFor: 'examples' stamp: 'as 10/23/2007 16:23'!
 example1
+
+	counter _ 2.! !
+
+!DAExamples class methodsFor: 'examples' stamp: 'as 10/31/2007 14:39'!
+example2
 
 	counter _ 2.! !
 
@@ -551,25 +561,16 @@ write
 
 	properties at: #write put: true.! !
 
-DAPointcut subclass: #DAMethodCallPointcut
-	instanceVariableNames: 'receiver selector'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Pointcuts'!
-
-!DAMethodCallPointcut commentStamp: 'as 10/30/2007 17:31' prior: 0!
-A method call.!
-
-DAPointcut subclass: #DAMethodExecutionPointcut
+DAPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: 'methodString classString'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Pointcuts'!
 
-!DAMethodExecutionPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
+!DAMethodPointcut commentStamp: 'as 8/16/2007 15:00' prior: 0!
 A method that is being executed.!
 
-!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 10/24/2007 09:47'!
+!DAMethodPointcut class methodsFor: 'instance creation' stamp: 'as 10/24/2007 09:47'!
 method: aCompiledMethod
 
 	^ self new
@@ -577,7 +578,7 @@ method: aCompiledMethod
 		classString: aCompiledMethod methodClass asString;
 		yourself.! !
 
-!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 10/17/2007 15:05'!
+!DAMethodPointcut class methodsFor: 'instance creation' stamp: 'as 10/17/2007 15:05'!
 method: methodString class: classString
 
 	^ self new
@@ -585,25 +586,25 @@ method: methodString class: classString
 		classString: classString;
 		yourself.! !
 
-!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 10/24/2007 17:27'!
+!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 10/24/2007 17:27'!
 classString: aString
 
 	classString _ aString ifNil: [ '*'. ].! !
 
-!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 10/24/2007 17:27'!
+!DAMethodPointcut methodsFor: 'accessing' stamp: 'as 10/24/2007 17:27'!
 methodString: aString
 
 	methodString _ aString ifNil: [ '*'. ].! !
 
-!DAMethodExecutionPointcut methodsFor: 'evaluating' stamp: 'as 10/17/2007 15:50'!
+!DAMethodPointcut methodsFor: 'evaluating' stamp: 'as 10/17/2007 15:50'!
 methods
 
 	^ self methodsMatching: methodString inClassesMatching: classString inCategoriesMatching: '*'.! !
 
-!DAMethodExecutionPointcut methodsFor: 'visiting' stamp: 'as 10/24/2007 17:25'!
+!DAMethodPointcut methodsFor: 'visiting' stamp: 'as 10/31/2007 14:29'!
 visitName
 
-	^ 'execution'.! !
+	^ 'method'.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
 field: fieldString in: classString
@@ -633,15 +634,15 @@ instanceVarWrite: fieldString in: classString
 		write; instance;
 		yourself.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:09'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:30'!
 method: aCompiledMethod
 
-	^ DAMethodExecutionPointcut method: aCompiledMethod.! !
+	^ DAMethodPointcut method: aCompiledMethod.! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 14:31'!
 method: methodString in: classString
 
-	^ DAMethodExecutionPointcut method: methodString class: classString.! !
+	^ DAMethodPointcut method: methodString class: classString.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 10/31/2007 10:10'!
 readField: fieldString in: classString
@@ -750,15 +751,6 @@ visitName
 
 	self subclassResponsibility.! !
 
-Object subclass: #DAPointcutBuilder
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Kernel'!
-
-!DAPointcutBuilder commentStamp: 'as 10/31/2007 10:23' prior: 0!
-Holds data durint pointcut building. (Currently unused.)!
-
 Object subclass: #DAPointcutVisitor
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -831,16 +823,16 @@ visitAnd: pointcut
 	tmpNodes1 addAll: (tmpNodes2 select: [ :node | nodes includes: nodes. ]).
 	nodes _ tmpNodes1.! !
 
-!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/24/2007 17:25'!
-visitExecution: pointcut
-
-	self addNodes:
-		(pointcut methods collect: [ :each | each methodNode. ]).! !
-
 !DANodeCollector methodsFor: 'visiting' stamp: 'as 10/30/2007 15:37'!
 visitField: pointcut
 
 	self addNodes: pointcut fieldNodes.! !
+
+!DANodeCollector methodsFor: 'visiting' stamp: 'as 10/31/2007 14:30'!
+visitMethod: pointcut
+
+	self addNodes:
+		(pointcut methods collect: [ :each | each methodNode. ]).! !
 
 !DANodeCollector methodsFor: 'visiting' stamp: 'as 10/19/2007 11:13'!
 visitOr: pointcut
@@ -874,13 +866,13 @@ visitAnd: aDAWithinPointcut
 
 	self subclassResponsibility.! !
 
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/24/2007 17:25'!
-visitExecution: aDAMethodExecutionPointcut
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/26/2007 15:20'!
+visitField: aDAMethodExecutionPointcut
 
 	self subclassResponsibility.! !
 
-!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/26/2007 15:20'!
-visitField: aDAMethodExecutionPointcut
+!DAPointcutVisitor methodsFor: 'visiting' stamp: 'as 10/31/2007 14:30'!
+visitMethod: aDAMethodExecutionPointcut
 
 	self subclassResponsibility.! !
 
@@ -961,25 +953,31 @@ removeAllLinksOn: aClass
 		].
 	].! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 10/23/2007 16:30'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 10/31/2007 14:34'!
 setUp
 
 	super initialize.
 	self removeAllLinksOn: DAExamples.
-	DAExamples initializeCounter.! !
+	DAExamples initializeCounter.
+	DATestAspect instance install.! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 10/23/2007 16:30'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 10/31/2007 14:34'!
 tearDown
 
+	DATestAspect instance uninstall.
 	self removeAllLinksOn: DAExamples.! !
 
-!DAAspectTest methodsFor: 'testing' stamp: 'as 10/24/2007 15:26'!
-testSimple
+!DAAspectTest methodsFor: 'testing' stamp: 'as 10/31/2007 14:40'!
+testAfter
 
-	DATestAspect instance install.
 	DAExamples example1.
-	self assert: DAExamples counter = 3.
-	DATestAspect instance uninstall.! !
+	self assert: DAExamples counter = 3.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 10/31/2007 14:41'!
+testBefore
+
+	DAExamples example2.
+	self assert: DAExamples counter = 2.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
