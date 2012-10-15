@@ -35,10 +35,10 @@ Although aspects are not necessarily objects or classes, in this implementation 
 DAAspect class
 	instanceVariableNames: 'instance'!
 
-!DAAspect class methodsFor: 'accessing' stamp: 'as 10/22/2007 09:37'!
+!DAAspect class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:59'!
 allPointcutNames
 
-	^ self superclass pointcutNames addAll: self pointcutNames; yourself.! !
+	^ self superclass pointcutNames, self pointcutNames.! !
 
 !DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 10/31/2007 13:58'!
 definitionST80
@@ -255,9 +255,9 @@ pointcutNames
 
 	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
 
-!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 10:38'!
+!DAAspectClass class methodsFor: 'accessing' stamp: 'as 10/31/2007 14:53'!
 pointcutNames: aString
-
+	
 	pointcutNames _ self stringToSymbols: aString.! !
 
 !DAAspectClass class methodsFor: 'accessing' stamp: 'as 7/23/2007 15:01'!
