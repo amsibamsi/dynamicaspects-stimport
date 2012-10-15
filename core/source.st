@@ -1,4 +1,5 @@
-SystemOrganization addCategory: #'DA-Geppetto'!
+SystemOrganization addCategory: #'DA-Context'!
+SystemOrganization addCategory: #'DA-Condition'!
 SystemOrganization addCategory: #'DA-Kernel'!
 SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
@@ -48,7 +49,7 @@ Object subclass: #DACondition
 	instanceVariableNames: 'negated'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+	category: 'DA-Condition'!
 
 !DACondition commentStamp: 'as 3/7/2008 09:48' prior: 0!
 Extends GPCondition by the ability to combine multiple block conditions.!
@@ -57,7 +58,7 @@ DACondition subclass: #DAAndCondition
 	instanceVariableNames: 'left right'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+	category: 'DA-Condition'!
 
 !DAAndCondition commentStamp: 'as 3/7/2008 10:46' prior: 0!
 Combines two conditions with a logical 'and'.!
@@ -136,7 +137,7 @@ DACondition subclass: #DABlockCondition
 	instanceVariableNames: 'block arguments'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+	category: 'DA-Condition'!
 
 !DABlockCondition commentStamp: 'as 3/7/2008 10:45' prior: 0!
 Contains a single block as condition.!
@@ -185,7 +186,7 @@ DACondition subclass: #DABooleanCondition
 	instanceVariableNames: 'value'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DA-Geppetto'!
+	category: 'DA-Condition'!
 
 !DABooleanCondition commentStamp: 'as 3/10/2008 13:40' prior: 0!
 Contains a single boolean value as condition.!
@@ -344,6 +345,158 @@ valueWithArguments: anArray
 
 	^ self negatedValue: (self doValueWithArguments: anArray).! !
 
+Object subclass: #DAContext
+	instanceVariableNames: 'parent'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+DAContext subclass: #DAActiveContext
+	instanceVariableNames: 'active'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+!DAActiveContext methodsFor: 'activating' stamp: 'as 4/8/2008 16:54'!
+activate
+
+	self setActive: true.! !
+
+!DAActiveContext methodsFor: 'activating' stamp: 'as 4/8/2008 16:54'!
+deactivate
+
+	self setActive: false.! !
+
+!DAActiveContext methodsFor: 'initialize-release' stamp: 'as 4/8/2008 16:54'!
+initialize
+
+	active _ false.! !
+
+!DAActiveContext methodsFor: 'testing' stamp: 'as 4/8/2008 16:56'!
+isActive
+
+	^ active.! !
+
+!DAActiveContext methodsFor: 'activating' stamp: 'as 4/8/2008 16:54'!
+setActive: aBoolean
+
+	active _ aBoolean.! !
+
+DAContext subclass: #DAComposedContext
+	instanceVariableNames: 'children'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+DAComposedContext subclass: #DAAndContext
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+!DAAndContext methodsFor: 'testing' stamp: 'as 4/8/2008 17:05'!
+isActive
+
+	^ children inject: true into: [ :active :child | active & child isActive. ].! !
+
+!DAComposedContext class methodsFor: 'instance creation' stamp: 'as 4/8/2008 17:08'!
+context: aDAContext
+
+	^ self contexts: { aDAContext. }.! !
+
+!DAComposedContext class methodsFor: 'instance creation' stamp: 'as 4/8/2008 17:07'!
+contexts: aCollection
+
+	^ self new children: aCollection.! !
+
+!DAComposedContext methodsFor: 'accessing' stamp: 'as 4/8/2008 17:08'!
+children
+
+	^ children.! !
+
+!DAComposedContext methodsFor: 'accessing' stamp: 'as 4/8/2008 16:59'!
+children: aCollection
+
+	children _ aCollection.
+	self setParent: aCollection.! !
+
+!DAComposedContext methodsFor: 'initialize-release' stamp: 'as 4/8/2008 16:57'!
+initialize
+
+	children _ Set new.! !
+
+!DAComposedContext methodsFor: 'private' stamp: 'as 4/8/2008 17:00'!
+setParent: aCollection
+
+	aCollection do: [ :each | each parent: self. ].! !
+
+DAComposedContext subclass: #DANotContext
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+!DANotContext methodsFor: 'private' stamp: 'as 4/8/2008 17:15'!
+child
+
+	^ children first.! !
+
+!DANotContext methodsFor: 'testing' stamp: 'as 4/8/2008 17:15'!
+isActive
+
+	^ self child isActive not.! !
+
+!DANotContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:15'!
+not
+
+	^ self child.! !
+
+DAComposedContext subclass: #DAOrContext
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Context'!
+
+!DAOrContext methodsFor: 'testing' stamp: 'as 4/8/2008 17:10'!
+isActive
+
+	^ children inject: false into: [ :active :child | active | child isActive. ].! !
+
+!DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
+and: aDAContext
+
+	^ DAAndContext contexts: { self. aDAContext. }.! !
+
+!DAContext methodsFor: 'testing' stamp: 'as 4/8/2008 16:49'!
+isActive
+
+	self subclassResponsibility.! !
+
+!DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
+not
+
+	^ DANotContext context: self.! !
+
+!DAContext methodsFor: 'testing' stamp: 'as 4/8/2008 16:50'!
+notActive
+
+	self isActive not.! !
+
+!DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
+or: aDAContext
+
+	^ DAOrContext contexts: { self. aDAContext. }.! !
+
+!DAContext methodsFor: 'accessing' stamp: 'as 4/8/2008 17:01'!
+parent
+
+	^ parent.! !
+
+!DAContext methodsFor: 'accessing' stamp: 'as 4/8/2008 17:01'!
+parent: aDAContext
+
+	parent _ aDAContext.! !
+
 Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -441,8 +594,8 @@ matches: anObject
 
 	^ (block value: anObject) xor: negated.! !
 
-!DAFilter methodsFor: 'negating' stamp: 'as 2/21/2008 15:04'!
-negate
+!DAFilter methodsFor: 'negating' stamp: 'as 4/7/2008 15:40'!
+not
 
 	negated _ negated not.! !
 
@@ -501,11 +654,10 @@ control: aSymbol
 
 	control _ aSymbol.! !
 
-!DAHook methodsFor: 'initialize-release' stamp: 'as 4/7/2008 14:39'!
+!DAHook methodsFor: 'initialize-release' stamp: 'as 4/8/2008 17:30'!
 initialize
 
 	links _ Set new.
-	arguments _ #().
 	self initializeMoDict.! !
 
 !DAHook methodsFor: 'initialize-release' stamp: 'as 4/7/2008 14:17'!
@@ -552,18 +704,19 @@ metaObjects
 
 	^ metaObjects.! !
 
-!DAHook methodsFor: 'private' stamp: 'as 4/7/2008 14:02'!
+!DAHook methodsFor: 'private' stamp: 'as 4/8/2008 17:32'!
 newLink: aDAJoinPoint
 
 	| link |
 
 	link _ GPLink new
 		selector: selector;
-		arguments: arguments;
 		control: control;
-		conditionObject: aDAJoinPoint condition;
 		hook: self;
 		yourself.
+	arguments ifNotNil: [ link arguments: arguments. ].
+	aDAJoinPoint condition ifNotNil: [ link conditionObject: aDAJoinPoint condition. ].
+	aDAJoinPoint context ifNotNil: [ link addOnActiveContext: aDAJoinPoint context. ].
 	self setMetaObject: link.
 	
 	^ link.! !
@@ -637,7 +790,7 @@ update
 	self isInstalled ifTrue: [ self reinstall. ].! !
 
 Object subclass: #DAJoinPoint
-	instanceVariableNames: 'condition filters cache'
+	instanceVariableNames: 'condition context filters cache'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
@@ -645,13 +798,14 @@ Object subclass: #DAJoinPoint
 !DAJoinPoint commentStamp: 'as 3/25/2008 15:06' prior: 0!
 Describes and caches the concrete nodes in the sysem that a pointcut describes. The evaluation of a pointcut will result in one or more join points.!
 
-!DAJoinPoint methodsFor: 'composing' stamp: 'as 3/31/2008 11:37'!
+!DAJoinPoint methodsFor: 'composing' stamp: 'as 4/7/2008 15:56'!
 and: aDAJoinPoint
 
 	| jp |
 	
 	jp _ self class new.
 	jp condition: (self combineCondition: jp).
+	jp context: (self combineContext: jp).
 	self keys do: [
 		:key |
 		jp filtersAt: key put: (self filtersAt: key), (aDAJoinPoint filtersAt: key).
@@ -707,6 +861,23 @@ combineCondition: aDAJoinPoint
 		].
 	].! !
 
+!DAJoinPoint methodsFor: 'private' stamp: 'as 4/7/2008 15:57'!
+combineContext: aDAJoinPoint
+
+	self hasContext ifTrue: [
+		aDAJoinPoint hasContext ifTrue: [
+			^ self context and: aDAJoinPoint context.
+		] ifFalse: [
+			^ self context.
+		].
+	] ifFalse: [
+		aDAJoinPoint hasContext ifTrue: [
+			^ aDAJoinPoint context.
+		] ifFalse: [
+			^ nil.
+		].
+	].! !
+
 !DAJoinPoint methodsFor: 'accessing' stamp: 'as 3/19/2008 14:59'!
 condition
 
@@ -716,6 +887,16 @@ condition
 condition: aDACondition
 
 	condition _ aDACondition.! !
+
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 4/7/2008 15:54'!
+context
+
+	^ context.! !
+
+!DAJoinPoint methodsFor: 'accessing' stamp: 'as 4/7/2008 15:54'!
+context: aContext
+
+	context _ aContext.! !
 
 !DAJoinPoint methodsFor: 'defaults' stamp: 'as 2/22/2008 11:18'!
 defaultFiltersAt: aSymbol
@@ -823,6 +1004,11 @@ hasCondition
 
 	^ condition notNil.! !
 
+!DAJoinPoint methodsFor: 'testing' stamp: 'as 4/7/2008 15:55'!
+hasContext
+
+	^ context notNil.! !
+
 !DAJoinPoint methodsFor: 'initialize-release' stamp: 'as 3/19/2008 15:01'!
 initialize
 
@@ -904,8 +1090,8 @@ DACompositePointcut subclass: #DAAndPointcut
 !DAAndPointcut commentStamp: 'as 1/31/2008 17:05' prior: 0!
 Selects all join points that fullfill all requirements of two pointcuts.!
 
-!DAAndPointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:42'!
-invert
+!DAAndPointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:45'!
+negate
 
 	^ DAOrPointcut children: children.! !
 
@@ -935,25 +1121,25 @@ children: aSequenceableCollection
 	children _ aSequenceableCollection.
 	children do: [ :each | each parent: self. ].! !
 
-!DACompositePointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 10:36'!
-invert
-
-	self subclassResponsibility.! !
-
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 1/25/2008 14:30'!
 left
 
 	^ children first.! !
 
-!DACompositePointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:40'!
+!DACompositePointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:45'!
+negate
+
+	self subclassResponsibility.! !
+
+!DACompositePointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:45'!
 not
 
-	| inverted |
+	| negated |
 
 	children do: [ :child | child not. ].
-	inverted _ self invert.
-	self hasParent ifTrue: [ parent replace: self with: inverted. ].
-	^ inverted.! !
+	negated _ self negate.
+	self hasParent ifTrue: [ parent replace: self with: negated. ].
+	^ negated.! !
 
 !DACompositePointcut methodsFor: 'accessing' stamp: 'as 2/4/2008 21:32'!
 replace: oldDAPointcut with: newDAPointcut
@@ -974,8 +1160,8 @@ DACompositePointcut subclass: #DAOrPointcut
 !DAOrPointcut commentStamp: 'as 1/31/2008 17:06' prior: 0!
 Selects all join points that fullfill either's pointcut requirements.!
 
-!DAOrPointcut methodsFor: 'inverting' stamp: 'as 2/5/2008 15:42'!
-invert
+!DAOrPointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:45'!
+negate
 
 	^ DAAndPointcut children: children.! !
 
@@ -1018,7 +1204,7 @@ condition: aBlockOrBoolean arguments: args
 
 	condition _ DACondition with: aBlockOrBoolean arguments: args.! !
 
-!DAConditionPointcut methodsFor: 'inverting' stamp: 'as 2/8/2008 10:40'!
+!DAConditionPointcut methodsFor: 'negating' stamp: 'as 2/8/2008 10:40'!
 not
 
 	condition not.! !
@@ -1102,6 +1288,40 @@ method: aMethod
 	classKey _ aMethod methodClass instanceSide name.
 	isMeta _ aMethod methodClass isMeta.! !
 
+DAPointcut subclass: #DAContextPointcut
+	instanceVariableNames: 'context'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Pointcuts'!
+
+!DAContextPointcut commentStamp: 'as 4/7/2008 15:20' prior: 0!
+Describes contextual attributes.!
+
+!DAContextPointcut class methodsFor: 'instance creation' stamp: 'as 4/7/2008 16:53'!
+context: aContext
+
+	^ self new context: aContext; yourself.! !
+
+!DAContextPointcut methodsFor: 'accessing' stamp: 'as 4/7/2008 15:22'!
+context
+
+	^ context.! !
+
+!DAContextPointcut methodsFor: 'accessing' stamp: 'as 4/8/2008 17:18'!
+context: aDAContext
+
+	context _ aDAContext.! !
+
+!DAContextPointcut methodsFor: 'negating' stamp: 'as 4/8/2008 17:20'!
+not
+
+	context _ context not.! !
+
+!DAContextPointcut methodsFor: 'visiting' stamp: 'as 4/7/2008 15:21'!
+visitName
+
+	^ 'context'.! !
+
 DAPointcut subclass: #DAFilterPointcut
 	instanceVariableNames: 'filter inverted'
 	classVariableNames: ''
@@ -1164,10 +1384,10 @@ filter: aDAFilter
 
 	filter _ aDAFilter.! !
 
-!DAFilterPointcut methodsFor: 'inverting' stamp: 'as 2/11/2008 08:46'!
+!DAFilterPointcut methodsFor: 'negating' stamp: 'as 4/7/2008 15:40'!
 not
 
-	filter negate.! !
+	filter not.! !
 
 DAFilterPointcut subclass: #DAMethodPointcut
 	instanceVariableNames: ''
@@ -1267,6 +1487,11 @@ classWithBehavior: aClass
 			class includesBehavior: classDescr class.
 		]
 	).! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 4/8/2008 17:19'!
+context: aDAContext
+
+	^ DAContextPointcut context: aDAContext.! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 2/18/2008 10:07'!
 fieldRead: aString
@@ -1386,7 +1611,7 @@ nodes
 
 	^ self joinPoints inject: IdentitySet new into: [ :col :jp | col addAll: jp nodes; yourself. ].! !
 
-!DAPointcut methodsFor: 'inverting' stamp: 'as 2/4/2008 21:33'!
+!DAPointcut methodsFor: 'negating' stamp: 'as 2/4/2008 21:33'!
 not
 
 	self subclassResponsibility.! !
@@ -1499,6 +1724,11 @@ visitCondition: pc
 
 	joinPoints add: (DAJoinPoint new condition: pc condition).! !
 
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/8/2008 17:19'!
+visitContext: pc
+
+	joinPoints add: (DAJoinPoint new context: pc context).! !
+
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 3/19/2008 15:16'!
 visitMethod: pc
 
@@ -1541,6 +1771,12 @@ hookOnJoinPoint: aDAJoinPoint
 		self hookOn: node.
 	].! !
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -1552,107 +1788,6 @@ includesExactly: aCollection
 selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
-
-	^ (self >> selector) reflectiveMethod.
-! !
-
-AnObsoleteDAAspect subclass: #DATestAspect
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Tests'!
-
-!DATestAspect commentStamp: 'as 10/8/2007 10:18' prior: 0!
-An aspect to run tests on.!
-
-!DATestAspect class methodsFor: 'pointcuts' stamp: 'as 2/18/2008 14:14'!
-pointcutNames
-
-	^ #(exampleBefore
-		exampleAfter
-		exampleInstead
-		exampleForward
-		exampleFieldRead
-		exampleFieldWrite
-		exampleParameters).! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
-afterExampleAfter
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
-beforeExampleBefore
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/14/2008 17:23'!
-beforeExampleForward
-
-	DAExamples count.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:23'!
-exampleAfter
-
-	^ pc method: DAExamples class >> #exampleAfter.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:22'!
-exampleBefore
-
-	^ pc method: DAExamples class >> #exampleBefore.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 13:59'!
-exampleFieldRead
-
-	^ (pc method: DAExamples class >> #exampleFieldRead) and: (pc fieldRead: 'counter').! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 14:07'!
-exampleFieldWrite
-
-	^ (pc method: DAExamples class >> #exampleFieldWrite) and: (pc fieldWrite: 'counter').! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/14/2008 17:27'!
-exampleForward
-
-	^ (pc cflow: DAExamples class >> #exampleForward) and:
-		(pc method: DAExamples class >> #exampleNoop).! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/15/2008 13:29'!
-exampleInstead
-
-	^ pc method: DAExamples class >> #exampleInstead.! !
-
-!DATestAspect methodsFor: 'pointcuts' stamp: 'as 2/18/2008 17:07'!
-exampleParameters
-
-	^ (pc method: DAExamples class >> #exampleParameters) and: (pc fieldRead: 'counter').! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 13:31'!
-insteadExampleFieldRead
-
-	^ 2.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 14:06'!
-insteadExampleFieldWrite
-
-	DAExamples counter: 2.! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 09:00'!
-insteadExampleInstead
-
-	"do nothing"! !
-
-!DATestAspect methodsFor: 'advices' stamp: 'as 2/18/2008 16:52'!
-insteadExampleParameters: object class: class control: control
-
-	^ Dictionary new
-		at: #object put:object;
-		at: #class put: class;
-		at: #control put: control;
-		yourself.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -1817,14 +1952,14 @@ TestCase subclass: #DAFilterTest
 !DAFilterTest commentStamp: 'as 2/11/2008 08:40' prior: 0!
 Testing DARegexFilter.!
 
-!DAFilterTest methodsFor: 'testing' stamp: 'as 2/21/2008 17:55'!
+!DAFilterTest methodsFor: 'testing' stamp: 'as 4/7/2008 15:40'!
 testNegation
 
 	| filter |
 
 	filter _ DAFilter string: 'abc'.
 	self assert: (filter matches: 'abc').
-	filter negate.
+	filter not.
 	self deny: (filter matches: 'abc').! !
 
 TestCase subclass: #DAJoinPointTest
