@@ -2302,7 +2302,7 @@ filterAt: aSymbol put: aRegexFilter
 
 	(filters at: aSymbol) add: aRegexFilter.! !
 
-!DAJoinPoint methodsFor: 'filtering' stamp: 'as 2/11/2008 08:30'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 4/30/2008 16:50'!
 filterCategory
 
 	| categories |
@@ -2310,9 +2310,7 @@ filterCategory
 	categories _ SystemOrganization categories.
 	(self defaultOrFiltersAt: #category) do: [
 		:filter |
-		categories _ categories select: [
-			:each | filter matches: each.
-		].
+		categories _ filter filter: categories.
 	].
 	^ categories.! !
 
@@ -2332,7 +2330,7 @@ filterClass
 	].
 	^ classes.! !
 
-!DAJoinPoint methodsFor: 'filtering' stamp: 'as 3/28/2008 12:56'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 4/30/2008 16:53'!
 filterMethod
 	
 	| methods classMethods |
@@ -2343,16 +2341,13 @@ filterMethod
 		classMethods _ each methods.
 		(self defaultOrFiltersAt: #method) do: [
 			:filter |
-			classMethods _ classMethods select: [
-				:method |
-				filter matches: method.
-			].
+			classMethods _ filter filter: classMethods.
 		].
 		methods addAll: classMethods.
 	].
 	^ methods collect: [ :each | each reflectiveMethod. ].! !
 
-!DAJoinPoint methodsFor: 'filtering' stamp: 'as 3/28/2008 12:58'!
+!DAJoinPoint methodsFor: 'filtering' stamp: 'as 4/30/2008 16:53'!
 filterNode
 
 	| nodes methodNodes |
@@ -2363,7 +2358,7 @@ filterNode
 		methodNodes _ each nodes.
 		(self defaultOrFiltersAt: #node) do: [
 			:filter |
-			methodNodes _ methodNodes select: [ :node | filter matches: node. ].
+			methodNodes _ filter filter: methodNodes.
 		].
 		nodes addAll: methodNodes.
 	].
