@@ -8,18 +8,6 @@ SystemOrganization addCategory: #'DA-Examples'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
-!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
-includesExactly: aCollection
-
-	"Answer whether both collections include exactly the same elements."
-	
-	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
-
-!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
-selfIfEmpty: aBlock
-
-	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
-
 !Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
 >>> selector 
 
@@ -41,11 +29,6 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
 !GeppettoTest methodsFor: '*DA' stamp: 'as 6/3/2008 14:41'!
 testMethodInstead
 
@@ -54,6 +37,21 @@ testMethodInstead
 	
 	GPCounter reset.
 	self assert: (GPExamples new exampleDA = 2).! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
+
+	^ DAPointcut method: self.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DAAspectBehaviorTest
 	instanceVariableNames: 'examples aspect'
@@ -3727,13 +3725,12 @@ failure
 
 	^ failure.! !
 
-!DAAspect class methodsFor: 'initialize-release' stamp: 'as 6/2/2008 15:59'!
+!DAAspect class methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:33'!
 initialize
 
-	self isEnabled ifTrue: [ self reinstallQuietly. ].
-	
-	"Shortcut"
-	Smalltalk at: #PC put: DAPointcut.! !
+	super initialize.
+
+	self isEnabled ifTrue: [ self reinstallQuietly. ].! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:22'!
 install
@@ -4112,6 +4109,31 @@ insteadNoEnd
 
 	^ 1.! !
 
+DAAspect subclass: #DATranscriptExample
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Examples'!
+
+!DATranscriptExample commentStamp: 'as 7/3/2008 17:55' prior: 0!
+Put a carriage return after each #show: in the Transcript.!
+
+!DATranscriptExample class methodsFor: 'initialize-release' stamp: 'as 7/3/2008 18:28'!
+initialize
+
+	self disable.
+	super initialize.! !
+
+!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/3/2008 17:51'!
+transcriptShow
+
+	^ (TranscriptStream >> #show:) asPointcut.! !
+
+!DATranscriptExample methodsFor: 'advices' stamp: 'as 7/3/2008 17:52'!
+afterTranscriptShowWithObject: object
+
+	object cr.! !
+
 !DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
 pointcutNames
 
@@ -4134,6 +4156,23 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 	newClass
 		pointcutNames: pointcuts.
 	^ newClass.! !
+
+Object subclass: #DASetup
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
+
+!DASetup commentStamp: 'as 7/3/2008 18:32' prior: 0!
+Initialization for Dynamic Aspects.!
+
+!DASetup class methodsFor: 'class initialization' stamp: 'as 7/3/2008 18:32'!
+initialize
+
+	super initialize.
+
+	"Install the pointcut shortcut"
+	Smalltalk at: #PC put: DAPointcut.! !
 
 !GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
 exampleDA
@@ -4183,32 +4222,6 @@ asDescription
 count: aNumber
 
 	count _ aNumber.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
-flow
-
-	^ flow ifNil: [ flow _ Dictionary new. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowAt: aDAPointcut
-
-	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
-flowInto: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
-	self flow at: aDAPointcut put: count + 1.! !
-
-!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
-flowOutOf: aDAPointcut
-
-	| count |
-
-	count _ self flow at: aDAPointcut.
-	self flow at: aDAPointcut put: count - 1.! !
 
 Browser subclass: #DAAspectBrowser
 	instanceVariableNames: 'aspectMenu'
@@ -4413,15 +4426,45 @@ updateAspect
 
 	self adaptAspectButtonColor.! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
+flow
 
-	^ DAMethodDescription methodObject: self.! !
+	^ flow ifNil: [ flow _ Dictionary new. ].! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowAt: aDAPointcut
 
-	^ DAPointcut method: self.! !
+	^ self flow at: aDAPointcut ifAbsent: [ 0. ].! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:45'!
+flowInto: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut ifAbsentPut: [ 0. ].
+	self flow at: aDAPointcut put: count + 1.! !
+
+!Process methodsFor: '*DA' stamp: 'as 5/6/2008 17:50'!
+flowOutOf: aDAPointcut
+
+	| count |
+
+	count _ self flow at: aDAPointcut.
+	self flow at: aDAPointcut put: count - 1.! !
+
+!Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
+includesExactly: aCollection
+
+	"Answer whether both collections include exactly the same elements."
+	
+	^ (self includesAllOf: aCollection) & (aCollection includesAllOf: self).! !
+
+!Collection methodsFor: '*DA' stamp: 'as 1/31/2008 15:23'!
+selfIfEmpty: aBlock
+
+	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 DAFlowContext initialize!
 DAAspect initialize!
+DATranscriptExample initialize!
+DASetup initialize!
 DAAspectBrowser initialize!
