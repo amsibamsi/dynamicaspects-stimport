@@ -2,16 +2,16 @@ SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 SystemOrganization addCategory: #'DynamicAspects-Kernel'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
 
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/10/2007 13:11'!
-belongToAspect: aBoolean
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:55'!
+aspect
 
-	self properties at: #belongsToAspect put: aBoolean.! !
+	properties ifNil: [ ^ nil. ].
+	^self properties at: #aspect ifAbsent: [ nil. ].! !
 
-!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/10/2007 13:09'!
-belongsToAspect
+!GPLink methodsFor: '*DynamicAspects' stamp: 'as 12/12/2007 15:54'!
+aspect: aDAAspect
 
-	properties ifNil: [ ^ true. ].
-	^self properties at: #belongsToAspect ifAbsent: [ false. ].! !
+	self properties at: #aspect put: aDAAspect.! !
 
 Object subclass: #DAAspect
 	instanceVariableNames: ''
@@ -56,17 +56,22 @@ control: aSymbol
 
 	control _ aSymbol.! !
 
-!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 12/12/2007 12:35'!
+!DAAnonymousAspect methodsFor: 'installing' stamp: 'as 12/12/2007 17:38'!
 install
 
 	| gplink |
 	self isInstalled ifFalse: [
+		pointcut dependencies do: [ :aspect | aspect install. ].
 		gplink _ GPLink metaObject: advice.
-		gplink belongToAspect: true.
+		gplink aspect: self.
 		condition ifNotNil: [ gplink condition: condition. ].
-		pointcut nodes do: [ :node | node link: gplink. ].
-		pointcut extraAspects do: [ :aspect | aspect install. ].
-		link _ gplink.
+		[
+			pointcut nodes do: [ :node | node link: gplink. ].
+			link _ gplink
+		] on: Exception do: [
+			gplink uninstall.
+			self error: 'could not install link'.
+		].
 	].! !
 
 !DAAnonymousAspect methodsFor: 'testing' stamp: 'as 11/19/2007 08:28'!
@@ -195,8 +200,8 @@ DAAspectClass subclass: #DACodedAspect
 DACodedAspect class
 	instanceVariableNames: 'instance'!
 
-!DACodedAspect commentStamp: 'as 11/19/2007 12:51' prior: 0!
-An aspect that is defined in the browser. The pointcuts and advices can both be implemented with normal methods.
+!DACodedAspect commentStamp: 'as 12/12/2007 16:31' prior: 0!
+An aspect that is defined in the browser. The pointcuts and advices can all be implemented with normal methods.
 
 Although aspects are not necessarily objects or classes, in this implementation they are implemented as singleton classes in the traditional OOP way to get a good integration with the existing system.!
 
@@ -307,35 +312,38 @@ initializeLinks
 
 	links _ IdentitySet new.! !
 
-!DACodedAspect methodsFor: 'installing' stamp: 'as 12/12/2007 12:36'!
+!DACodedAspect methodsFor: 'installing' stamp: 'as 12/12/2007 17:12'!
 install
 
 	self isInstalled ifFalse: [
 		self advices do: [
 			:adv |
-			| link pointcut |
+			| pointcut |
 			pointcut _ self pointcutForAdvice: adv.
-			link _ GPLink new
-				metaObject: self;
-				selector: adv selector;
-				arguments: (self reificationsForAdvice: adv);
-				control: (self controlForAdvice: adv);
-				belongToAspect: true;
-				yourself.
-			pointcut condition ifNotNil: [ link condition: pointcut condition. ].
-			pointcut extraAspects do: [ :aspect | aspect install. ].
-			self install: link on: pointcut nodes.
+			pointcut dependencies do: [ :aspect | aspect install. ].
+			self installAdvice: adv pointcut: pointcut.
 		].
 	].! !
 
-!DACodedAspect methodsFor: 'installing' stamp: 'as 11/19/2007 08:27'!
-install: aGPLink on: aCollection
+!DACodedAspect methodsFor: 'private' stamp: 'as 12/12/2007 17:19'!
+installAdvice: advice pointcut: pointcut
 
-	aCollection do: [
-		:node |
-		node link: aGPLink.
-	].
-	links add: aGPLink.! !
+	| link |
+	link _ GPLink new
+		metaObject: self;
+		selector: advice selector;
+		arguments: (self reificationsForAdvice: advice);
+		control: (self controlForAdvice: advice);
+		aspect: self;
+		yourself.
+	pointcut condition ifNotNil: [ link condition: pointcut condition. ].
+	[
+		pointcut nodes do: [ :node | node link: link. ].
+		links add: link.
+	] on: Exception do: [
+		link uninstall.
+		self error: 'could not install link'.
+	].! !
 
 !DACodedAspect methodsFor: 'testing' stamp: 'as 11/19/2007 08:27'!
 isInstalled
@@ -475,7 +483,7 @@ outer
 	self inner.! !
 
 Object subclass: #DAPointcut
-	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter categories classes methods nodes condition extraAspects'
+	instanceVariableNames: 'categoryFilter classFilter methodFilter nodeFilter categories classes methods nodes condition dependencies'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Kernel'!
@@ -525,13 +533,13 @@ node: aPEProgramNode isVariable: fieldRegex
 
 	^ aPEProgramNode isVariable and: [ aPEProgramNode name matchesRegex: fieldRegex. ].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 11/28/2007 13:33'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 12/12/2007 16:29'!
 withinMethod: aMethod
 
 	| cflow |
 	cflow _ DAControlFlow method: aMethod.
 	^ (self condition: [ cflow isActive. ])
-		extraAspect: cflow;
+		dependsOn: cflow;
 		yourself.! !
 
 !DAPointcut methodsFor: 'composing' stamp: 'as 11/14/2007 16:58'!
@@ -585,22 +593,22 @@ condition: aBlock
 
 	condition _ aBlock.! !
 
-!DAPointcut methodsFor: 'accessing' stamp: 'as 11/19/2007 10:03'!
-extraAspect: aDAAspect
+!DAPointcut methodsFor: 'accessing' stamp: 'as 12/12/2007 16:30'!
+dependencies
 
-	extraAspects add: aDAAspect.! !
+	^ dependencies.! !
 
-!DAPointcut methodsFor: 'accessing' stamp: 'as 11/19/2007 09:18'!
-extraAspects
+!DAPointcut methodsFor: 'accessing' stamp: 'as 12/12/2007 16:29'!
+dependsOn: aDAAspect
 
-	^ extraAspects.! !
+	dependencies add: aDAAspect.! !
 
-!DAPointcut methodsFor: 'initialize-release' stamp: 'as 11/19/2007 09:18'!
+!DAPointcut methodsFor: 'initialize-release' stamp: 'as 12/12/2007 16:31'!
 initialize
 
 	categoryFilter _ classFilter _ methodFilter _ '.*'.
-	nodeFilter _ [ :node | true. ].
-	extraAspects _ Set new.! !
+	nodeFilter _ [:node | true].
+	dependencies _ Set new.! !
 
 !DAPointcut methodsFor: 'designating' stamp: 'as 11/14/2007 15:32'!
 method: regexString
