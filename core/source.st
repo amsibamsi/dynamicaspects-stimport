@@ -6,6 +6,12 @@ SystemOrganization addCategory: #'DA-Pointcuts'!
 SystemOrganization addCategory: #'DA-Tests'!
 SystemOrganization addCategory: #'DA-Utilities'!
 
+!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
+>>> selector 
+
+	^ (self >> selector) reflectiveMethod.
+! !
+
 !Collection methodsFor: '*DA' stamp: 'as 3/31/2008 15:57'!
 includesExactly: aCollection
 
@@ -18,11 +24,10 @@ selfIfEmpty: aBlock
 
 	self isEmpty ifTrue: [ ^ aBlock value. ] ifFalse: [ ^ self. ].! !
 
-!Behavior methodsFor: '*DA' stamp: 'as 3/31/2008 15:13'!
->>> selector 
+!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
 
-	^ (self >> selector) reflectiveMethod.
-! !
+	^ DAClassDescription classObject: self.! !
 
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -34,10 +39,16 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-	^ DAClassDescription classObject: self.! !
+	^ self method parent.! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
+
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -643,183 +654,6 @@ setUp
 tearDown
 
 	links do: [ :link | link uninstall. ].! !
-
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
-
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
-
-	^ DAMethodDescription methodObject: self.! !
-
-!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
-asPointcut
-
-	^ DAPointcut method: self.! !
-
-Object subclass: #DAAspect
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DA-Kernel'!
-
-DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors'!
-
-!DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
-Combines several pointcuts and advices by hosting multiple connectors.!
-
-DAAspect class
-	instanceVariableNames: 'mo moCreator moDict connectors'!
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:29'!
-after: aDAPointcut do: aSymbol
-
-	^ (self on: aDAPointcut do: aSymbol)
-		control: #after;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:29'!
-after: aDAPointcut do: aSymbol with: aCollection
-
-	^ (self after: aDAPointcut do: aSymbol)
-		arguments: aCollection;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:32'!
-before: aDAPointcut do: aSymbol
-
-	^ (self on: aDAPointcut do: aSymbol)
-		control: #before;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
-before: aDAPointcut do: aSymbol with: aCollection
-
-	^ (self before: aDAPointcut do: aSymbol)
-		arguments: aCollection;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
-beforeAndAfter: aDAPointcut do: aSymbol
-
-	^ (self on: aDAPointcut do: aSymbol)
-		control: #beforeafter;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
-beforeAndAfter: aDAPointcut do: aSymbol with: aCollection
-
-	^ (self beforeAndAfter: aDAPointcut do: aSymbol)
-		arguments: aCollection;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 16:52'!
-connections
-
-	"Return a collection of instances of DAConnector."
-
-	self subclassResponsibility.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 15:30'!
-connectors
-
-	^ connectors ifNil: [ connectors _ self connections. ].! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:31'!
-disabled
-
-	^ false.! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 14:28'!
-install
-
-	self connectors do: [
-		:con |
-		con install.
-	].! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:33'!
-instead: aDAPointcut do: aSymbol
-
-	^ (self on: aDAPointcut do: aSymbol)
-		control: #instead;
-		yourself.! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/21/2008 16:34'!
-instead: aDAPointcut do: aSymbol with: aCollection
-
-	^ (self instead: aDAPointcut do: aSymbol)
-		arguments: aCollection;
-		yourself.! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
-metaObject
-
-	^ mo ifNil: [ mo _ self new. ].! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:59'!
-metaObjectCreator
-
-	^ moCreator ifNil: [ moCreator _ [ self new. ]. ].! !
-
-!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 17:12'!
-metaObjectDict
-
-	^ moDict ifNil: [ moDict _ Dictionary new. ].! !
-
-!DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:50'!
-needs
-
-	^ #().! !
-
-!DAAspect class methodsFor: 'connecting' stamp: 'as 4/22/2008 16:51'!
-on: aDAPointcut do: aSymbol
-
-	| connector |
-
-	self scope ifNil: [
-		connector _ DAConnector on: aDAPointcut do: aSymbol on: self metaObject.
-	] ifNotNil: [
-		connector _ DAConnector on: aDAPointcut create: self metaObjectCreator per: self scope do: aSymbol.
-	].
-
-	^ connector aspect: self; yourself.! !
-
-!DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:52'!
-provides
-
-	^ #().! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 16:53'!
-reset
-
-	connectors ifNotNil: [ connectors do: [ :con | con uninstall. ]. ].
-	connectors _ nil.
-	mo _ nil.
-	moDict _ nil.
-	moCreator _ nil.! !
-
-!DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
-scope
-
-	^ nil.! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/22/2008 14:29'!
-uninstall
-
-	self connectors do: [
-		:con |
-		con uninstall.
-	].! !
-
-!DAAspect class methodsFor: 'dependencies' stamp: 'as 4/11/2008 11:52'!
-uses
-
-	^ #().! !
 
 Object subclass: #DAClassDescription
 	instanceVariableNames: 'className'
@@ -3243,10 +3077,230 @@ visitOr: pc
 	pc right acceptVisitor: self.
 	joinPoints addAll: self pop.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
+Object subclass: #DAProtoAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
 
-	^ self method parent.! !
+DAProtoAspect class
+	instanceVariableNames: 'pointcutNames'!
+
+!DAProtoAspect commentStamp: 'as 5/2/2008 09:54' prior: 0!
+Provides minimal behavior for an aspect, that can't be implemented directly in the aspect class.!
+
+DAProtoAspect class
+	instanceVariableNames: 'pointcutNames'!
+
+DAProtoAspect subclass: #DAAspect
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Kernel'!
+
+DAAspect class
+	instanceVariableNames: 'mo moCreator moDict'!
+
+!DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
+Combines several pointcuts and advices by hosting multiple connectors.!
+
+DAAspect class
+	instanceVariableNames: 'mo moCreator moDict'!
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
+adviceControls
+
+	^ #(before after beforeafter instead).! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
+advices
+
+	| possibilities |
+	possibilities _ self possibleAdviceNames.
+	^ self class methods select: [
+		:method |
+		possibilities anySatisfy: [
+			:pos |
+			pos match: (method selector subStrings: ':') first.
+		].
+	].! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:41'!
+allPointcutNames
+
+	^ self superclass pointcutNames, self pointcutNames.! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
+controlForAdvice: aMethod
+
+	^ self adviceControls detect: [
+		:ctrl |
+		aMethod selector startsWith: ctrl.
+	].! !
+
+!DAAspect class methodsFor: 'fileIn/Out' stamp: 'as 4/30/2008 17:42'!
+definitionST80
+
+	| aStream |
+	aStream _ WriteStream on: (String new: 300).
+	aStream nextPutAll: superclass name.
+	aStream nextPutAll: ' subaspect: ';
+			store: self name.
+	(self hasTraitComposition and: [self traitComposition notEmpty]) ifTrue: [
+		aStream cr; tab; nextPutAll: 'uses: ';
+			nextPutAll: self traitCompositionString].
+	aStream cr; tab; nextPutAll: 'pointcutNames: ';
+			store: self pointcutsString.
+	aStream cr; tab; nextPutAll: 'instanceVariableNames: ';
+			store: self instanceVariablesString.
+	aStream cr; tab; nextPutAll: 'classVariableNames: ';
+			store: self classVariablesString.
+	aStream cr; tab; nextPutAll: 'poolDictionaries: ';
+			store: self sharedPoolsString.
+	aStream cr; tab; nextPutAll: 'category: ';
+			store: (SystemOrganization categoryOfElement: self name) asString.
+
+	superclass ifNil: [ 
+		aStream nextPutAll: '.'; cr.
+		aStream nextPutAll: self name.
+		aStream space; nextPutAll: 'superclass: nil'. ].
+
+	^ aStream contents! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:31'!
+disabled
+
+	^ false.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:16'!
+install
+
+	self shouldBeImplemented.! !
+
+!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
+metaObject
+
+	^ mo ifNil: [ mo _ self new. ].! !
+
+!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:59'!
+metaObjectCreator
+
+	^ moCreator ifNil: [ moCreator _ [ self new. ]. ].! !
+
+!DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 17:12'!
+metaObjectDict
+
+	^ moDict ifNil: [ moDict _ Dictionary new. ].! !
+
+!DAAspect class methodsFor: 'pointcuts' stamp: 'as 4/30/2008 18:01'!
+pointcutForAdvice: aMethod
+
+	^ self perform: (
+		self allPointcutNames detect: [
+			:pcn |
+			(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
+		]
+	).! !
+
+!DAAspect class methodsFor: 'printing' stamp: 'as 4/30/2008 17:43'!
+pointcutsString
+
+	^ String streamContents: [
+		:stream |
+		self pointcutNames do: [
+			:each |
+			stream nextPutAll: each asString.
+		] separatedBy: [ stream space. ].
+	].! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
+possibleAdviceNames
+
+	| names |
+	names _ Set new.
+	self allPointcutNames do: [
+		:pcn |
+		self adviceControls do: [
+			:ctrl |
+			names add: ctrl, pcn capitalized.
+		].
+	].
+	^ names.! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:03'!
+reificationsForAdvice: aMethod
+
+	^ aMethod reflectiveMethod argumentNames collect: [ :arg | arg asSymbol. ].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:17'!
+reset
+
+	mo _ nil.
+	moDict _ nil.
+	moCreator _ nil.! !
+
+!DAAspect class methodsFor: 'aspects' stamp: 'as 4/14/2008 15:47'!
+scope
+
+	^ nil.! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 4/30/2008 17:42'!
+template: categorySymbol
+
+	^ self templateForSubclassOf: DAAspect name category: categorySymbol. ! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 4/30/2008 17:43'!
+templateForSubclassOf: aClass category: aSymbol
+
+	^ aClass asString, 'subaspect: #NameOfSubaspect
+	pointcutNames: ''''
+	instanceVariableNames: ''''
+	classVariableNames: ''''
+	poolDictionaries: ''''
+	category: ''' , aSymbol asString , ''''.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:16'!
+uninstall
+
+	self shouldBeImplemented.! !
+
+!DAAspect methodsFor: 'accessing' stamp: 'as 4/30/2008 17:44'!
+allPointcutNames
+
+	^ self class allPointcutNames.! !
+
+!DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:34'!
+pointcutNames
+
+	^ pointcutNames ifNil: [ pointcutNames _ Set new. ].! !
+
+!DAProtoAspect class methodsFor: 'accessing' stamp: 'as 4/30/2008 17:36'!
+pointcutNames: aString
+	
+	pointcutNames _ (aString subStrings: ' ') asSet.! !
+
+!DAProtoAspect class methodsFor: 'subaspect creation' stamp: 'as 4/30/2008 17:48'!
+subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classVariableNames: classVars poolDictionaries: pools category: cat
+
+	| newClass |
+	newClass _ self subclass: class
+		instanceVariableNames: instVars
+		classVariableNames: classVars
+		poolDictionaries: pools
+		category: cat.
+	newClass
+		pointcutNames: pointcuts.
+	^ newClass.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
+
+	^ DAMethodDescription methodObject: self.! !
+
+!ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:40'!
+asPointcut
+
+	^ DAPointcut method: self.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -3307,3 +3361,49 @@ flowOutOf: aMethod
 
 	count _ self cflowCounters at: aMethod asDescription.
 	self cflowCounters at: aMethod asDescription put: count - 1.! !
+
+!Browser methodsFor: '*DA' stamp: 'as 5/2/2008 10:25'!
+defineClass: defString notifying: aController  
+	"The receiver's textual content is a request to define a new class. The
+	source code is defString. If any errors occur in compilation, notify
+	aController."
+	| oldClass class newClassName defTokens keywdIx envt |
+	oldClass _ self selectedClassOrMetaClass.
+	defTokens _ defString findTokens: Character separators.
+	
+	((defTokens first = 'Trait' and: [defTokens second = 'named:'])
+		or: [defTokens second = 'classTrait'])
+		ifTrue: [^self defineTrait: defString notifying: aController].
+		
+	keywdIx _ defTokens findFirst: [:x | x beginsWith: 'category'].
+	envt _ Smalltalk.
+	keywdIx _ defTokens findFirst: [:x | '*subclass*' match: x].
+	
+	"as 5/2/2008: a fix for DA (Dynamic Aspects), which do not contain the word 'subclass',
+	 but 'subaspect' instead."
+	keywdIx = 0 ifTrue: [ keywdIx _ defTokens findFirst: [ :x | '*subaspect*' match: x. ]. ].
+	
+	newClassName _ (defTokens at: keywdIx+1) copyWithoutAll: '#()'.
+	((oldClass isNil or: [oldClass theNonMetaClass name asString ~= newClassName])
+		and: [envt includesKey: newClassName asSymbol]) ifTrue:
+			["Attempting to define new class over existing one when
+				not looking at the original one in this browser..."
+			(self confirm: ((newClassName , ' is an existing class in this system.
+Redefining it might cause serious problems.
+Is this really what you want to do?') asText makeBoldFrom: 1 to: newClassName size))
+				ifFalse: [^ false]].
+	"ar 8/29/1999: Use oldClass superclass for defining oldClass
+	since oldClass superclass knows the definerClass of oldClass."
+	oldClass ifNotNil:[oldClass _ oldClass superclass].
+	class _ oldClass subclassDefinerClass
+				evaluate: defString
+				notifying: aController
+				logged: true.
+	(class isKindOf: Behavior)
+		ifTrue: [self changed: #systemCategoryList.
+				self changed: #classList.
+				self clearUserEditFlag.
+				self setClass: class selector: nil.
+				"self clearUserEditFlag; editClass."
+				^ true]
+		ifFalse: [^ false]! !
