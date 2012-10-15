@@ -27,6 +27,21 @@ selfIfEmpty: aBlock
 	^ (self >> selector) reflectiveMethod.
 ! !
 
+!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:20'!
+notifyUsersOfChangedSelectors: aCollection
+
+	"Make it possible that a class can also react on selector changes on the class side,
+	 whose methods are actually in the method dictionary of the meta class and
+	 managed there.
+	
+	 Remember that Behavior is a superclass for normal classes (like Object) and
+	 meta classes (like Object class)."
+	
+	self theNonMetaClass notifyUsersOfChangedSelectors: aCollection meta: self isMeta.! !
+
+!Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
+notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
+
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -3643,6 +3658,13 @@ isAdvice: aSymbol
 		pos match: (aSymbol subStrings: ':') first.
 	].! !
 
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/26/2008 23:30'!
+isAdviceOrPointcut: aSymbol meta: aBoolean
+
+	^ (aBoolean and: [ self isPointcut: aSymbol. ]) or: [
+		aBoolean not and: [ self isAdvice: aSymbol. ].
+	].! !
+
 !DAAspect class methodsFor: 'testing' stamp: 'as 5/16/2008 11:25'!
 isDisabled
 
@@ -3698,12 +3720,19 @@ notInstalled
 
 	^ connectors isNil.! !
 
-!DAAspect class methodsFor: 'compiling' stamp: 'as 5/22/2008 18:11'!
+!DAAspect class methodsFor: 'compiling' stamp: 'as 5/26/2008 23:29'!
 noteCompilationOf: aSelector meta: aBoolean
 
+	(self isEnabled and: [ self isAdviceOrPointcut: aSelector meta: aBoolean. ]) ifTrue: [
+		self reinstallQuietly.
+	].! !
+
+!DAAspect class methodsFor: 'compiling' stamp: 'as 5/26/2008 23:34'!
+notifyUsersOfChangedSelectors: aCollection meta: aBoolean
+
 	(self isEnabled and: [
-		(aBoolean and: [ self isPointcut: aSelector. ]) or: [
-			aBoolean not and: [ self isAdvice: aSelector. ].
+		aCollection anySatisfy: [
+			:sel | self isAdviceOrPointcut: sel meta: aBoolean.
 		].
 	]) ifTrue: [ self reinstallQuietly. ].! !
 
@@ -3796,6 +3825,11 @@ uninstallQuietly
 
 	[ self uninstall. ] on: Exception do: [].! !
 
+!DAAspect class methodsFor: 'initialize-release' stamp: 'as 5/26/2008 16:16'!
+unload
+
+	self uninstall.! !
+
 DAAspect subclass: #DAExampleAspect
 	instanceVariableNames: 'reifications'
 	classVariableNames: ''
@@ -3878,10 +3912,10 @@ fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 5/26/2008 10:21'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 5/26/2008 17:08'!
 noEnd: pc
 
-	^ pc method: self class >> #fibNoEnd:.! !
+	^ (self class >> #fibNoEnd:) asPointcut.! !
 
 !DAFibonacciExample methodsFor: 'advices' stamp: 'as 5/25/2008 00:07'!
 insteadNoEnd
