@@ -4880,6 +4880,10 @@ noScope
 
 	self properties removeKey: #moScope ifAbsent: [ self. ].! !
 
+!GPLink methodsFor: '*DA' stamp: 'as 8/3/2008 20:30'!
+nodes
+	^nodes ifNil: [nodes := IdentitySet new].! !
+
 !ClassDescription class methodsFor: '*DA' stamp: 'as 5/8/2008 15:55'!
 asDescription
 
