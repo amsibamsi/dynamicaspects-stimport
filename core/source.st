@@ -6,8 +6,8 @@ SystemOrganization addCategory: #'DynamicAspects-Pointcut'!
 SystemOrganization addCategory: #'DynamicAspects-Pointcut-Tests'!
 SystemOrganization addCategory: #'DynamicAspects-Testing'!
 SystemOrganization addCategory: #'DynamicAspects-Tests'!
-SystemOrganization addCategory: #'DynamicAspects-Utilities-Tests'!
 SystemOrganization addCategory: #'DynamicAspects-Utilities'!
+SystemOrganization addCategory: #'DynamicAspects-Utilities-Tests'!
 
 !String methodsFor: '*DynamicAspects' stamp: 'as 2/11/2008 08:14'!
 asRegexFilter
@@ -275,7 +275,7 @@ install
 		].
 	].! !
 
-!DAAspect methodsFor: 'private' stamp: 'as 2/11/2008 13:38'!
+!DAAspect methodsFor: 'private' stamp: 'as 2/11/2008 14:30'!
 installAdvice: advice pointcut: pointcut
 
 	pointcut genLinks links do: [
@@ -286,14 +286,14 @@ installAdvice: advice pointcut: pointcut
 			arguments: (self reificationsForAdvice: advice);
 			control: (self controlForAdvice: advice);
 			aspect: self.
-		"["
+		[
 			link install.
 			links add: link.
-		"] on: Exception do: [
+		] on: Exception do: [
 			link uninstall.
 			self uninstall.
 			self error: 'could not install advice'.
-		]."
+		].
 	].! !
 
 !DAAspect methodsFor: 'testing' stamp: 'as 2/11/2008 11:13'!
@@ -1803,7 +1803,7 @@ testNegation
 	self deny: (filter matches: 'abc').! !
 
 TestCase subclass: #DATestingWithLinks
-	instanceVariableNames: ''
+	instanceVariableNames: 'links'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DynamicAspects-Tests'!
@@ -1822,16 +1822,18 @@ DATestingWithLinks subclass: #DAAspectTest
 !DAAspectTest commentStamp: 'as 8/14/2007 10:30' prior: 0!
 Testing DAAspect.!
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 10:58'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
 setUp
 
+	super setUp.
 	self removeAllLinksOn: DAExamples.
 	DAExamples initializeCounter.
 	DATestAspect instance install.! !
 
-!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 10:58'!
+!DAAspectTest methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
 tearDown
 
+	super tearDown.
 	self removeAllLinksOn: DAExamples.! !
 
 !DAAspectTest methodsFor: 'testing' stamp: 'as 11/19/2007 13:32'!
@@ -1900,13 +1902,13 @@ DATestingWithLinks subclass: #DAGeppettoTests
 !DAGeppettoTests commentStamp: 'as 1/14/2008 16:36' prior: 0!
 Additional test for Geppetto.!
 
-!DAGeppettoTests methodsFor: 'running' stamp: 'as 2/1/2008 14:15'!
+!DAGeppettoTests methodsFor: 'running' stamp: 'as 2/11/2008 15:10'!
 setUp
 
 	super setUp.
 	self removeAllLinksOn: DAGeppettoExamples.! !
 
-!DAGeppettoTests methodsFor: 'running' stamp: 'as 2/1/2008 14:15'!
+!DAGeppettoTests methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
 tearDown
 
 	super tearDown.
@@ -1927,16 +1929,24 @@ testArgumentListCondition
 	DAGeppettoExamples example1.
 	self assert: asserted.! !
 
-!DAGeppettoTests methodsFor: 'testing' stamp: 'as 1/11/2008 15:56'!
+!DAGeppettoTests methodsFor: 'testing' stamp: 'as 2/11/2008 15:12'!
 testConditionArguments
 
 	| link asserted |
 	asserted _ false.
 	link _ GPLink metaObject: [ asserted _ true. ].
+	self cleanup: link.
 	link condition: [ :arg | arg == DAGeppettoExamples ] arguments: #(object).
 	link hookOn: (DAGeppettoExamples class >> #example1) reflectiveMethod methodNode.
 	DAGeppettoExamples example1.
 	self assert: asserted.! !
+
+!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:11'!
+cleanup: aGPLink
+
+	"Register aGPLink for cleanup in #tearDown"
+	
+	links add: aGPLink.! !
 
 !DATestingWithLinks methodsFor: 'running' stamp: 'as 2/1/2008 13:58'!
 removeAllLinksOn: aClass
@@ -1949,3 +1959,13 @@ removeAllLinksOn: aClass
 			self assert: node hasAnyLink not.
 		].
 	].! !
+
+!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:06'!
+setUp
+
+	links _ Set new.! !
+
+!DATestingWithLinks methodsFor: 'running' stamp: 'as 2/11/2008 15:07'!
+tearDown
+
+	links do: [ :link | link uninstall. ].! !
