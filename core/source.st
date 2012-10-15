@@ -46,15 +46,14 @@ reflectiveMethod
 
 	^ self method parent.! !
 
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
+!GeppettoTest methodsFor: '*DA' stamp: 'as 6/3/2008 14:41'!
+testMethodInstead
 
-	^ DAMethodDescription methodObject: self.! !
-
-!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
-asPointcut
-
-	^ DAPointcut method: self.! !
+	gplink := GPLink new metaObject: [ 2. ]; control: #instead.
+	(GPExamples >> #exampleDA) methodNode link: gplink.
+	
+	GPCounter reset.
+	self assert: (GPExamples new exampleDA = 2).! !
 
 TestCase subclass: #DAAspectBehaviorTest
 	instanceVariableNames: 'examples aspect'
@@ -4052,13 +4051,16 @@ Empty example aspect to test advice selectors.!
 !DAAspectSelectorExample class methodsFor: 'stub' stamp: 'as 6/2/2008 15:48'!
 noop! !
 
-!DAAspectSelectorExample class methodsFor: 'pointcuts' stamp: 'as 6/2/2008 16:03'!
+!DAAspectSelectorExample class methodsFor: 'pointcuts' stamp: 'as 6/5/2008 13:29'!
 pointcut
 
 	^ (self class >> #noop) asPointcut.! !
 
 !DAAspectSelectorExample methodsFor: 'advices' stamp: 'as 6/2/2008 16:09'!
 afterPointcutClass: c object: o! !
+
+!DAAspectSelectorExample methodsFor: 'advices' stamp: 'as 6/5/2008 13:36'!
+afterPointcutWithClass: c object: o! !
 
 DAAspectSelectorExample subclass: #DAAspectSelectorExample2
 	instanceVariableNames: ''
@@ -4100,10 +4102,10 @@ fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 5/26/2008 17:08'!
-noEnd: pc
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/3/2008 14:57'!
+noEnd
 
-	^ (self class >> #fibNoEnd:) asPointcut.! !
+	^ (self class >> #fibNoEnd:) asPointcutt.! !
 
 !DAFibonacciExample methodsFor: 'advices' stamp: 'as 5/25/2008 00:07'!
 insteadNoEnd
@@ -4133,14 +4135,10 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!GeppettoTest methodsFor: '*DA' stamp: 'as 5/26/2008 13:28'!
-testMethodInstead
+!GPExamples methodsFor: '*DA' stamp: 'as 6/3/2008 14:42'!
+exampleDA
 
-	gplink := GPLink new metaObject: [10]; control: #instead.
-	(GPExamples>>#exampleBlock) methodNode body do: [ :node | node link: gplink. ].
-	
-	GPCounter reset.
-	self assert: (GPExamples new exampleBlock = 10).! !
+	^ 1.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
@@ -4180,6 +4178,11 @@ asDescription
 asDescription
 
 	^ DAClassDescription classObject: self.! !
+
+!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
+count: aNumber
+
+	count _ aNumber.! !
 
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
@@ -4410,10 +4413,15 @@ updateAspect
 
 	self adaptAspectButtonColor.! !
 
-!GPCounter methodsFor: '*DA' stamp: 'as 5/22/2008 18:21'!
-count: aNumber
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
+asDescription
 
-	count _ aNumber.! !
+	^ DAMethodDescription methodObject: self.! !
+
+!CompiledMethod methodsFor: '*DA' stamp: 'as 4/30/2008 15:41'!
+asPointcut
+
+	^ DAPointcut method: self.! !
 DAFlowContext initialize!
 DAAspect initialize!
 DAAspectBrowser initialize!
