@@ -1091,8 +1091,8 @@ Object subclass: #DAConnector
 	poolDictionaries: ''
 	category: 'DA-Kernel'!
 
-!DAConnector commentStamp: 'as 4/23/2008 13:43' prior: 0!
-Connects a pointcut with an advices.!
+!DAConnector commentStamp: 'as 5/2/2008 10:29' prior: 0!
+Connects a pointcut with an advices. This is basically a wrapper around multiple GPLinks.!
 
 !DAConnector class methodsFor: 'instance creation' stamp: 'as 4/14/2008 16:34'!
 on: aDAPointcut create: aBlock per: scopeSymbol do: selectorSymbol
@@ -3099,13 +3099,13 @@ DAProtoAspect subclass: #DAAspect
 	category: 'DA-Kernel'!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict connectors'!
 
 !DAAspect commentStamp: 'as 4/23/2008 13:42' prior: 0!
 Combines several pointcuts and advices by hosting multiple connectors.!
 
 DAAspect class
-	instanceVariableNames: 'mo moCreator moDict'!
+	instanceVariableNames: 'mo moCreator moDict connectors'!
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 09:59'!
 adviceControls
@@ -3129,6 +3129,46 @@ advices
 allPointcutNames
 
 	^ self superclass pointcutNames, self pointcutNames.! !
+
+!DAAspect class methodsFor: 'advices' stamp: 'as 5/2/2008 11:12'!
+argumentsForAdvice: aMethod
+
+	^ aMethod reflectiveMethod argumentNames collect: [ :arg | arg asSymbol. ].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:31'!
+connectorForAdvice: aMethod
+
+	| connector |
+	
+	connector _ DAConnector new.
+	connector
+		aspect: self;
+		arguments: (self argumentsForAdvice: aMethod);
+		control: (self controlForAdvice: aMethod);
+		pointcut: (self pointcutForAdvice: aMethod);
+		selector: aMethod selector.
+		
+	self scope ifNil: [
+		connector metaObject: self metaObject.
+	] ifNotNil: [
+		connector
+			scope: self scope;
+			metaObjectCreator: self metaObjectCreator dict: self metaObjectDict.
+	].
+
+	^ connector.! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:04'!
+connectors
+
+	| cons |
+
+	cons _ Set new.
+	self advices do: [
+		:adv |
+		cons add: (self connectorForAdvice: adv).
+	].
+	^ cons.! !
 
 !DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:02'!
 controlForAdvice: aMethod
@@ -3167,15 +3207,31 @@ definitionST80
 
 	^ aStream contents! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:31'!
-disabled
-
-	^ false.! !
-
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:16'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:42'!
 install
 
-	self shouldBeImplemented.! !
+	self notInstalled ifTrue: [
+		connectors _ Set new.
+		[ self installConnectors. ] on: Exception do: [
+			self uninstall.
+			self error: 'could not install'.
+		].
+	].! !
+
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:38'!
+installConnectors
+
+	self connectors do: [
+		:con |
+		con install.
+		connectors add: con.
+	].
+		! !
+
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/2/2008 10:58'!
+isInstalled
+
+	^ connectors notNil.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -3192,15 +3248,22 @@ metaObjectDict
 
 	^ moDict ifNil: [ moDict _ Dictionary new. ].! !
 
-!DAAspect class methodsFor: 'pointcuts' stamp: 'as 4/30/2008 18:01'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 5/2/2008 11:42'!
+notInstalled
+
+	^ self isInstalled not.! !
+
+!DAAspect class methodsFor: 'pointcuts' stamp: 'as 5/2/2008 10:49'!
 pointcutForAdvice: aMethod
 
-	^ self perform: (
-		self allPointcutNames detect: [
-			:pcn |
-			(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
-		]
-	).! !
+	| pc |
+
+	pc _ self allPointcutNames detect: [
+		:pcn |
+		(aMethod selector subStrings: ':') first endsWith: pcn capitalized.
+	].
+	
+	^ self perform: (pc, ':') asSymbol with: DAPointcut.! !
 
 !DAAspect class methodsFor: 'printing' stamp: 'as 4/30/2008 17:43'!
 pointcutsString
@@ -3226,11 +3289,6 @@ possibleAdviceNames
 		].
 	].
 	^ names.! !
-
-!DAAspect class methodsFor: 'advices' stamp: 'as 4/30/2008 18:03'!
-reificationsForAdvice: aMethod
-
-	^ aMethod reflectiveMethod argumentNames collect: [ :arg | arg asSymbol. ].! !
 
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:17'!
 reset
@@ -3259,10 +3317,15 @@ templateForSubclassOf: aClass category: aSymbol
 	poolDictionaries: ''''
 	category: ''' , aSymbol asString , ''''.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 10:16'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 5/2/2008 11:42'!
 uninstall
 
-	self shouldBeImplemented.! !
+	connectors copy do: [
+		:con |
+		con uninstall.
+		connectors remove: con.
+	].
+	connectors _ nil.! !
 
 !DAAspect methodsFor: 'accessing' stamp: 'as 4/30/2008 17:44'!
 allPointcutNames
