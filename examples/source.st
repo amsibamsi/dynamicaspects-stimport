@@ -106,12 +106,12 @@ DAAspect subclass: #DAStoreFieldWriteExample
 !DAStoreFieldWriteExample commentStamp: 'as 9/1/2008 15:51' prior: 0!
 Trace the flow through the seaside components.!
 
-!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 9/1/2008 15:52'!
+!DAStoreFieldWriteExample class methodsFor: 'pointcuts' stamp: 'as 9/16/2008 18:41'!
 fieldWrites
 
 	<pointcut>
 
-	^ (PC className: 'WAStore*') & (PC fieldWrite).! !
+	^ (PC className: 'WAStore*') & PC fieldWrite & PC instanceVariable.! !
 
 !DAStoreFieldWriteExample methodsFor: 'advices' stamp: 'as 9/1/2008 15:52'!
 logFieldWrites: node
@@ -204,10 +204,10 @@ titleAdvice
 
 	^ PC class: self method: #title.! !
 
-!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 15:27'!
+!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 16:36'!
 title
 
-	<advice: #title control: #instead disabled: true>
+	<advice: #title control: #instead disabled: false>
 
 	^ 'sushiNet Pro'.! !
 
@@ -218,10 +218,10 @@ title2
 
 	^ 'sushiNet Pro 2.0'.! !
 
-!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 15:27'!
+!DAStoreTitleExample methodsFor: 'advice' stamp: 'as 9/1/2008 16:35'!
 title: operation
 
-	<advice: #title control: #instead arguments: #(operation) disabled: false>
+	<advice: #title control: #instead arguments: #(operation) disabled: true>
 
 	^ operation value, ' Pro'.! !
 
