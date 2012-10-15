@@ -1,180 +1,300 @@
-SystemOrganization addCategory: #'DynamicAspects-Evaluation'!
+SystemOrganization addCategory: #'DynamicAspects-Tests'!
+SystemOrganization addCategory: #'DynamicAspects-Kernel'!
+SystemOrganization addCategory: #'DynamicAspects-Pointcuts'!
+SystemOrganization addCategory: #'DynamicAspects-Aspects'!
 
-Object subclass: #DAAdviceEvaluationDummy
-	instanceVariableNames: 'values'
+Object subclass: #DAAspect
+	instanceVariableNames: ''
+	classVariableNames: 'Links'
+	poolDictionaries: ''
+	category: 'DynamicAspects-Kernel'!
+
+DAAspect class
+	instanceVariableNames: 'Advices Instance Links Pointcuts'!
+
+DAAspect class
+	instanceVariableNames: 'Advices Instance Links Pointcuts'!
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/3/2007 11:46'!
+advices
+
+	^ Advices.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 6/27/2007 15:09'!
+advices: aString
+
+	Advices _ self stringToSymbols: aString.! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/3/2007 11:38'!
+instance
+
+	^ Instance ifNil: [ Instance _ self basicNew initialize. ].! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/3/2007 11:47'!
+links
+
+	^ Links.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/2/2007 10:46'!
+links: aString
+
+	Links _ self stringToSymbols: aString.! !
+
+!DAAspect class methodsFor: 'instance creation' stamp: 'as 7/2/2007 10:14'!
+new
+
+	self error: 'I am singleton, use ', self class name, '>>instance'.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 7/3/2007 11:46'!
+pointcuts
+
+	^ Pointcuts.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 6/27/2007 15:10'!
+pointcuts: aString
+
+	Pointcuts _ self stringToSymbols: aString.! !
+
+!DAAspect class methodsFor: 'accessing' stamp: 'as 6/27/2007 15:09'!
+stringToSymbols: aString
+
+	^ (aString subStrings: ' ') collect: [
+		:substring |
+		substring asSymbol.
+	].! !
+
+!DAAspect class methodsFor: 'subaspect creation' stamp: 'as 7/2/2007 10:47'!
+subaspect: class pointcutNames: pointcuts adviceNames: advices linkNames: links variableNames: variables category: cat
+
+	^ self
+		subclass: class
+			instanceVariableNames: variables
+			classVariableNames: ''
+			poolDictionaries: ''
+			category: category;
+		pointcuts: pointcuts;
+		advices: advices;
+		links: links;
+		yourself.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:34'!
+advice: aSymbol
+
+	| advice |
+	advice _ nil.
+	(self class isProvidedSelector: aSymbol) ifTrue: [
+		advice _ aSymbol.
+	].
+	^ advice.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 7/3/2007 11:46'!
+adviceNames
+
+	^ self class advices.! !
+
+!DAAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:43'!
+advices
+
+	^ self adviceNames collect: [
+		:name |
+		self advice: name.
+	] thenSelect: [
+		:advice |
+		advice notNil.
+	].! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 7/4/2007 15:26'!
+install
+
+	self links do: [
+		:link |
+		| pointcut advice gplink |
+		pointcut _ self pointcut: link key.
+		advice _ self advice: link value.
+		gplink _ GPLink new metaObject: [ self perform: advice. ].
+		pointcut nodes do: [ :node | node link: gplink. ].
+	].! !
+
+!DAAspect methodsFor: 'linking' stamp: 'as 7/4/2007 15:34'!
+link: aSymbol
+
+	| link |
+	link _ nil.
+	(self class isProvidedSelector: aSymbol) ifTrue: [
+		link _ self perform: aSymbol.
+		(link isKindOf: Association) ifFalse: [ link _ nil. ].
+	].
+	^ link.! !
+
+!DAAspect methodsFor: 'linking' stamp: 'as 7/3/2007 11:46'!
+linkNames
+
+	^ self class links.! !
+
+!DAAspect methodsFor: 'linking' stamp: 'as 7/4/2007 15:42'!
+links
+
+	^ self linkNames collect: [
+		:name |
+		self link: name.
+	] thenSelect: [
+		:link |
+		link notNil.
+	].! !
+
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:34'!
+pointcut: aSymbol
+
+	| pointcut |
+	pointcut _ nil.
+	(self class isProvidedSelector: aSymbol) ifTrue: [
+		pointcut _ self perform: aSymbol.
+		(pointcut isKindOf: DAPointcut) ifFalse: [ pointcut _ nil. ].
+	].
+	^ pointcut.! !
+
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/3/2007 11:46'!
+pointcutNames
+
+	^ self class pointcuts.! !
+
+!DAAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:43'!
+pointcuts
+
+	^ self pointcutNames collect: [
+		:name |
+		self pointcut: name.
+	] thenSelect: [
+		:pointcut |
+		pointcut notNil.
+	].! !
+
+!DAAspect methodsFor: 'installing' stamp: 'as 7/4/2007 16:26'!
+uninstall
+
+	self links do: [
+		:link |
+		| pointcut |
+		pointcut _ self pointcut: link key.
+		pointcut nodes do: [ :node | node removeAllLinks. ].
+	].! !
+
+DAAspect subclass: #DAExampleAspect
+	instanceVariableNames: 'count'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
+	category: 'DynamicAspects-Tests'!
 
-!DAAdviceEvaluationDummy commentStamp: 'as 6/20/2007 13:13' prior: 0!
-Dummy to test advice evaluations on.!
+!DAExampleAspect methodsFor: 'advices' stamp: 'as 7/4/2007 15:24'!
+a1
 
-!DAAdviceEvaluationDummy methodsFor: 'dummy' stamp: 'as 6/20/2007 14:13'!
-dummy
+	count _ count + 1.! !
 
-	self value: 1.! !
+!DAExampleAspect methodsFor: 'accessing' stamp: 'as 7/4/2007 16:10'!
+count
 
-!DAAdviceEvaluationDummy methodsFor: 'initialize-release' stamp: 'as 6/20/2007 14:28'!
+	^ count.! !
+
+!DAExampleAspect methodsFor: 'initialize-release' stamp: 'as 7/4/2007 15:24'!
 initialize
 
-	values _ OrderedCollection new.! !
+	count _ 0.! !
 
-!DAAdviceEvaluationDummy methodsFor: 'value' stamp: 'as 6/20/2007 14:12'!
-value: aNumber
+!DAExampleAspect methodsFor: 'linking' stamp: 'as 7/4/2007 13:33'!
+l1
 
-	values add: aNumber.! !
+	^ #p1 -> #a1.! !
 
-!DAAdviceEvaluationDummy methodsFor: 'value' stamp: 'as 6/20/2007 14:12'!
-values
+!DAExampleAspect methodsFor: 'pointcuts' stamp: 'as 7/4/2007 15:17'!
+p1
 
-	^ values.! !
+	^ DAMethodExecutionPointcut onClass: DAExamples method: #example.! !
 
-Object subclass: #DAJoinPointEvaluationDummy
+Object subclass: #DAExamples
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
+	category: 'DynamicAspects-Tests'!
 
-!DAJoinPointEvaluationDummy commentStamp: 'as 6/13/2007 14:17' prior: 0!
-Dummy to test join point evaluations on.!
+!DAExamples methodsFor: 'examples' stamp: 'as 7/4/2007 17:48'!
+example
 
-!DAJoinPointEvaluationDummy methodsFor: 'as yet unclassified' stamp: 'as 6/13/2007 14:17'!
-method
+	^ self.! !
 
-	| tmp |
-	tmp _ Object new.
-	^ tmp.! !
-
-!DAJoinPointEvaluationDummy methodsFor: 'as yet unclassified' stamp: 'as 6/13/2007 15:35'!
-method2
-
-	^ self method.! !
-
-Object subclass: #DAPointcutEvaluationDummy
-	instanceVariableNames: 'a'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
-
-!DAPointcutEvaluationDummy commentStamp: 'as 6/18/2007 17:36' prior: 0!
-Dummy to test pointcut evaluations on.!
-
-!DAPointcutEvaluationDummy methodsFor: 'as yet unclassified' stamp: 'as 6/18/2007 17:37'!
-method! !
-
-TestCase subclass: #DAAdviceEvaluation
-	instanceVariableNames: 'link'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
-
-!DAAdviceEvaluation commentStamp: 'as 6/20/2007 13:12' prior: 0!
-Evaluating advice possibilities.!
-
-!DAAdviceEvaluation methodsFor: 'running' stamp: 'as 6/20/2007 14:01'!
-setup
-
-	link _ nil.! !
-
-!DAAdviceEvaluation methodsFor: 'running' stamp: 'as 6/20/2007 14:02'!
-tearDown
-
-	link ifNotNil: [ link uninstall. ].! !
-
-!DAAdviceEvaluation methodsFor: 'testing' stamp: 'as 6/20/2007 14:33'!
-testAfter
-
-	| values |
-	link _ GPLink new metaObject: [ :object | object value: 2. ]; after.
-	(DAAdviceEvaluationDummy >> #dummy) methodNode link: link.
-	values _ DAAdviceEvaluationDummy new dummy; values.
-	self assert: (values at: 1) = 1.
-	self assert: (values at: 2) = 2.! !
-
-!DAAdviceEvaluation methodsFor: 'testing' stamp: 'as 6/20/2007 14:31'!
-testBefore
-
-	| values |
-	link _ GPLink new metaObject: [ :object | object value: 2. ]; before.
-	(DAAdviceEvaluationDummy >> #dummy) methodNode link: link.
-	values _ DAAdviceEvaluationDummy new dummy; values.
-	self assert: (values at: 1) = 2.
-	self assert: (values at: 2) = 1.! !
-
-TestCase subclass: #DAJoinPointEvaluation
+Object subclass: #DAPointcut
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
+	category: 'DynamicAspects-Kernel'!
 
-!DAJoinPointEvaluation commentStamp: 'as 6/13/2007 12:49' prior: 0!
-Evaluating join point possibilities.!
-
-!DAJoinPointEvaluation methodsFor: 'util' stamp: 'as 6/18/2007 17:10'!
-class: aClass methodBody: aSymbol
-
-	^ (aClass >> aSymbol) reflectiveMethod methodNode body.! !
-
-!DAJoinPointEvaluation methodsFor: 'testing-types' stamp: 'as 6/18/2007 17:11'!
-testFieldGet
-
-	| nodes selectedNodes |
-	nodes _ (self class: DAJoinPointEvaluationDummy methodBody: #method) allChildren.
-	selectedNodes _ nodes select: [
-		:each |
-		(each isKindOf: RBTempVariableNode) and: [ ((each parent isKindOf: RBAssignmentNode) not) and: [ (each parent isKindOf: RBSequenceNode) not. ] ].
-	].
-	self assert: selectedNodes size = 1.! !
-
-!DAJoinPointEvaluation methodsFor: 'testing-types' stamp: 'as 6/18/2007 17:11'!
-testFieldSet
-
-	| nodes node |
-	nodes _ (self class: DAJoinPointEvaluationDummy methodBody: #method) allChildren.
-	node _ nodes detect: [
-		:each |
-		each isKindOf: RBAssignmentNode
-	].
-	self assert: node variable name = 'tmp'.! !
-
-!DAJoinPointEvaluation methodsFor: 'testing-types' stamp: 'as 6/18/2007 17:11'!
-testMethodCall
-
-	| nodes node |
-	nodes _ (self class: DAJoinPointEvaluationDummy methodBody: #method2) allChildren.
-	node _ nodes detect: [
-		:each |
-		each isKindOf: RBMessageNode.
-	].
-	self assert: node selector = #method.! !
-
-!DAJoinPointEvaluation methodsFor: 'testing-types' stamp: 'as 6/18/2007 17:11'!
-testMethodExecution
-
-	| node |
-	node _ self class: DAJoinPointEvaluationDummy methodBody: #method.
-	self assert: (node isKindOf: RBProgramNode).! !
-
-TestCase subclass: #DAPointcutEvaluation
-	instanceVariableNames: ''
+DAPointcut subclass: #DACompositePointcut
+	instanceVariableNames: 'children'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'DynamicAspects-Evaluation'!
+	category: 'DynamicAspects-Pointcuts'!
 
-!DAPointcutEvaluation commentStamp: 'as 6/18/2007 17:01' prior: 0!
-Evaluating Pointcut possibilities.!
+DAPointcut subclass: #DAMethodExecutionPointcut
+	instanceVariableNames: 'method'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Pointcuts'!
 
-!DAPointcutEvaluation methodsFor: 'testing-selectors' stamp: 'as 6/18/2007 17:36'!
-testClass
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 6/27/2007 17:58'!
+on: aCompiledMethod
 
-	self assert: (DAPointcutEvaluationDummy isKindOf: Class).! !
+	^ self new
+		method: aCompiledMethod;
+		yourself.! !
 
-!DAPointcutEvaluation methodsFor: 'testing-selectors' stamp: 'as 6/18/2007 17:52'!
-testField
+!DAMethodExecutionPointcut class methodsFor: 'instance creation' stamp: 'as 6/27/2007 18:00'!
+onClass: aClass method: aSymbol
 
-	self assert: (DAPointcutEvaluationDummy allInstVarNames includes: 'a').! !
+	^ self on: aClass >> aSymbol.! !
 
-!DAPointcutEvaluation methodsFor: 'testing-selectors' stamp: 'as 6/18/2007 17:38'!
-testMethod
+!DAMethodExecutionPointcut methodsFor: 'accessing' stamp: 'as 6/27/2007 18:00'!
+method: aCompiledMethod
 
-	self assert: ((DAPointcutEvaluationDummy >> #method) isKindOf: ReflectiveMethod).! !
+	method _ aCompiledMethod.! !
+
+!DAMethodExecutionPointcut methodsFor: 'evaluation' stamp: 'as 6/27/2007 18:34'!
+nodes
+
+	^ Set new
+		add: method methodNode;
+		yourself.! !
+
+!DAPointcut methodsFor: 'evaluation' stamp: 'as 6/27/2007 15:55'!
+nodes
+
+	self subclassResponsibility.! !
+
+TestCase subclass: #DAAspectTest
+	instanceVariableNames: 'example aspect'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DynamicAspects-Tests'!
+
+!DAAspectTest methodsFor: 'running' stamp: 'as 7/4/2007 17:01'!
+setUp
+
+	super initialize.
+	example _ DAExamples new.
+	aspect _ DAExampleAspect instance.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/4/2007 17:50'!
+testAspect
+
+	| count |
+	count _ aspect count.
+	self shouldnt: [ aspect install. ] raise: Exception.
+	example example.
+	self assert: (count + 1 = aspect count).
+	self shouldnt: [ aspect uninstall. ] raise: Exception.! !
+
+!DAAspectTest methodsFor: 'testing' stamp: 'as 7/4/2007 17:49'!
+testNormal
+
+	| count |
+	count _ aspect count.
+	example example.
+	self assert: count = aspect count.! !
