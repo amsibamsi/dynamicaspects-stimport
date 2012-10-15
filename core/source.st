@@ -4113,7 +4113,7 @@ fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 14:10'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 16:40'!
 noEnd
 
 	^ (self class >> #fibNoEnd:) asPointcut.! !
@@ -4333,6 +4333,15 @@ classListIndex: anInteger
 
 	super classListIndex: anInteger.
 	self updateAspect.! !
+
+!DAAspectBrowser methodsFor: 'accessing' stamp: 'as 7/11/2008 16:40'!
+contents: input notifying: aController
+
+	| return |
+	
+	return _ super contents: input notifying: aController.
+	self updateAspect.
+	^ return.! !
 
 !DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/29/2008 11:06'!
 decorateButtons
