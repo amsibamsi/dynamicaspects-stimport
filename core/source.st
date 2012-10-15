@@ -4818,7 +4818,7 @@ pointcutNames
 
 	^ #(transcriptShow).! !
 
-!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/3/2008 17:51'!
+!DATranscriptExample class methodsFor: 'pointcuts' stamp: 'as 7/21/2008 09:18'!
 transcriptShow
 
 	^ (TranscriptStream >> #show:) asPointcut.! !
@@ -4895,21 +4895,26 @@ initialize
 	TheWorldMenu registerOpenCommand: {'Aspect Browser'. {self. #openBrowser}}.
 	self registerInAppRegistry.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:03'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/21/2008 09:00'!
 adaptAspectButtonColor
 
-	| button color |
+	| button aspect color |
 
 	button _ self aspectButton.
+	aspect _ self aspect.
 
 	self isEditingAspect ifTrue: [
-		self aspect isInstalled ifTrue: [
-			color _ Color lightGreen.
-		] ifFalse: [
-			self aspect installFailed ifTrue: [
-				color _ Color lightRed.
+		aspect isEnabled ifTrue: [
+			aspect isInstalled ifTrue: [
+				color _ Color lightGreen.
 			] ifFalse: [
+				color _ Color lightOrange.
+			].
+		] ifFalse: [
+			aspect isInstalled ifTrue: [
 				color _ Color lightBlue.
+			] ifFalse: [
+				color _ Color lightRed.
 			].
 		].
 	] ifFalse: [
@@ -4918,12 +4923,13 @@ adaptAspectButtonColor
 
 	button offColor: color.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/14/2008 15:07'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/21/2008 09:18'!
 adaptAspectButtonText
 
-	| button |
+	| button string aspect |
 
 	button _ self aspectButton.
+	aspect _ self aspect.
 	
 	self isEditingAdviceOrPointcut ifTrue: [
 		self isEditingAdvice ifTrue: [
@@ -4932,7 +4938,20 @@ adaptAspectButtonText
 		self isEditingPointcut ifTrue: [
 			button label: 'p'.
 		].
-	] ifFalse: [ button label: 'A'. ].! !
+	] ifFalse: [
+		button label: 'A'.
+	].
+
+	string _ self aspectString.
+	self isEditingAspect ifTrue: [
+		aspect installFailed ifTrue: [
+			string color: Color red; emphasis: 1.
+		] ifFalse: [
+			string color: Color black; emphasis: 0.
+		].
+	] ifFalse: [
+		string color: Color black; emphasis: 0.
+	].! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 15:18'!
 aspect
@@ -4959,6 +4978,14 @@ aspectMenu
 aspectMenuEnabled: aBoolean
 
 	self aspectMenu items do: [ :m | m isEnabled: aBoolean. ].! !
+
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 7/21/2008 08:40'!
+aspectString
+
+	^ self aspectButton allMorphs detect: [
+		:morph |
+		morph isKindOf: StringMorph.
+	].! !
 
 !DAAspectBrowser methodsFor: 'initialize-release' stamp: 'as 5/29/2008 15:00'!
 buildAspectMenu
@@ -5052,18 +5079,20 @@ openAspectMenu
 		ifFalse: [ self aspectMenuEnabled: false. ].
 	self aspectMenu popUpInWorld.! !
 
-!DAAspectBrowser methodsFor: 'controls' stamp: 'as 7/14/2008 15:58'!
+!DAAspectBrowser methodsFor: 'controls' stamp: 'as 7/21/2008 09:29'!
 optionalButtonPairs
 
 	^ super optionalButtonPairs,
 		#(('A' openAspectMenu 'Manage aspects, the colors indicate:
-green: the aspect is installed
-blue: the aspect is not installed
-red: the aspect failed to install.
+green: installed and enabled
+blue: installed but disabled
+orange: not installed but enabled
+red: is not installed and not enabled.
 The letter indicates:
 ''A'': selected an aspect class
 ''a'': editing an advice
-''p'': editing a pointcut')).! !
+''p'': editing a pointcut.
+A red letter indicates an install error.')).! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/20/2008 13:58'!
 reinstallAspect
