@@ -25,11 +25,6 @@ selfIfEmpty: aBlock
 	^ (self >> selector) reflectiveMethod.
 ! !
 
-!Class methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
-asDescription
-
-	^ DAClassDescription classObject: self.! !
-
 !CompiledMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
 
@@ -39,6 +34,11 @@ asDescription
 asPointcut
 
 	^ DAPointcut method: self.! !
+
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
+
+	^ self method parent.! !
 
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
@@ -670,50 +670,61 @@ Object subclass: #DAClassDescription
 !DAClassDescription commentStamp: 'as 4/18/2008 10:47' prior: 0!
 A description of a class that evaluates to the real object if asked.!
 
-!DAClassDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 10:51'!
-className: aClass
+!DAClassDescription class methodsFor: 'instance creation' stamp: 'as 5/8/2008 15:17'!
+className: aString
 
-	^ self new className: aClass; yourself.! !
+	^ self new className: aString; yourself.! !
 
 !DAClassDescription class methodsFor: 'instance creation' stamp: 'as 4/18/2008 10:50'!
 classObject: aClass
 
 	^ self new classObject: aClass; yourself.! !
 
-!DAClassDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 11:59'!
+!DAClassDescription methodsFor: 'comparing' stamp: 'as 5/8/2008 15:25'!
 = aDAClassDescription
 
 	^ className = aDAClassDescription className.! !
 
-!DAClassDescription methodsFor: 'converting' stamp: 'as 4/18/2008 10:50'!
+!DAClassDescription methodsFor: 'converting' stamp: 'as 5/8/2008 15:25'!
 asPointcut
 
-	^ DAPointcut class: self classObject.! !
+	^ DAPointcut className: className.! !
 
 !DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
 className
 
 	^ className.! !
 
-!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
-className: aSymbol
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 5/8/2008 15:26'!
+className: aString
 
-	className _ aSymbol.! !
+	className _ aString.! !
 
-!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 11:08'!
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 5/8/2008 15:47'!
 classObject
 
-	^ Smalltalk at: className ifAbsent: [ nil. ].! !
+	^ self isMeta ifTrue: [
+		| c |
+		c _ Smalltalk at: (className subStrings: ' ') first asSymbol ifAbsent: [ nil. ].
+		c ifNotNil: [ c class. ].
+	] ifFalse: [
+		Smalltalk at: className asSymbol ifAbsent: [ nil. ].
+	].! !
 
-!DAClassDescription methodsFor: 'accessing' stamp: 'as 4/18/2008 10:47'!
+!DAClassDescription methodsFor: 'accessing' stamp: 'as 5/8/2008 15:13'!
 classObject: aClass
 
-	className _ aClass name asSymbol.! !
+	self className: aClass name.! !
 
 !DAClassDescription methodsFor: 'comparing' stamp: 'as 4/18/2008 10:48'!
 hash
 
 	^ className hash.! !
+
+!DAClassDescription methodsFor: 'testing' stamp: 'as 5/8/2008 15:47'!
+isMeta
+
+	^ className endsWith: ' class'.! !
 
 DAClassDescription subclass: #DAMethodDescription
 	instanceVariableNames: 'methodName'
@@ -2926,6 +2937,22 @@ className: regexString
 
 	^ DAClassPointcut className: regexString.! !
 
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/8/2008 16:49'!
+classOrSuper: aClass
+
+	| desc |
+	
+	desc _ aClass asDescription.
+	^ self classFilter: [
+		:class |
+		(class = desc classObject) or: [ desc classObject allSuperclasses includes: class. ].
+	].! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/8/2008 16:24'!
+classOrSuper: aClass method: aSymbol
+
+	^ (self classOrSuper: aClass) & (self methodName: aSymbol).! !
+
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/6/2008 14:28'!
 classWithBehavior: aClass
 
@@ -3568,11 +3595,6 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
 
@@ -3601,6 +3623,16 @@ hookOnJoinPoint: aDAJoinPoint
 noScope
 
 	self properties removeKey: #moScope ifAbsent: [ self. ].! !
+
+!ClassDescription class methodsFor: '*DA' stamp: 'as 5/8/2008 15:55'!
+asDescription
+
+	^ DAClassDescription classObject: self.! !
+
+!ClassDescription methodsFor: '*DA' stamp: 'as 5/8/2008 15:54'!
+asDescription
+
+	^ DAClassDescription classObject: self.! !
 
 !Process methodsFor: '*DA' stamp: 'as 5/5/2008 11:30'!
 flow
