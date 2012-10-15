@@ -29,10 +29,24 @@ notifyUsersOfChangedSelectors: aCollection
 !Behavior methodsFor: '*DA' stamp: 'as 5/26/2008 23:16'!
 notifyUsersOfChangedSelectors: aCollection meta: aBoolean! !
 
-!GeppettoTest methodsFor: '*DA' stamp: 'as 6/3/2008 14:41'!
-testMethodInstead
+!GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 14:43'!
+return2
 
-	gplink := GPLink new metaObject: [ 2. ]; control: #instead.
+	^ 2.! !
+
+!GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 14:43'!
+testMethodInsteadBlock
+
+	gplink := GPLink new metaObject: [ ^ 2. ]; control: #instead.
+	(GPExamples >> #exampleDA) methodNode link: gplink.
+	
+	GPCounter reset.
+	self assert: (GPExamples new exampleDA = 2).! !
+
+!GeppettoTest methodsFor: '*DA' stamp: 'as 7/11/2008 16:17'!
+testMethodInsteadSelector
+
+	gplink := GPLink new metaObject: self; selector: #return2; control: #instead.
 	(GPExamples >> #exampleDA) methodNode link: gplink.
 	
 	GPCounter reset.
@@ -4099,10 +4113,10 @@ fibTail: n a: a b: b
 
 	^ n <= 1 ifTrue: [ a + b. ] ifFalse: [ self fibTail: n - 1 a: b b: a + b. ].! !
 
-!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/3/2008 14:57'!
+!DAFibonacciExample class methodsFor: 'pointcuts' stamp: 'as 7/11/2008 14:10'!
 noEnd
 
-	^ (self class >> #fibNoEnd:) asPointcutt.! !
+	^ (self class >> #fibNoEnd:) asPointcut.! !
 
 !DAFibonacciExample methodsFor: 'advices' stamp: 'as 5/25/2008 00:07'!
 insteadNoEnd
