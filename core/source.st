@@ -3496,6 +3496,11 @@ failure
 
 	^ failure.! !
 
+!DAAspect class methodsFor: 'initialize-release' stamp: 'as 5/21/2008 14:55'!
+initialize
+
+	self isEnabled ifTrue: [ self reinstallQuietly. ].! !
+
 !DAAspect class methodsFor: 'installing' stamp: 'as 5/19/2008 17:22'!
 install
 
@@ -3796,7 +3801,7 @@ initialize
 	TheWorldMenu registerOpenCommand: {'Aspect Browser'. {self. #openBrowser}}.
 	self registerInAppRegistry.! !
 
-!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/19/2008 17:07'!
+!DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/21/2008 14:36'!
 adaptAspectButtonColor
 
 	| button color |
@@ -3814,7 +3819,7 @@ adaptAspectButtonColor
 			self aspect installFailed ifTrue: [
 				color _ Color lightRed.
 			] ifFalse: [
-				color _ Color lightYellow.
+				color _ Color lightBlue.
 			].
 		].
 	] ifFalse: [
@@ -3951,13 +3956,13 @@ openAspectMenu
 		ifFalse: [ self aspectMenuEnabled: false. ].
 	self aspectMenu popUpInWorld.! !
 
-!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/19/2008 17:10'!
+!DAAspectBrowser methodsFor: 'controls' stamp: 'as 5/21/2008 14:36'!
 optionalButtonPairs
 
 	^ super optionalButtonPairs,
 		#(('A' openAspectMenu 'manage aspects, the colors indicate:
 green: the aspect is installed
-yellow: the aspect is not installed
+blue: the aspect is not installed
 red: the aspect failed to install')).! !
 
 !DAAspectBrowser methodsFor: 'aspects' stamp: 'as 5/20/2008 13:58'!
@@ -3970,4 +3975,5 @@ updateAspect
 
 	self adaptAspectButtonColor.! !
 DAFlowContext initialize!
+DAAspect initialize!
 DAAspectBrowser initialize!
