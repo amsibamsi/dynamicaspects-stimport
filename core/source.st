@@ -88,21 +88,21 @@ hooks: aDAConnector
 	hook.
 	].! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:37'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/15/2008 16:26'!
 install
 
 	self isInstalled ifFalse: [
 		self createHooks do: [
 			:hook |
 			hook install.
-			hooks add: hook.
+			self hooks add: hook.
 		].
 	].! !
 
-!DAAspect class methodsFor: 'testing' stamp: 'as 4/14/2008 17:36'!
+!DAAspect class methodsFor: 'testing' stamp: 'as 4/15/2008 16:25'!
 isInstalled
 
-	^ hooks notEmpty.! !
+	^ self hooks notEmpty.! !
 
 !DAAspect class methodsFor: 'private' stamp: 'as 4/14/2008 16:53'!
 metaObject
@@ -150,14 +150,14 @@ scope
 
 	^ nil.! !
 
-!DAAspect class methodsFor: 'installing' stamp: 'as 4/14/2008 17:38'!
+!DAAspect class methodsFor: 'installing' stamp: 'as 4/15/2008 16:26'!
 uninstall
 
 	self isInstalled ifTrue: [
-		hooks do: [
+		self hooks do: [
 			:hook |
 			hook uninstall.
-			hooks remove: hook.
+			self hooks remove: hook.
 		].
 	].! !
 
@@ -2463,14 +2463,14 @@ isAbstract
 
 	^ false.! !
 
-!DAHookTest methodsFor: 'testing' stamp: 'as 4/7/2008 14:36'!
+!DAHookTest methodsFor: 'testing' stamp: 'as 4/15/2008 16:36'!
 testSimple
 
 	| mo pc hook count |
 
 	mo _ GPCounter new.
 	pc _ DAPointcut class: DAExamples class method: #noop.
-	hook _ DAHook on: pc do: mo with: #inc.	
+	hook _ DAHook on: pc do: #inc on: mo.	
 	hook install.
 	self cleanup: hook.
 
