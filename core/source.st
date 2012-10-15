@@ -750,11 +750,14 @@ arguments
 
 	^ arguments ifNil: [ arguments _ #(). ].! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:40'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:49'!
 arguments: aCollection
 
+	self
+		linksDo: [ :link | link key arguments: aCollection. ]
+		rollback: [ :link | link key arguments: arguments. ].
 	arguments _ aCollection.
-	links do: [ :link | link arguments: aCollection. ].! !
+	! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/16/2008 14:21'!
 aspect
@@ -771,13 +774,25 @@ control
 
 	^ control.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:41'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:49'!
 control: aSymbol
 
-	control _ aSymbol.
-	links do: [ :link | link control: aSymbol. ].! !
+	self
+		linksDo: [ :link | link key control: aSymbol. ]
+		rollback: [ :link | link key control: control. ].
+	control _ aSymbol.! !
 
-!DAConnector methodsFor: 'defaults' stamp: 'as 4/14/2008 16:17'!
+!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 14:04'!
+createLinks
+
+
+	links _ Dictionary new.
+	pointcut joinPoints do: [
+		:jp |
+		links at: jp put: (self newLink: jp).
+	].! !
+
+!DAConnector methodsFor: 'defaults' stamp: 'as 4/28/2008 14:06'!
 defaultControl
 
 	^ #before.! !
@@ -787,72 +802,94 @@ hookScope
 
 	self scope: #hook.! !
 
-!DAConnector methodsFor: 'initialize-release' stamp: 'as 4/21/2008 15:02'!
+!DAConnector methodsFor: 'initialize-release' stamp: 'as 4/28/2008 13:49'!
 initialize
 
-	links _ Set new.
+	installed _ false.
 	control _ self defaultControl.
-	installed _ false.! !
+	links _ Dictionary new.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/18/2008 15:43'!
+!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 14:03'!
 install
 
 	self isInstalled ifFalse: [
-		pointcut joinPoints do: [
-			:jp |
-			| link |
-			link _ self newLink: jp.
-			link hookOnJoinPoint: jp.
-			links add: link.
-		].
+		links ifEmpty: [ self createLinks. ].
+		self
+			linksDo: [ :link | link value hookOnJoinPoint: link key. ]
+			rollback: [ :link | link value uninstall. ].
 		installed _ true.
-	].
-		! !
+	].! !
 
 !DAConnector methodsFor: 'testing' stamp: 'as 4/18/2008 15:43'!
 isInstalled
 
 	^ installed.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 3/25/2008 09:20'!
-links
+!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 14:15'!
+linksDo: doBlock rollback: rollbackBlock
 
-	^ links.! !
+	| passed |
+
+	"Speed-up"	
+	links ifEmpty: [ ^ self. ].
+
+	passed _ Dictionary new.
+	[
+		links associationsDo: [
+			:link |
+			doBlock value: link.
+			passed add: link.
+		].
+	] ensure: [
+		passed = links ifFalse: [
+			self rollback: rollbackBlock for: passed.
+			self error: 'operation failed, rolled back'.
+		].
+	].! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
 metaObject
 
 	^ mo.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:39'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:51'!
 metaObject: anObject
 
+	self
+		linksDo: [ :link | self setMetaObject: anObject creator: nil for: link key. ]
+		rollback: [ :link | self setMetaObject: mo creator: moCreator for: link key. ].
 	mo _ anObject.
-	moCreator _ nil.
-	links do: [ :link | self setMetaObject: link. ].! !
+	moCreator _ nil.! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/14/2008 16:05'!
 metaObjectCreator
 
 	^ moCreator.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:43'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:52'!
 metaObjectCreator: aBlock
 
-	moCreator _ aBlock.
-	mo isDictionary ifFalse: [ mo _ Dictionary new. ].
-	links do: [ :link | self setMetaObject: link. ].! !
+	| dict |
+	
+	mo isDictionary ifTrue: [ dict _ mo. ] ifFalse: [ dict _ Dictionary new. ].
+	self
+		linksDo: [ :link | self setMetaObject: dict creator: aBlock for: link key. ]
+		rollback: [ :link | self setMetaObject: mo creator: moCreator for: link key. ].
+		
+	mo _ dict.
+	moCreator _ aBlock.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 11:44'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:52'!
 metaObjectCreator: aBlock dict: aDictionary
 
-	"A bit a hack, but useful if the meta object dictionary is shared with the outside."
-	
-	moCreator _ aBlock.
+	self
+		linksDo: [ :link | self setMetaObject: aDictionary creator: aBlock for: link key. ]
+		rollback: [ :link | self setMetaObject: mo creator: moCreator for: link key. ].
+		
 	mo _ aDictionary.
-	links do: [ :link | self setMetaObject: link. ].! !
+	moCreator _ aBlock.! !
 
-!DAConnector methodsFor: 'private' stamp: 'as 4/21/2008 15:58'!
+!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 11:17'!
 newLink: aDAJoinPoint
 
 	| link |
@@ -865,7 +902,7 @@ newLink: aDAJoinPoint
 	arguments ifNotNil: [ link arguments: arguments. ].
 	aDAJoinPoint condition ifNotNil: [ link conditionObject: aDAJoinPoint condition. ].
 	aDAJoinPoint context ifNotNil: [ link addOnActiveContext: aDAJoinPoint context. ].
-	self setMetaObject: link.
+	self setMetaObject: mo creator: moCreator for: link.
 	scope ifNotNil: [ link moScope: scope. ].
 	
 	^ link.! !
@@ -886,26 +923,55 @@ reinstall
 
 	self uninstall; install.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/7/2008 14:19'!
+!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 13:56'!
 reset
 
+	| reinstall |
+
+	self isInstalled ifTrue: [ self uninstall. reinstall _ true. ].
+	links removeAll.
 	self initializeMoDict.
-	pointcut reset.! !
+	pointcut reset.
+	reinstall ifTrue: [ self install. ].! !
+
+!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 14:16'!
+rollback: aBlock for: aDictionary
+
+	| failed |
+
+	failed _ false.
+	aDictionary associationsDo: [
+		:link |
+		[ aBlock value: link. ] on: Exception do: [
+			failed _ true.
+		].
+	].
+	failed ifTrue: [ self error: 'rollback failed'. ].! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 3/20/2008 16:02'!
 scope
 
 	^ scope.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/21/2008 15:16'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:49'!
 scope: aSymbol
 
+	| rollback |
+	
+	scope ifNil: [
+		rollback _ [ :link | link key noScope. ].
+	] ifNotNil: [
+		rollback _ [ :link | link key moScope: scope. ].
+	].
+
 	aSymbol = #hook ifTrue: [
-		scope _ nil.
-		links do: [ :link | link noScope. ].
+		self
+			linksDo: [ :link | link key noScope. ]
+			rollback: rollback.
 	] ifFalse: [
-		scope = aSymbol.
-		links do: [ :link | link moScope: aSymbol. ].
+		self
+			linksDo: [ :link | link key moScope: aSymbol. ]
+			rollback: rollback.
 	].! !
 
 !DAConnector methodsFor: 'accessing' stamp: 'as 4/7/2008 13:55'!
@@ -913,32 +979,32 @@ selector
 
 	^ selector.! !
 
-!DAConnector methodsFor: 'accessing' stamp: 'as 4/18/2008 15:47'!
+!DAConnector methodsFor: 'accessing' stamp: 'as 4/28/2008 13:50'!
 selector: aSymbol
 
-	selector _ aSymbol.
-	links do: [ :link | link selector: aSymbol. ].! !
+	self
+		linksDo: [ :link | link key selector: aSymbol. ]
+		rollback: [ :link | link key selector: selector. ].
+	selector _ aSymbol.! !
 
-!DAConnector methodsFor: 'private' stamp: 'as 4/21/2008 14:54'!
-setMetaObject: aGPLink
+!DAConnector methodsFor: 'private' stamp: 'as 4/28/2008 11:16'!
+setMetaObject: moObject creator: creatorObject for: aGPLink
 
 	"The link's dictionary of meta objects is hosted by the hook
 	 and is the same for all links."
 
 	scope ifNotNil: [
-		aGPLink metaObjectCreator: moCreator.
+		aGPLink metaObjectCreator: creatorObject.
 	].
-	aGPLink metaObject: mo.! !
+	aGPLink metaObject: moObject.! !
 
-!DAConnector methodsFor: 'installing' stamp: 'as 4/18/2008 15:43'!
+!DAConnector methodsFor: 'installing' stamp: 'as 4/28/2008 13:43'!
 uninstall
 
 	self isInstalled ifTrue: [
-		links do: [
-			:link |
-			link uninstall.
-			links remove: link.
-		].
+		self
+			linksDo: [ :link | link value uninstall. ]
+			rollback: [ :link | self error: 'rollback not possible'. ].
 		installed _ false.
 	].! !
 
@@ -2973,6 +3039,11 @@ hookOnJoinPoint: aDAJoinPoint
 		:node |
 		self hookOn: node.
 	].! !
+
+!GPLink methodsFor: '*DA' stamp: 'as 4/28/2008 13:31'!
+install
+
+	! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 4/21/2008 15:19'!
 noScope
