@@ -356,16 +356,47 @@ Object subclass: #DAContext
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DAContext commentStamp: 'as 4/9/2008 16:33' prior: 0!
+A very simple context, as it is used in Context-oriented programming. This is a rewrite of the existing Context class from Reflectivity.!
+
 DAContext subclass: #DAActiveContext
 	instanceVariableNames: 'active'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DAActiveContext commentStamp: 'as 4/9/2008 16:33' prior: 0!
+An active context can be activated/deactivated.!
+
+!DAActiveContext class methodsFor: 'composing' stamp: 'as 4/9/2008 16:22'!
+& aDAContextOrActiveContextClass
+
+	^ self and: aDAContextOrActiveContextClass.! !
+
+!DAActiveContext class methodsFor: 'composing' stamp: 'as 4/9/2008 16:24'!
+and: aDAContextOrActiveContextClass
+
+	^ self current and: aDAContextOrActiveContextClass.! !
+
 !DAActiveContext class methodsFor: 'instance creation' stamp: 'as 4/9/2008 15:23'!
 current
 
 	^ Processor activeProcess ctxtEnvironmentAt: self ifAbsentPut: [ self new. ].! !
+
+!DAActiveContext class methodsFor: 'composing' stamp: 'as 4/9/2008 15:41'!
+not
+
+	^ self current not.! !
+
+!DAActiveContext class methodsFor: 'composing' stamp: 'as 4/9/2008 16:24'!
+or: aDAContextOrActiveContextClass
+
+	^ self current or: aDAContextOrActiveContextClass.! !
+
+!DAActiveContext class methodsFor: 'composing' stamp: 'as 4/9/2008 16:22'!
+| aDAContextOrActiveContextClass
+
+	^ self or: aDAContextOrActiveContextClass.! !
 
 !DAActiveContext methodsFor: 'activating' stamp: 'as 4/8/2008 16:54'!
 activate
@@ -398,11 +429,17 @@ DAContext subclass: #DAComposedContext
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DAComposedContext commentStamp: 'as 4/9/2008 16:34' prior: 0!
+Compose one or more contexts by any operation concerning the isActive evaluation.!
+
 DAComposedContext subclass: #DAAndContext
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DA-Context'!
+
+!DAAndContext commentStamp: 'as 4/9/2008 16:46' prior: 0!
+Logically and two contexts.!
 
 !DAAndContext methodsFor: 'testing' stamp: 'as 4/8/2008 17:05'!
 isActive
@@ -446,6 +483,9 @@ DAComposedContext subclass: #DANotContext
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DANotContext commentStamp: 'as 4/9/2008 16:46' prior: 0!
+Invert a context.!
+
 !DANotContext methodsFor: 'private' stamp: 'as 4/8/2008 17:15'!
 child
 
@@ -467,6 +507,9 @@ DAComposedContext subclass: #DAOrContext
 	poolDictionaries: ''
 	category: 'DA-Context'!
 
+!DAOrContext commentStamp: 'as 4/9/2008 16:46' prior: 0!
+Logically or two contexts.!
+
 !DAOrContext methodsFor: 'testing' stamp: 'as 4/8/2008 17:10'!
 isActive
 
@@ -477,10 +520,15 @@ isActive
 
 	^ self and: aDAContext.! !
 
-!DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
-and: aDAContext
+!DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 16:14'!
+and: aDAContextOrActiveContextClass
 
-	^ DAAndContext contexts: { self. aDAContext. }.! !
+	^ DAAndContext contexts: { self current. aDAContextOrActiveContextClass current. }.! !
+
+!DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 15:47'!
+current
+
+	^ self.! !
 
 !DAContext methodsFor: 'testing' stamp: 'as 4/8/2008 16:49'!
 isActive
@@ -497,10 +545,10 @@ notActive
 
 	self isActive not.! !
 
-!DAContext methodsFor: 'composing' stamp: 'as 4/8/2008 17:14'!
-or: aDAContext
+!DAContext methodsFor: 'composing' stamp: 'as 4/9/2008 16:14'!
+or: aDAContextOrActiveContextClass
 
-	^ DAOrContext contexts: { self. aDAContext. }.! !
+	^ DAOrContext contexts: { self current. aDAContextOrActiveContextClass current. }.! !
 
 !DAContext methodsFor: 'accessing' stamp: 'as 4/8/2008 17:01'!
 parent
