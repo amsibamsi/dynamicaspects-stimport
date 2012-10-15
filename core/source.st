@@ -40,11 +40,6 @@ asPointcut
 
 	^ DAPointcut method: self.! !
 
-!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
-reflectiveMethod
-
-	^ self method parent.! !
-
 TestCase subclass: #DACodingTest
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -649,6 +644,12 @@ setUp
 tearDown
 
 	links do: [ :link | link uninstall. ].! !
+
+!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
+copyAfterIndex: anIndex
+
+	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
+	^ self copyFrom: anIndex to: self size.! !
 
 !ReflectiveMethod methodsFor: '*DA' stamp: 'as 4/18/2008 11:56'!
 asDescription
@@ -1753,6 +1754,11 @@ pointcut: aDAPointcut
 
 	^ self pointcut: aDAPointcut min: 1 max: 1.! !
 
+!DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/7/2008 17:26'!
+pointcut: aDAPointcut min: minNumber
+
+	^ self pointcut: aDAPointcut min: minNumber max: 0.! !
+
 !DAFlowContext class methodsFor: 'instance creation' stamp: 'as 5/7/2008 14:35'!
 pointcut: aDAPointcut min: minNumber max: maxNumber
 
@@ -2571,6 +2577,53 @@ visitName
 
 	^ 'empty'.! !
 
+DAPointcut subclass: #DAFlowPointcut
+	instanceVariableNames: 'context dependency'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Pointcuts'!
+
+!DAFlowPointcut commentStamp: 'as 5/7/2008 17:18' prior: 0!
+Specifies the flow inside another pointcut.!
+
+!DAFlowPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 17:32'!
+context: aDAContextPointcut dependency: aDADependencyPointcut
+
+	^ self new
+		context: aDAContextPointcut;
+		dependency: aDADependencyPointcut;
+		yourself.! !
+
+!DAFlowPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 17:33'!
+context
+
+	^ context.! !
+
+!DAFlowPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 17:33'!
+context: aDAContextPointcut
+
+	context _ aDAContextPointcut.! !
+
+!DAFlowPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 17:33'!
+dependency
+
+	^ dependency.! !
+
+!DAFlowPointcut methodsFor: 'accessing' stamp: 'as 5/7/2008 17:33'!
+dependency: aDADependencyPointcut
+
+	dependency _ aDADependencyPointcut.! !
+
+!DAFlowPointcut methodsFor: 'negating' stamp: 'as 5/7/2008 17:34'!
+not
+
+	context _ context not.! !
+
+!DAFlowPointcut methodsFor: 'visiting' stamp: 'as 5/7/2008 17:34'!
+visitName
+
+	^ 'flow'.! !
+
 DAPointcut subclass: #DANegatingPointcut
 	instanceVariableNames: 'negated'
 	classVariableNames: ''
@@ -2686,6 +2739,11 @@ connectors
 connectors: aCollection
 
 	connectors _ aCollection.! !
+
+!DADependencyPointcut methodsFor: 'negating' stamp: 'as 5/7/2008 17:15'!
+not
+
+	"No effect."! !
 
 !DADependencyPointcut methodsFor: 'visiting' stamp: 'as 5/5/2008 11:54'!
 visitName
@@ -2917,19 +2975,30 @@ fieldWrite: aString
 		].
 	].! !
 
-!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 14:35'!
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 17:47'!
 flow: aDAPointcut
+
+	^ self flow: aDAPointcut min: 1 max: 1.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 17:47'!
+flow: aDAPointcut min: minNumber
+
+	^ self flow: aDAPointcut min: minNumber max: 0.! !
+
+!DAPointcut class methodsFor: 'instance creation' stamp: 'as 5/7/2008 17:47'!
+flow: aDAPointcut min: minNumber max: maxNumber
 
 	| context connectors |
 	
-	context _ DAFlowContext pointcut: aDAPointcut.
+	context _ DAFlowContext pointcut: aDAPointcut min: minNumber max: maxNumber.
 	connectors _ {
 		DAFlow before: aDAPointcut.
 		DAFlow after: aDAPointcut.
 	}.
 
-	^ (DAContextPointcut context: context) &
-		(DADependencyPointcut connectors: connectors).! !
+	^ DAFlowPointcut
+		context: (DAContextPointcut context: context)
+		dependency: (DADependencyPointcut connectors: connectors).! !
 
 !DAPointcut class methodsFor: 'instance creation' stamp: 'as 3/3/2008 12:00'!
 globalVariable
@@ -3174,15 +3243,10 @@ visitContext: pc
 
 	joinPoints add: (DAJoinPoint new context: pc context; yourself).! !
 
-!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/6/2008 17:30'!
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 17:17'!
 visitDependency: pc
 
-	| jp |
-	jp _ DAJoinPoint new.
-	pc isNegated ifFalse: [
-		jp dependencies: pc connectors.
-	].
-	joinPoints add: jp.! !
+	joinPoints add: (DAJoinPoint new dependencies: pc connectors; yourself).! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 4/28/2008 14:22'!
 visitEmpty: pc
@@ -3200,6 +3264,13 @@ visitFilter: pc
 		jp filterAt: filter key put: (DABlockFilter block: filter value).
 	].
 	joinPoints add: jp.! !
+
+!DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 17:44'!
+visitFlow: pc
+
+	pc dependency acceptVisitor: self.
+	pc context acceptVisitor: self.
+	joinPoints add: (joinPoints removeAt: 1) & (joinPoints removeAt: 2).! !
 
 !DAPointcutEvaluator methodsFor: 'visiting' stamp: 'as 5/7/2008 16:30'!
 visitMethod: pc
@@ -3497,11 +3568,10 @@ subaspect: class pointcutNames: pointcuts instanceVariableNames: instVars classV
 		pointcutNames: pointcuts.
 	^ newClass.! !
 
-!SequenceableCollection methodsFor: '*DA' stamp: 'as 4/14/2008 10:24'!
-copyAfterIndex: anIndex
+!RBProgramNode methodsFor: '*DA' stamp: 'as 4/18/2008 12:09'!
+reflectiveMethod
 
-	anIndex > self size ifTrue: [ ^ self copyEmpty. ].
-	^ self copyFrom: anIndex to: self size.! !
+	^ self method parent.! !
 
 !GPLink methodsFor: '*DA' stamp: 'as 3/10/2008 15:03'!
 conditionObject: aDACondition
