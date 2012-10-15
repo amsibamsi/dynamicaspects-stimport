@@ -767,10 +767,10 @@ metaObject: anObject
 
 	mo _ anObject.! !
 
-!DAHook methodsFor: 'accessing' stamp: 'as 4/7/2008 13:54'!
+!DAHook methodsFor: 'accessing' stamp: 'as 4/9/2008 17:05'!
 metaObjects
 
-	^ metaObjects.! !
+	^ moDict.! !
 
 !DAHook methodsFor: 'private' stamp: 'as 4/8/2008 17:32'!
 newLink: aDAJoinPoint
