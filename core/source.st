@@ -448,6 +448,64 @@ testAnd
 	pc _ (DAPointcut method: m) and: (DAPointcut methodName: '=').
 	self assert: (pc nodes includesExactly: { m methodNode. }).! !
 
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:17'!
+testCategory
+
+	| pc jp |
+
+	pc _ DAPointcut category: #'Kernel-Classes'.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp categories includesExactly: { #'Kernel-Classes'. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:18'!
+testClass
+
+	| pc jp |
+
+	pc _ DAPointcut class: Object.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp classes includesExactly: { Object. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:36'!
+testCondition
+
+	| con pc jp |
+
+	con _ [ true. ].
+	pc _ DAPointcut if: con.
+	jp _ pc joinPoints anyOne.
+	self assert: jp condition block = con.! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:45'!
+testContext
+
+	| con pc jp |
+
+	con _ DAExampleContext.
+	pc _ DAPointcut context: con.
+	jp _ pc joinPoints anyOne.
+	self assert: jp context = con.! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:23'!
+testMethod
+
+	| pc jp |
+
+	pc _ DAPointcut method: Behavior >> #new.
+	jp _ pc joinPoints anyOne.
+	self assert: (jp nodes includesExactly: { (Behavior >>> #new) methodNode. }).! !
+
+!DAPointcutTest methodsFor: 'testing' stamp: 'as 4/23/2008 16:33'!
+testNode
+
+	| pc jp |
+
+	pc _ (DAPointcut node: [ :node | node isReturn. ]) and:
+		(DAPointcut method: Behavior >> #new).
+	jp _ pc joinPoints anyOne.
+	self assert:
+		(jp nodes includesExactly: { (Behavior >>> #new) methodNode body statements first. }).! !
+
 !DAPointcutTest methodsFor: 'testing' stamp: 'as 3/31/2008 17:00'!
 testOr
 
@@ -1011,6 +1069,11 @@ arguments: args
 
 	arguments _ args.! !
 
+!DABlockCondition methodsFor: 'accessing' stamp: 'as 4/23/2008 16:36'!
+block
+
+	^ block.! !
+
 !DABlockCondition methodsFor: 'accessing' stamp: 'as 3/10/2008 14:45'!
 block: aBlock
 
@@ -1511,6 +1574,15 @@ processor
 setActive: aBoolean
 
 	active _ aBoolean.! !
+
+DAActiveContext subclass: #DAExampleContext
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'DA-Contexts'!
+
+!DAExampleContext commentStamp: 'as 4/23/2008 16:42' prior: 0!
+For example purposes.!
 
 DAContext subclass: #DAComposedContext
 	instanceVariableNames: 'children'
