@@ -133,29 +133,53 @@ beforeFieldWritesWithNode: node
 		method selector.
 	Transcript cr.! !
 
-DAAspect subclass: #DAStoreHalosExample
+DAAspect subclass: #DAStoreRenderExample
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'DAExamples-Store'!
 
-!DAStoreHalosExample commentStamp: 'as 8/2/2008 18:10' prior: 0!
+!DAStoreRenderExample commentStamp: 'as 8/2/2008 18:10' prior: 0!
 Render a halo around each component.!
 
-!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
+!DAStoreRenderExample class methodsFor: 'pointcuts' stamp: 'as 8/4/2008 08:49'!
+css
+
+	^ (PC class: WAStore method: #style).! !
+
+!DAStoreRenderExample class methodsFor: 'pointcuts' stamp: 'as 8/4/2008 08:44'!
 pointcutNames
 
-	^ #(rendering).! !
+	^ #(rendering css).! !
 
-!DAStoreHalosExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
+!DAStoreRenderExample class methodsFor: 'pointcuts' stamp: 'as 8/2/2008 18:10'!
 rendering
 
 	^ (PC className: 'WAStore*' methodName: #renderContentOn:).! !
 
-!DAStoreHalosExample methodsFor: 'advices' stamp: 'as 8/2/2008 18:11'!
+!DAStoreRenderExample methodsFor: 'advices' stamp: 'as 8/4/2008 08:54'!
 beforeRenderingWithArg1: html object: component
 
-	html paragraph: [ html small: [ html text: component asString. ]. ].! !
+	html div id: 'halo'; with: [
+		html small: [ html text: component asString. ].
+	].! !
+
+!DAStoreRenderExample methodsFor: 'advices' stamp: 'as 8/4/2008 08:57'!
+insteadCssWithOperation: o
+
+	^ o value, '
+		#halo {
+			z-index: 20;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			padding: 2px;
+			color: #aa0000;
+			background-color: #ffa0a0;
+			border: 1px solid #ff0000;
+			font: 10pt Verdana, Arial, Helvetica, sans-serif;
+		}
+	'! !
 
 DAAspect subclass: #DAStoreTitleExample
 	instanceVariableNames: ''
